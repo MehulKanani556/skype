@@ -1,12 +1,16 @@
-import logo from './logo.svg';
+
 import './App.css';
 import Login from './pages/Login';
-
+import SkypeClone from './pages/main';
+import { Provider } from 'react-redux';
+import { configureStore } from './reduxe/store';
 function App() {
+  const { store, persistor } = configureStore();
   return (
-    <div className="App">
-      <Login />
-    </div>
+    <Provider store={store}>
+      {/* <Login /> */}
+      <SkypeClone />
+      </Provider>
   );
 }
 
