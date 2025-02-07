@@ -14,6 +14,7 @@ const initialState = {
     user: null,
     onlineUser: [],
     allUsers: [],
+    messages: [],
     isAuthenticated: !!sessionStorage.getItem('token') && sessionStorage.getItem('role') === 'admin',
     loading: false,
     error: null,
@@ -149,9 +150,10 @@ export const getAllUsers = createAsyncThunk(
     'user/getAllUsers',
     async (_ , { rejectWithValue }) => {
         try {
+            const token = await sessionStorage.getItem("token");
             const response = await axios.get(`${BASE_URL}/allUsers`,{
                 headers:{
-                    Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2N2E1ODM3ODliNTk2N2JlMWQzNzM4NDkiLCJpYXQiOjE3Mzg5MTI5NTUsImV4cCI6MTczODk5OTM1NX0.TXghEMlULnaG1vX2FyZg8OnttpyINNGaDonbyno28tk`
+                    Authorization: `Bearer ${token}`
                 }
             });
             console.log(response.data.users);
@@ -166,12 +168,34 @@ export const getOnlineUsers = createAsyncThunk(
     'user/getOnlineUsers',
     async (_, { rejectWithValue }) => {
         try {
+            const token = await sessionStorage.getItem("token");
             const response = await axios.get(`${BASE_URL}/online-users`,{
                 headers:{
-                    Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2N2E1ODM3ODliNTk2N2JlMWQzNzM4NDkiLCJpYXQiOjE3Mzg5MTI5NTUsImV4cCI6MTczODk5OTM1NX0.TXghEMlULnaG1vX2FyZg8OnttpyINNGaDonbyno28tk`
+                    Authorization: `Bearer ${token}`
                 }
             });
             return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
+export const getAllMessages = createAsyncThunk(
+    'user/getAllMessages',
+    async ({selectedId}, { rejectWithValue }) => {
+        try {   
+            console.log(selectedId);
+            const token = await sessionStorage.getItem("token");
+            const response = await axios.post(`${BASE_URL}/allMessages`, {selectedId},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+            console.log(response.data);
+            return response.data.messages;
         } catch (error) {
             return handleErrors(error, null, rejectWithValue);
         }
@@ -336,7 +360,23 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload.message;
                 state.message = action.payload?.message || "Failed to retrieve online users";
-            });
+            })
+            .addCase(getAllMessages.fulfilled, (state, action) => {
+                state.messages = action.payload;
+                state.loading = false;
+                state.error = null;
+                state.message = "Messages retrieved successfully";
+            })
+            .addCase(getAllMessages.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload.message;
+                state.message = action.payload?.message || "Failed to retrieve messages";
+            })
+            .addCase(getAllMessages.pending, (state, action) => {
+                state.loading = true;
+                state.error = null;
+                state.message = "Retrieving messages...";
+            })
 
 
     },
