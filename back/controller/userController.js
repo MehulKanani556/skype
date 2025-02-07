@@ -1,6 +1,6 @@
 const user = require('../models/userModels')
 const bcrypt = require('bcrypt')
-
+const jwt = require('jsonwebtoken')
 exports.createUser = async (req, res) => {
     try {
         let { userName, email, password } = req.body
@@ -19,8 +19,8 @@ exports.createUser = async (req, res) => {
             email,
             password: hashPassword,
         })
-
-        return res.status(201).json({ status: 201, message: "User Created SuccessFully...", user: checkExistUser })
+ let token = await jwt.sign({ _id: checkExistUser._id }, process.env.SECRET_KEY, { expiresIn: "1D" })
+        return res.status(201).json({ status: 201, message: "User Created SuccessFully...", user: checkExistUser, token: token })
 
     } catch (error) {
         console.log(error)

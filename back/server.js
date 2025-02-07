@@ -8,10 +8,7 @@ const indexRoutes = require('./routes/indexRoutes');
 
 
 server.use(express.json());
-server.use(cors({
-    origin: 'http://localhost:3000',
-    credentials: true
-}));
+server.use(cors());
 
 server.use('/api', indexRoutes)
 

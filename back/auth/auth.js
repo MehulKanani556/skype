@@ -27,3 +27,22 @@ exports.userLogin = async (req, res) => {
         return res.status(500).json({ status: 500, message: error.message })
     }
 }
+exports.googleLogin = async (req, res) => {
+    try {
+        let { uid, name, email } = req.body;
+        let checkUser = await user.findOne({ email });
+        if (!checkUser) {
+            checkUser = await user.create({
+                uid,
+                name,
+                email,
+            });
+        }
+        checkUser = checkUser.toObject();
+        let token = await jwt.sign({ _id: checkUser._id }, process.env.SECRET_KEY, { expiresIn: "1D" })
+        // checkUser.token = generateToken(checkUser._id);
+        return res.status(200).json({ message: 'login successful', success: true, user: checkUser, token: token });
+    } catch (error) {
+        throw new Error(error);
+    }
+};
