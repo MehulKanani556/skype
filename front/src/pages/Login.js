@@ -6,6 +6,8 @@ import { forgotPassword, googleLogin, login, register, resetPassword, verifyOtp 
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import React, { useState, useEffect } from "react";
+import { Formik, Form, Field, ErrorMessage } from "formik";
 
 const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleVerifyOTP, handleBack }) => {
   const [otp, setOtp] = useState(new Array(length).fill(''));
@@ -147,8 +149,8 @@ const Login = () => {
       setIsMobile(window.innerWidth < 768);
     };
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // useEffect(() => {
@@ -168,14 +170,18 @@ const Login = () => {
   };
 
   const signUpSchema = Yup.object().shape({
-    userName: Yup.string().required('Name is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+    userName: Yup.string().required("Name is required"),
+    email: Yup.string().email("Invalid email").required("Email is required"),
+    password: Yup.string()
+      .min(6, "Password must be at least 6 characters")
+      .required("Password is required"),
   });
 
   const signInSchema = Yup.object().shape({
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
+    email: Yup.string().email("Invalid email").required("Email is required"),
+    password: Yup.string()
+      .min(6, "Password must be at least 6 characters")
+      .required("Password is required"),
   });
 
   const FormContainer = ({ children, isSignUp }) => (
@@ -571,10 +577,14 @@ const Login = () => {
             ${isRightPanelActive ? 'translate-x-1/2' : 'translate-x-0'} transition-transform duration-500 ease-in-out`}>
 
             {/* Left Overlay Panel */}
-            <div className={`absolute top-0 flex flex-col items-center justify-center px-8 md:px-10 text-center h-full w-1/2 transition-transform duration-500 ease-in-out
-              ${isRightPanelActive ? 'translate-x-0' : '-translate-x-[20%]'}`}>
+            <div
+              className={`absolute top-0 flex flex-col items-center justify-center px-8 md:px-10 text-center h-full w-1/2 transition-transform duration-500 ease-in-out
+              ${isRightPanelActive ? "translate-x-0" : "-translate-x-[20%]"}`}
+            >
               <h1 className="text-3xl font-bold mb-4">Welcome Back!</h1>
-              <p className="mb-6">Sign in with your personal info to stay connected with us</p>
+              <p className="mb-6">
+                Sign in with your personal info to stay connected with us
+              </p>
               <button
                 onClick={togglePanel}
                 className="border-2 border-white px-8 py-2 rounded-full font-semibold hover:bg-white/10 transition-colors"
@@ -584,10 +594,14 @@ const Login = () => {
             </div>
 
             {/* Right Overlay Panel */}
-            <div className={`absolute top-0 right-0 flex flex-col items-center justify-center px-8 md:px-10 text-center h-full w-1/2 transition-transform duration-500 ease-in-out
-              ${isRightPanelActive ? 'translate-x-[20%]' : 'translate-x-0'}`}>
+            <div
+              className={`absolute top-0 right-0 flex flex-col items-center justify-center px-8 md:px-10 text-center h-full w-1/2 transition-transform duration-500 ease-in-out
+              ${isRightPanelActive ? "translate-x-[20%]" : "translate-x-0"}`}
+            >
               <h1 className="text-3xl font-bold mb-4">Hello, Friend!</h1>
-              <p className="mb-6">Begin your journey with us by entering your personal details</p>
+              <p className="mb-6">
+                Begin your journey with us by entering your personal details
+              </p>
               <button
                 onClick={togglePanel}
                 className="border-2 border-white px-8 py-2 rounded-full font-semibold hover:bg-white/10 transition-colors"

@@ -58,6 +58,8 @@ export const useSocket = (userId) => {
         message,
       };
 
+      console.log(messageData);
+
       socketRef.current.emit("private-message", messageData);
 
       // Wait for message status
@@ -70,6 +72,8 @@ export const useSocket = (userId) => {
   // Send typing status
   const sendTypingStatus = (receiverId, isTyping) => {
     if (!socketRef.current?.connected) return;
+
+    console.log(userId,receiverId,isTyping);
 
     socketRef.current.emit("typing-status", {
       senderId: userId,

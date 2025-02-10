@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import {
   FaSearch,
   FaCommentDots,
@@ -12,27 +12,48 @@ import {
 } from "react-icons/fa";
 import { useSocket } from "../hooks/useSocket";
 import { useDispatch, useSelector } from "react-redux";
-import { getAllUsers, getOnlineUsers } from "../redux/slice/user.slice";
+import {
+  getAllMessages,
+  getAllUsers,
+  getOnlineUsers,
+} from "../redux/slice/user.slice";
+import { useScreenShare } from "../hooks/useScreenShare";
+import { SocketContext } from "../context/SocketContext"; // Adjust the import path based on your structure
 
 const Chat2 = () => {
   const [selectedTab, setSelectedTab] = useState("Chats");
   const [recentChats, setRecentChats] = useState([]);
-  const [messages, setMessages] = useState([]);
+  const [messagesA, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
-  const [currentUser] = useState({ id: "123", name: "archit bhuva" }); // Replace with actual user data
+  const [currentUser] = useState(sessionStorage.getItem("userId")); // Replace with actual user data
   const [selectedChat, setSelectedChat] = useState(null);
   const typingTimeoutRef = useRef(null);
 
   const dispatch = useDispatch();
 
-  const {onlineUser,isLoading,allUsers} = useSelector((state)=>state.user);
+  const { onlineUser, isLoading, allUsers, messages } = useSelector(
+    (state) => state.user
+  );
+  const { socket } = useSocket();
 
-  console.log(onlineUser,allUsers);
+  // Get socket from context
+//   const { socket } = useContext(SocketContext);
+  const { startScreenShare, stopScreenShare, handleIncomingScreenShare } =
+    useScreenShare(socket);
+  const remoteVideoRef = useRef(null);
 
-  useEffect(()=>{
+  console.log(messages);
+
+  useEffect(() => {
     dispatch(getAllUsers());
     dispatch(getOnlineUsers());
-  },[dispatch]);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (selectedChat) {
+      dispatch(getAllMessages({ selectedId: selectedChat._id }));
+    }
+  }, [selectedChat]);
 
   // Use the custom socket hook
   const {
@@ -42,10 +63,9 @@ const Chat2 = () => {
     sendTypingStatus,
     subscribeToMessages,
     subscribeToTyping,
-  } = useSocket(currentUser.id);
+  } = useSocket(currentUser);
 
   console.log(onlineUsers);
-  
 
   // Subscribe to messages and typing status
   useEffect(() => {
@@ -59,7 +79,7 @@ const Chat2 = () => {
           id: message.id,
           text: message.text,
           time: message.time,
-          sender: message.senderId === currentUser.id ? "me" : "other",
+          sender: message.senderId === currentUser ? "me" : "other",
         },
       ]);
     });
@@ -77,7 +97,7 @@ const Chat2 = () => {
     };
   }, [
     isConnected,
-    currentUser.id,
+    currentUser,
     selectedChat,
     subscribeToMessages,
     subscribeToTyping,
@@ -90,6 +110,8 @@ const Chat2 = () => {
     try {
       const status = await sendPrivateMessage(selectedChat._id, text);
 
+      console.log(status);
+
       // Add message to local state
       setMessages((prev) => [
         ...prev,
@@ -101,6 +123,7 @@ const Chat2 = () => {
           status: status.status,
         },
       ]);
+      dispatch(getAllMessages({ selectedId: selectedChat._id }));
     } catch (error) {
       console.error("Failed to send message:", error);
       // Handle error (show notification, etc.)
@@ -125,7 +148,6 @@ const Chat2 = () => {
   // Simulate fetching data from an API
   useEffect(() => {
     const fetchChats = async () => {
-
       // Simulate an API call
       const fetchedChats = [
         {
@@ -183,6 +205,30 @@ const Chat2 = () => {
     fetchChats();
     fetchMessages();
   }, []);
+
+  useEffect(() => {
+    if (socket) {
+      socket.on("screenShareOffer", (data) => {
+        handleIncomingScreenShare(data, remoteVideoRef.current);
+      });
+    }
+
+    // Cleanup socket listener on unmount
+    return () => {
+      if (socket) {
+        socket.off("screenShareOffer");
+      }
+    };
+  }, [socket, handleIncomingScreenShare]);
+
+  const handleStartScreenShare = async () => {
+    if (selectedChat && socket) {
+      const success = await startScreenShare(selectedChat._id);
+      if (!success) {
+        console.error("Failed to start screen sharing");
+      }
+    }
+  };
 
   return (
     <div className="flex h-screen bg-white">
@@ -257,41 +303,55 @@ const Chat2 = () => {
 
         {/* Chat List with online status */}
         <div className="flex-1 overflow-y-auto">
-          {allUsers.map((chat) => (
-            <div
-              key={chat._id}
-              className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${
-                selectedChat?._id === chat._id ? "bg-gray-100" : ""
-              }`}
-              onClick={() => setSelectedChat(chat)}
-            >
-              <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                  {chat.avatar || chat.email.charAt(0)}
-                </div>
-                {onlineUsers.includes(chat._id) && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
-                )}
-              </div>
-              <div className="ml-3 flex-1">
-                <div className="flex justify-between">
-                  <span className="font-medium">{chat.userName}</span>
-                  <span className="text-xs text-gray-500">
-                    {new Date(chat.createdAt).toLocaleTimeString()}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  {chat.email}
-                  {chat.hasPhoto && (
-                    <span className="text-xs ml-1">[photo]</span>
+          {[...allUsers]
+            .sort((a, b) => {
+              // Put current user first
+              if (a._id === currentUser) return -1;
+              if (b._id === currentUser) return 1;
+              return 0;
+            })
+            .map((chat) => (
+              <div
+                key={chat._id}
+                className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${
+                  selectedChat?._id === chat._id ? "bg-gray-100" : ""
+                }`}
+                onClick={() => setSelectedChat(chat)}
+              >
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                    {chat.avatar || chat.email.charAt(0)}
+                  </div>
+                  {onlineUsers.includes(chat._id) && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
                   )}
                 </div>
+                <div className="ml-3 flex-1">
+                  <div className="flex justify-between">
+                    <span className="font-medium">
+                      {chat._id === currentUser
+                        ? `${chat.userName} (You)`
+                        : chat.userName}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(chat.createdAt).toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {chat.email}
+                    {chat.hasPhoto && (
+                      <span className="text-xs ml-1">[photo]</span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
-
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Chat Header */}
@@ -299,65 +359,138 @@ const Chat2 = () => {
           <div className="flex items-center">
             <div className="w-10 h-10 rounded-full bg-gray-300"></div>
             <div className="ml-3">
-              <div className="font-medium">Mehul Kanani</div>
-              <div className="text-sm text-green-500">Active now</div>
+              <div className="font-medium">
+                {selectedChat?.userName || "Select a chat"}
+              </div>
+              <div className="text-sm text-green-500">
+                {onlineUsers.includes(selectedChat?._id)
+                  ? "Active now"
+                  : "Offline"}
+              </div>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <FaSearch className="w-6 h-6" />
-            <FaPhone className="w-6 h-6" />
-            <FaVideo className="w-6 h-6" />
-            <FaEllipsisH className="w-6 h-6" />
-          </div>
+          {selectedChat && (
+            <div className="flex items-center space-x-4">
+              <FaSearch className="w-6 h-6" />
+              <FaPhone className="w-6 h-6" />
+              <FaVideo className="w-6 h-6" />
+              <FaEllipsisH className="w-6 h-6" />
+            </div>
+          )}
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${
-                message.sender === "other" ? "justify-start" : "justify-end"
-              } mb-4`}
-            >
-              {message.type === "file" ? (
-                <div className="bg-blue-50 rounded-lg p-4 max-w-sm">
-                  <div className="flex items-center">
-                    <FaDownload className="w-6 h-6" />
-                    <div className="ml-3">
-                      <div className="font-medium">{message.content}</div>
-                      <div className="text-sm text-gray-500">
-                        {message.size}
+        {selectedChat ? (
+          <div className="flex-1 overflow-y-auto p-4">
+            {messages && messages.length > 0 ? (
+              messages.map((message) => (
+                <div
+                  key={message._id}
+                  className={`flex ${
+                    message.sender === sessionStorage.getItem("userId")
+                      ? "justify-end"
+                      : "justify-start"
+                  } mb-4`}
+                >
+                  {message.type === "file" ? (
+                    <div className="bg-blue-50 rounded-lg p-4 max-w-sm">
+                      <div className="flex items-center">
+                        <FaDownload className="w-6 h-6" />
+                        <div className="ml-3">
+                          <div className="font-medium">{message.content}</div>
+                          <div className="text-sm text-gray-500">
+                            {message.size}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex flex-col">
+                      <div className="bg-blue-50 rounded-lg py-2 px-4">
+                        <p>{message.content}</p>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {(() => {
+                          const msgDate = new Date(message.createdAt);
+                          const today = new Date();
+                          const tomorrow = new Date(today);
+                          tomorrow.setDate(tomorrow.getDate() + 1);
+
+                          if (msgDate > tomorrow) {
+                            return (
+                              msgDate.toLocaleDateString("en-GB") +
+                              " " +
+                              msgDate.toLocaleTimeString([], {
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              })
+                            );
+                          }
+                          return msgDate.toLocaleTimeString([], {
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                          });
+                        })()}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="bg-blue-50 rounded-lg py-2 px-4">
-                  <p>{message.text}</p>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+              ))
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-500">
+                No messages yet
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-gray-500">
+            Select a chat to start messaging
+          </div>
+        )}
 
         {/* Message Input */}
-        <div className="border-t p-4">
-          <div className="flex items-center">
-            <FaPlus className="w-6 h-6" />
-            <input
-              type="text"
-              placeholder="Type a message"
-              className="ml-4 flex-1 outline-none"
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  handleSendMessage(e.target.value);
-                  e.target.value = "";
-                }
-              }}
-            />
+        {selectedChat && (
+          <div className="border-t p-4">
+            <div className="flex items-center">
+              <button onClick={handleStartScreenShare}>Share Screen</button>
+              <video ref={remoteVideoRef} autoPlay playsInline />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <FaPlus className="w-6 h-6" />
+              </label>
+              <input
+                id="file-upload"
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    handleSendMessage({
+                      type: "file",
+                      content: file.name,
+                      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+                    });
+                  }
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Type a message"
+                className="ml-4 flex-1 outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSendMessage({
+                      type: "text",
+                      content: e.target.value,
+                    });
+                    e.target.value = "";
+                  }
+                }}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

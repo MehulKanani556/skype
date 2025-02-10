@@ -2,6 +2,7 @@ const Message = require("../models/messageModel");
 
 exports.saveMessage = async (messageData) => {
   try {
+    console.log("messageData");
     const message = new Message({
       sender: messageData.senderId,
       receiver: messageData.receiverId,
@@ -34,6 +35,54 @@ exports.getMessageHistory = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+    return res.status(500).json({ status: 500, message: error.message });
+  }
+};
+
+exports.getAllMessages = async (req, res) => {
+  try {
+    let page = parseInt(req.query.page);
+    let pageSize = parseInt(req.query.pageSize);
+
+    if (page < 1 || pageSize < 1) {
+      return res.status(401).json({
+        status: 401,
+        message: "Page And PageSize Cann't Be Less Than 1",
+      });
+    }
+
+    const { selectedId } = req.body;
+    console.log(selectedId);
+    
+    let paginatedUser;
+
+    paginatedUser = await Message.find({
+      $or: [
+        { sender: req.user._id, receiver: selectedId },
+        { sender: selectedId, receiver: req.user._id },
+      ],
+    });
+
+    let count = paginatedUser.length;
+
+    // if (count === 0) {
+    //   return res.status(404).json({ status: 404, message: "User Not Found" });
+    // }
+
+    if (page && pageSize) {
+      let startIndex = (page - 1) * pageSize;
+      let lastIndex = startIndex + pageSize;
+      paginatedUser = await paginatedUser.slice(startIndex, lastIndex);
+    }
+
+    return res.status(200).json({
+      status: 200,
+      totalUsers: count,
+      message: "All Users Found SuccessFully...",
+      messages: paginatedUser,
+    });
+  } catch (error) {
+    console.log(error);
     return res.status(500).json({ status: 500, message: error.message });
   }
 };
