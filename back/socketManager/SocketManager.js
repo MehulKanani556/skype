@@ -1,4 +1,5 @@
 const { saveMessage } = require("../controller/messageController");
+const Message = require("../models/messageModel");
 
 const onlineUsers = new Map();
 
@@ -29,7 +30,7 @@ async function handlePrivateMessage(socket, data) {
     await saveMessage({
       senderId,
       receiverId,
-      message: content,
+      content: content,
     });
 
     const receiverSocketId = onlineUsers.get(receiverId);
@@ -75,7 +76,49 @@ function handleTypingStatus(socket, data) {
     socket.to(receiverSocketId).emit("user-typing", {
       userId: senderId,
       isTyping,
+      receiverId
     });
+  }
+}
+
+async function handleDeleteMessage(socket, messageId) {
+  try {
+
+    console.log("messageId", messageId);
+    // Assuming the message document contains senderId and receiverId
+    const message = await Message.findById(messageId);
+    if (!message) return;
+
+    console.log("message", message.receiver.toString());
+
+    // Notify the other user about the message deletion
+    const receiverSocketId = onlineUsers.get(message.receiver.toString());
+    console.log("receiverSocketId", receiverSocketId);
+    if (receiverSocketId) {
+      socket.to(receiverSocketId).emit("message-deleted", messageId);
+    }
+
+  } catch (error) {
+    console.error("Error handling message deletion:", error);
+  }
+}
+
+async function handleUpdateMessage(socket, data) {
+  try {
+    const { messageId, content } = data;
+    const message = await Message.findById(messageId);
+    if (!message) return;
+
+    // Notify the other user about the message update
+    const receiverSocketId = onlineUsers.get(message.receiver.toString());
+    if (receiverSocketId) {
+      socket.to(receiverSocketId).emit("message-updated", {
+        messageId,
+        content
+      });
+    }
+  } catch (error) {
+    console.error("Error handling message update:", error);
   }
 }
 
@@ -114,6 +157,54 @@ function handleScreenShareAnswer(socket, data) {
   }
 }
 
+
+// ===========================call=============================
+
+
+function handleCallOffer(socket, data) {
+  const { to, from, offer, type } = data;
+  const receiverSocketId = onlineUsers.get(to);
+
+  if (receiverSocketId) {
+    socket.to(receiverSocketId).emit("callOffer", {
+      from,
+      offer,
+      type // 'video' or 'audio'
+    });
+  }
+}
+
+function handleCallAnswer(socket, data) {
+  const { to, answer } = data;
+  const callerSocketId = onlineUsers.get(to);
+
+  if (callerSocketId) {
+    socket.to(callerSocketId).emit("callAnswer", {
+      answer
+    });
+  }
+}
+
+function handleIceCandidate(socket, data) {
+  const { to, candidate } = data;
+  const targetSocketId = onlineUsers.get(to);
+
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("iceCandidate", {
+      candidate
+    });
+  }
+}
+
+function handleCallEnd(socket, data) {
+  const { to } = data;
+  const targetSocketId = onlineUsers.get(to);
+
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("callEnded");
+  }
+}
+
 function handleConnection(socket) {
   console.log("User connected:", socket.id);
 
@@ -129,11 +220,23 @@ function handleConnection(socket) {
   // Handle disconnection
   socket.on("disconnect", () => handleDisconnect(socket));
 
+  // Handle message deletion
+  socket.on("delete-message", (messageId) => handleDeleteMessage(socket, messageId));
+
+  // Handle message update
+  socket.on("update-message", (data) => handleUpdateMessage(socket, data));
+
   // Add screen sharing handlers
   socket.on("screenShareRequest", (data) => handleScreenShare(socket, data));
   socket.on("screenShareAnswer", (data) =>
     handleScreenShareAnswer(socket, data)
   );
+
+  // =====calll======
+  socket.on("callOffer", (data) => handleCallOffer(socket, data));
+  socket.on("callAnswer", (data) => handleCallAnswer(socket, data));
+  socket.on("iceCandidate", (data) => handleIceCandidate(socket, data));
+  socket.on("endCall", (data) => handleCallEnd(socket, data));
 }
 
 function getOnlineUsers() {

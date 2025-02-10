@@ -14,12 +14,16 @@ const messageSchema = mongoose.Schema(
     },
     content: {
       type: Object,
-      required: true,
+      required: false,
     },
     status: {
       type: String,
       enum: ["sent", "delivered", "read"],
       default: "sent",
+    },
+    deletedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

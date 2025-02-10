@@ -15,11 +15,13 @@ import {
 import { useSocket } from "../hooks/useSocket";
 import { useDispatch, useSelector } from "react-redux";
 import {
+  deleteMessage,
   getAllMessages,
   getAllUsers,
   getOnlineUsers,
+  updateMessage,
 } from "../redux/slice/user.slice";
-import { BASE_URL } from "../utils/baseUrl";
+import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
 // Adjust the import path based on your structure
 
@@ -27,17 +29,28 @@ const Chat2 = () => {
   const [selectedTab, setSelectedTab] = useState("Chats");
   const [recentChats, setRecentChats] = useState([]);
   const [messagesA, setMessages] = useState([]);
-  const [isTyping, setIsTyping] = useState(false);
   const [currentUser] = useState(sessionStorage.getItem("userId")); // Replace with actual user data
   const [selectedChat, setSelectedChat] = useState(null);
   const typingTimeoutRef = useRef(null);
+  const [typingUsers, setTypingUsers] = useState({});
+  const [showCallModal, setShowCallModal] = useState(false);
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const [contextMenu, setContextMenu] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    messageId: null,
+  });
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [messageInput, setMessageInput] = useState("");
+  const inputRef = useRef(null);
 
   const dispatch = useDispatch();
 
   const { onlineUser, isLoading, allUsers, messages } = useSelector(
     (state) => state.user
   );
-  const remoteVideoRef = useRef(null);
 
   console.log(messages);
 
@@ -64,6 +77,12 @@ const Chat2 = () => {
     startScreenShare,
     stopScreenShare,
     handleIncomingScreenShare,
+    makeCall,
+    answerCall,
+    endCall,
+    currentCall,
+    localStreamRef,
+    remoteStreamRef,
   } = useSocket(currentUser);
 
   console.log(onlineUsers);
@@ -72,66 +91,127 @@ const Chat2 = () => {
   useEffect(() => {
     if (!isConnected) return;
 
-    // Subscribe to new messages
     const unsubscribeMessages = subscribeToMessages((message) => {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: message.id,
-          text: message.text,
-          time: message.time,
-          sender: message.senderId === currentUser ? "me" : "other",
-        },
-      ]);
-      dispatch(getAllMessages({ selectedId: selectedChat._id }));
-    });
-
-    // Subscribe to typing status
-    const unsubscribeTyping = subscribeToTyping(({ userId, isTyping }) => {
-      if (selectedChat?.id === userId) {
-        setIsTyping(isTyping);
+      console.log("message", message);
+      if (message.type === "delete") {
+        // Handle message deletion
+        dispatch(getAllMessages({ selectedId: selectedChat._id }));
+      } else {
+        // Handle new message
+        if (selectedChat) {
+          dispatch(getAllMessages({ selectedId: selectedChat._id }));
+        }
       }
     });
 
     return () => {
       unsubscribeMessages?.();
-      unsubscribeTyping?.();
     };
-  }, [
-    isConnected,
-    currentUser,
-    selectedChat,
-    subscribeToMessages,
-    subscribeToTyping,
-  ]);
+  }, [isConnected, selectedChat]);
+
+  // ===========================typing=============================
+
+  useEffect(() => {
+    if (!isConnected) return;
+  
+    const handleTypingStatus = (data) => {
+      if (data.userId === selectedChat?._id) {
+        setTypingUsers(prev => ({
+          ...prev,
+          [data.userId]: data.isTyping
+        }));
+  
+        // Clear typing indicator after 3 seconds of no updates
+        if (data.isTyping) {
+          setTimeout(() => {
+            setTypingUsers(prev => ({
+              ...prev,
+              [data.userId]: false
+            }));
+          }, 3000);
+        }
+      }
+    };
+  
+    socket.on("user-typing", handleTypingStatus);
+  
+    return () => {
+      socket.off("user-typing", handleTypingStatus);
+    };
+  }, [isConnected, selectedChat]);
+
+  const handleInputChange = (e) => {
+    setMessageInput(e.target.value);
+    
+    if (selectedChat) {
+      sendTypingStatus(selectedChat._id, true);
+      
+      // Clear typing status after 3 seconds
+      // if (typingTimeoutRef.current) {
+      //   clearTimeout(typingTimeoutRef.current);
+      // }
+      
+      // typingTimeoutRef.current = setTimeout(() => {
+      //   sendTypingStatus(selectedChat._id, false);
+      // }, 3000);
+    }
+  };
+
+  // ===========================sending message=============================
 
   // Handle sending messages
   const handleSendMessage = async (data) => {
-    console.log(data);
-    if ((data.type == "text" && data?.content?.trim() === "") || !selectedChat)
-      return;
+    if (editingMessage) {
+      try {
+        await dispatch(
+          updateMessage({
+            messageId: editingMessage._id,
+            content: data.content,
+          })
+        );
 
-    try {
-      const status = await sendPrivateMessage(selectedChat._id, data);
+        // Emit socket event for real-time update
+        socket.emit("update-message", {
+          messageId: editingMessage._id,
+          content: data.content,
+        });
 
-      console.log(status);
+        setEditingMessage(null);
+        dispatch(getAllMessages({ selectedId: selectedChat._id }));
+      } catch (error) {
+        console.error("Failed to update message:", error);
+      }
+    } else {
+      console.log(data);
+      if (
+        (data.type == "text" && data?.content?.trim() === "") ||
+        !selectedChat
+      )
+        return;
 
-      // Add message to local state
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          content: data,
-          time: new Date().toLocaleTimeString(),
-          sender: "me",
-          status: status.status,
-        },
-      ]);
-      dispatch(getAllMessages({ selectedId: selectedChat._id }));
-    } catch (error) {
-      console.error("Failed to send message:", error);
-      // Handle error (show notification, etc.)
+      try {
+        const status = await sendPrivateMessage(selectedChat._id, data);
+
+        console.log(status);
+
+        // Add message to local state
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now(),
+            content: data,
+            time: new Date().toLocaleTimeString(),
+            sender: "me",
+            status: status.status,
+          },
+        ]);
+        dispatch(getAllMessages({ selectedId: selectedChat._id }));
+      } catch (error) {
+        console.error("Failed to send message:", error);
+        // Handle error (show notification, etc.)
+      }
     }
+    setMessageInput("");
   };
 
   // Handle typing status
@@ -265,8 +345,11 @@ const Chat2 = () => {
   };
 
   const handleMultipleFileUpload = async (files) => {
+    console.log(files);
     // Convert FileList to Array
     const filesArray = Array.from(files);
+
+    console.log(filesArray);
 
     // Upload each file
     for (const file of filesArray) {
@@ -275,7 +358,7 @@ const Chat2 = () => {
 
       try {
         // Upload file to your server
-          
+
         const response = await axios.post(`${BASE_URL}/upload`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
@@ -284,8 +367,7 @@ const Chat2 = () => {
         });
 
         if (response.status === 200) {
-
-        const { fileUrl, fileType } = response.data;
+          const { fileUrl, fileType } = response.data;
 
           // Send separate message for each file
           await handleSendMessage({
@@ -302,6 +384,90 @@ const Chat2 = () => {
       }
     }
   };
+
+  // ===========================call=============================
+
+  // Add call handling functions
+  const handleMakeCall = async (type) => {
+    if (!selectedChat) return;
+
+    try {
+      const localStream = await makeCall(selectedChat._id, type);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStream;
+      }
+      setShowCallModal(true);
+    } catch (error) {
+      console.error("Error starting call:", error);
+    }
+  };
+
+  const handleAnswerCall = async () => {
+    try {
+      const localStream = await answerCall(currentCall);
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStream;
+      }
+      setShowCallModal(true);
+    } catch (error) {
+      console.error("Error answering call:", error);
+    }
+  };
+
+  // Add useEffect for remote stream
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStreamRef.current) {
+      remoteVideoRef.current.srcObject = remoteStreamRef.current;
+    }
+  }, [remoteStreamRef.current]);
+
+  // ===========================delete message=============================
+
+  const handleContextMenu = (e, message) => {
+    e.preventDefault();
+    if (
+      message.sender === sessionStorage.getItem("userId") &&
+      message.content?.type === "text"
+    ) {
+      setContextMenu({
+        visible: true,
+        x: e.pageX,
+        y: e.pageY,
+        messageId: message._id,
+        message: message,
+      });
+    }
+  };
+
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      await dispatch(deleteMessage(messageId));
+      // Emit socket event for real-time deletion
+      socket.emit("delete-message", messageId);
+      if (selectedChat) {
+        dispatch(getAllMessages({ selectedId: selectedChat._id }));
+      }
+    } catch (error) {
+      console.error("Failed to delete message:", error);
+    }
+    setContextMenu({ visible: false, x: 0, y: 0, messageId: null });
+  };
+
+  const handleEditMessage = (message) => {
+    setEditingMessage(message);
+    setMessageInput(message.content.content);
+    setContextMenu({ visible: false, x: 0, y: 0, messageId: null });
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
+  useEffect(() => {
+    const handleClick = () =>
+      setContextMenu({ visible: false, x: 0, y: 0, messageId: null });
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
 
   return (
     <div className="flex h-screen bg-white">
@@ -445,8 +611,14 @@ const Chat2 = () => {
           {selectedChat && (
             <div className="flex items-center space-x-4">
               <FaSearch className="w-6 h-6" />
-              <FaPhone className="w-6 h-6" />
-              <FaVideo className="w-6 h-6" />
+              <FaPhone
+                className="w-6 h-6 cursor-pointer"
+                onClick={() => handleMakeCall("audio")}
+              />
+              <FaVideo
+                className="w-6 h-6 cursor-pointer"
+                onClick={() => handleMakeCall("video")}
+              />
               <FaEllipsisH className="w-6 h-6" />
             </div>
           )}
@@ -466,22 +638,11 @@ const Chat2 = () => {
                   } mb-4`}
                 >
                   {message.content?.type === "file" ? (
-                    <div className="bg-blue-50 rounded-lg p-4 max-w-sm">
+                    <div
+                      className="bg-blue-50 rounded-lg p-4 max-w-sm"
+                      onContextMenu={(e) => handleContextMenu(e, message)}
+                    >
                       <div className="flex items-center">
-                        {message.content?.fileType?.startsWith("image/") ? (
-                          <img
-                            src={message.content.fileUrl}
-                            alt={message.content.content}
-                            className="w-6 h-6 object-cover"
-                          />
-                        ) : message.content?.fileType?.startsWith("video/") ? (
-                          <FaVideo className="w-6 h-6" />
-                        ) : message.content?.fileType?.startsWith("audio/") ? (
-                          <FaMusic className="w-6 h-6" />
-                        ) : (
-                          <FaFile className="w-6 h-6" />
-                        )}
-
                         <div className="ml-3">
                           <div className="font-medium">
                             {message.content?.content}
@@ -492,12 +653,12 @@ const Chat2 = () => {
                                 "image/"
                               ) ? (
                                 <img
-                                  src={message.content.fileUrl}
+                                  src={`${IMG_URL}${message.content.fileUrl}`}
                                   alt={message.content.content}
                                   className="max-w-xs rounded cursor-pointer"
                                   onClick={() =>
                                     window.open(
-                                      message.content.fileUrl,
+                                      `${IMG_URL}${message.content.fileUrl}`,
                                       "_blank"
                                     )
                                   }
@@ -508,15 +669,18 @@ const Chat2 = () => {
                                 <video
                                   controls
                                   className="max-w-xs"
-                                  src={message.content.fileUrl}
+                                  src={`${IMG_URL}${message.content.fileUrl}`}
                                 />
                               ) : message.content?.fileType?.startsWith(
                                   "audio/"
                                 ) ? (
-                                <audio controls src={message.content.fileUrl} />
+                                <audio
+                                  controls
+                                  src={`${IMG_URL}${message.content.fileUrl}`}
+                                />
                               ) : (
                                 <a
-                                  href={message.content.fileUrl}
+                                  href={`${IMG_URL}${message.content.fileUrl}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-blue-500 hover:underline"
@@ -529,7 +693,7 @@ const Chat2 = () => {
                           <div className="flex items-center text-sm text-gray-500 mt-1">
                             <span>{message.content?.size || "0 KB"}</span>
                             <a
-                              href={message.content.fileUrl}
+                              href={`${IMG_URL}${message.content.fileUrl}`}
                               download={message.content.content}
                               className="ml-2 text-blue-500 hover:underline"
                             >
@@ -541,7 +705,10 @@ const Chat2 = () => {
                     </div>
                   ) : (
                     <div className="flex flex-col">
-                      <div className="bg-blue-50 rounded-lg py-2 px-4">
+                      <div
+                        className="bg-blue-50 rounded-lg py-2 px-4"
+                        onContextMenu={(e) => handleContextMenu(e, message)}
+                      >
                         <p>{message.content?.content}</p>
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
@@ -578,6 +745,17 @@ const Chat2 = () => {
                 No messages yet
               </div>
             )}
+            {selectedChat && typingUsers[selectedChat._id] && (
+  <div className="flex items-center space-x-2 text-gray-500 text-sm ml-4 mb-2">
+    <div className="flex space-x-1">
+      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+    </div>
+    <span>{selectedChat.userName} is typing...</span>
+  </div>
+)}
+
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">
@@ -594,6 +772,7 @@ const Chat2 = () => {
               <label htmlFor="file-upload" className="cursor-pointer">
                 <FaPlus className="w-6 h-6" />
               </label>
+              {console.log(selectedChat)}
               <input
                 id="file-upload"
                 type="file"
@@ -602,7 +781,8 @@ const Chat2 = () => {
                 className="hidden"
                 onChange={(e) => {
                   const files = e.target.files;
-                  if (files.length > 0) {
+                  console.log(files);
+                  if (files) {
                     handleMultipleFileUpload(files);
                   }
                 }}
@@ -613,7 +793,7 @@ const Chat2 = () => {
                 onDrop={(e) => {
                   e.preventDefault();
                   const files = e.dataTransfer.files;
-                  if (files.length > 0) {
+                  if (files) {
                     handleMultipleFileUpload(files);
                   }
                 }}
@@ -623,23 +803,141 @@ const Chat2 = () => {
               </div>
 
               <input
+                ref={inputRef}
                 type="text"
-                placeholder="Type a message"
+                value={messageInput}
+                onChange={handleInputChange}
+                placeholder={
+                  editingMessage ? "Edit message..." : "Type a message"
+                }
                 className="ml-4 flex-1 outline-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     handleSendMessage({
                       type: "text",
-                      content: e.target.value,
+                      content: messageInput,
                     });
-                    e.target.value = "";
+                  } else if (e.key === "Escape" && editingMessage) {
+                    setEditingMessage(null);
+                    setMessageInput("");
                   }
                 }}
               />
+              {editingMessage && (
+                <button
+                  onClick={() => {
+                    setEditingMessage(null);
+                    setMessageInput("");
+                  }}
+                  className="ml-2 text-gray-500"
+                >
+                  Cancel
+                </button>
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Call Modal */}
+      {showCallModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 max-w-2xl w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">
+                {currentCall?.status === "calling" ? "Calling..." : "In Call"}
+              </h3>
+              <button
+                onClick={() => {
+                  endCall();
+                  setShowCallModal(false);
+                }}
+                className="text-red-500"
+              >
+                End Call
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="relative">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full rounded-lg"
+                />
+                <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+                  You
+                </span>
+              </div>
+              <div className="relative">
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full rounded-lg"
+                />
+                <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+                  {selectedChat?.userName}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Incoming Call Modal */}
+      {currentCall?.status === "incoming" && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-4">
+              Incoming {currentCall.type} call from{" "}
+              {allUsers.find((u) => u._id === currentCall.from)?.userName}
+            </h3>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  endCall();
+                  setShowCallModal(false);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded"
+              >
+                Decline
+              </button>
+              <button
+                onClick={() => {
+                  handleAnswerCall();
+                  setShowCallModal(true);
+                }}
+                className="px-4 py-2 bg-green-500 text-white rounded"
+              >
+                Answer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add the context menu */}
+      {contextMenu.visible && (
+        <div
+          className="fixed bg-white shadow-lg rounded-lg py-2 px-4 z-50"
+          style={{ top: contextMenu.y, left: contextMenu.x }}
+        >
+          <button
+            onClick={() => handleEditMessage(contextMenu.message)}
+            className="text-blue-500 hover:bg-gray-100 py-1 px-2 rounded w-full text-left"
+          >
+            Edit Message
+          </button>
+          <button
+            onClick={() => handleDeleteMessage(contextMenu.messageId)}
+            className="text-red-500 hover:bg-gray-100 py-1 px-2 rounded w-full text-left"
+          >
+            Delete Message
+          </button>
+        </div>
+      )}
     </div>
   );
 };
