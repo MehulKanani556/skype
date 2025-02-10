@@ -30,6 +30,7 @@ export const useScreenShare = (socket) => {
           from: socket.id,
           offer,
         });
+        console.log("objects sent")
 
         return true;
       } catch (error) {

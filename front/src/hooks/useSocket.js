@@ -122,11 +122,12 @@ export const useSocket = (userId) => {
       await peerConnectionRef.current.setLocalDescription(offer);
 
       // Send offer to receiver via socket
-      socketRef.current.emit("screen-share-offer", {
+      socketRef.current.emit("screenShareOffer", {
         senderId: userId,
         receiverId,
         offer: peerConnectionRef.current.localDescription,
       });
+      
 
       return true;
     } catch (error) {
@@ -137,31 +138,53 @@ export const useSocket = (userId) => {
 
   const handleIncomingScreenShare = async (data, videoElement) => {
     try {
+      // Check if a peer connection already exists
+      if (peerConnectionRef.current) {
+        console.warn("A peer connection already exists. Closing it.");
+        peerConnectionRef.current.close();
+      }
+
+      // Create a new RTCPeerConnection
       peerConnectionRef.current = new RTCPeerConnection();
 
       // Set remote description from offer
       await peerConnectionRef.current.setRemoteDescription(
-        new RTCSessionDescription(data.offer)
+        new RTCSessionDescription(data)
       );
-
-      console.log(data);
 
       // Create and send answer
       const answer = await peerConnectionRef.current.createAnswer();
       await peerConnectionRef.current.setLocalDescription(answer);
 
-      socketRef.current.emit("screen-share-answer", {
+      socketRef.current.emit("screenShareAnswer", {
         senderId: userId,
         receiverId: data.senderId,
         answer: peerConnectionRef.current.localDescription,
       });
+   
 
       // Handle incoming stream
       peerConnectionRef.current.ontrack = (event) => {
+        console.log("ontrack event handler set up");
+        console.log("ontrack event received:", event);
         if (videoElement) {
+          console.log("Setting video element source to incoming stream");
           videoElement.srcObject = event.streams[0];
+        } else {
+          console.error("Video element is not defined");
         }
       };
+
+      // Added log to check if ICE candidates are being received
+      peerConnectionRef.current.onicecandidate = (event) => {
+        if (event.candidate) {
+          console.log("New ICE candidate:", event.candidate);
+          socketRef.current.emit("ice-candidate", event.candidate);
+        } else {
+          console.log("All ICE candidates have been sent");
+        }
+      };
+
     } catch (error) {
       console.error("Error handling incoming screen share:", error);
     }
@@ -176,9 +199,10 @@ export const useSocket = (userId) => {
 
   // Add socket listeners for screen sharing
   useEffect(() => {
+    console.log("answer")
     if (!socketRef.current) return;
 
-    socketRef.current.on("screen-share-answer", async (data) => {
+    socketRef.current.on("screenShareAnswer", async (data) => {
       try {
         if (peerConnectionRef.current) {
           await peerConnectionRef.current.setRemoteDescription(
@@ -191,7 +215,7 @@ export const useSocket = (userId) => {
     });
 
     return () => {
-      socketRef.current?.off("screen-share-answer");
+      socketRef.current?.off("screenShareAnswer");
     };
   }, []);
 

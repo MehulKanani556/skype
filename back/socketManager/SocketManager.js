@@ -92,20 +92,22 @@ function handleDisconnect(socket) {
 }
 
 function handleScreenShare(socket, data) {
-  const { to, from, offer } = data;
-  const receiverSocket = onlineUsers.get(to);
+  const { receiverId, senderId, offer } = data;
+  const receiverSocket = onlineUsers.get(receiverId);
+  // console.log("screen-sharezz", receiverId, senderId, offer )
 
   if (receiverSocket) {
     socket.to(receiverSocket).emit("screenShareOffer", {
-      from,
+      senderId,
       offer,
     });
   }
 }
 
 function handleScreenShareAnswer(socket, data) {
-  const { to, answer } = data;
-  const senderSocket = onlineUsers.get(to);
+  console.log("aa",data)
+  const { senderId, answer } = data;
+  const senderSocket = onlineUsers.get(senderId);
 
   if (senderSocket) {
     socket.to(senderSocket).emit("screenShareAnswer", {
@@ -130,9 +132,14 @@ function handleConnection(socket) {
   socket.on("disconnect", () => handleDisconnect(socket));
 
   // Add screen sharing handlers
-  socket.on("screenShareRequest", (data) => handleScreenShare(socket, data));
+  socket.on("screenShareOffer", (data) => { handleScreenShare(socket, data)});
   socket.on("screenShareAnswer", (data) =>
+  {
+
+    console.log("screen-share", data)
+    
     handleScreenShareAnswer(socket, data)
+  }
   );
 }
 

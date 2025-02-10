@@ -215,12 +215,13 @@ const Chat2 = () => {
     const videoElement = remoteVideoRef.current;
 
     const handleScreenShareOffer = async (data) => {
-      console.log("Received screen share offer:", data);
       try {
+        console.log("Received screen share offer:", data,videoElement,remoteVideoRef);
         if (!videoElement) {
           console.error("Video element not found");
           return;
         }
+        
 
         // Show notification to user
         const acceptShare = window.confirm(
@@ -228,7 +229,9 @@ const Chat2 = () => {
         );
 
         if (acceptShare) {
-          await handleIncomingScreenShare(data, videoElement);
+          console.log("object")
+          // Accept the screen share offer
+          await handleIncomingScreenShare(data.offer, videoElement); // Pass the offer object
         } else {
           // Optionally notify the sender that the share was rejected
           socket?.emit("screenShareRejected", {
@@ -302,6 +305,7 @@ const Chat2 = () => {
       }
     }
   };
+  console.log('Upload',remoteVideoRef)
 
   return (
     <div className="flex h-screen bg-white">
