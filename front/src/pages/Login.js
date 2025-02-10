@@ -6,8 +6,8 @@ import { forgotPassword, googleLogin, login, register, resetPassword, verifyOtp 
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import React, { useState, useEffect } from "react";
-import { Formik, Form, Field, ErrorMessage } from "formik";
+// import React, { useState, useEffect } from "react";
+// import { Formik, Form, Field, ErrorMessage } from "formik";
 
 const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleVerifyOTP, handleBack }) => {
   const [otp, setOtp] = useState(new Array(length).fill(''));

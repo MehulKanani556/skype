@@ -18,7 +18,7 @@ import {
   getOnlineUsers,
 } from "../redux/slice/user.slice";
 import { useScreenShare } from "../hooks/useScreenShare";
-import { SocketContext } from "../context/SocketContext"; // Adjust the import path based on your structure
+// import { SocketContext } from "../context/SocketContext"; // Adjust the import path based on your structure
 
 const Chat2 = () => {
   const [selectedTab, setSelectedTab] = useState("Chats");
