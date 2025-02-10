@@ -93,13 +93,13 @@ export const resetPassword = createAsyncThunk(
 
 export const googleLogin = createAsyncThunk(
     'auth/google-login',
-    async ({ uid, name, email }, { rejectWithValue }) => {
+    async ({ uid, userName, email }, { rejectWithValue }) => {
         try {
-            const response = await axios.post(`${BASE_URL}/google-login`, { uid, name, email });
-            console.log(response.data.user)
+            const response = await axios.post(`${BASE_URL}/google-login`, { uid, userName, email });
             sessionStorage.setItem('token', response.data.token);
             sessionStorage.setItem('userId', response.data.user._id);
             return response.data;
+
         } catch (error) {
             return handleErrors(error, null, rejectWithValue);
         }

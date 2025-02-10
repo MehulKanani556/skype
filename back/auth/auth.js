@@ -29,12 +29,12 @@ exports.userLogin = async (req, res) => {
 }
 exports.googleLogin = async (req, res) => {
     try {
-        let { uid, name, email } = req.body;
+        let { uid, userName, email } = req.body;
         let checkUser = await user.findOne({ email });
         if (!checkUser) {
             checkUser = await user.create({
                 uid,
-                name,
+                userName,
                 email,
             });
         }
