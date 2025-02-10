@@ -51,9 +51,10 @@ export const register = createAsyncThunk(
 
 export const forgotPassword = createAsyncThunk(
     'auth/forgotPassword',
-    async ({ email }, { rejectWithValue }) => {
+    async (email , { rejectWithValue }) => {
         try {
-            const response = await axios.post(`${BASE_URL}/user/reset-mail`, { email });
+            console.log(email);
+            const response = await axios.post(`${BASE_URL}/forgotPassword`, { email });
             if (response.status === 200) {
                 return response.data; // Assuming the API returns a success message
             }
@@ -67,7 +68,7 @@ export const verifyOtp = createAsyncThunk(
     'auth/verifyOtp',
     async ({ email, otp }, { rejectWithValue }) => {
         try {
-            const response = await axios.post(`${BASE_URL}/user/verify-otp`, { email, otp });
+            const response = await axios.post(`${BASE_URL}/verifyOtp`, { email, otp });
             if (response.status === 200) {
                 return response.data; // Assuming the API returns a success message
             }
@@ -79,11 +80,11 @@ export const verifyOtp = createAsyncThunk(
 
 export const resetPassword = createAsyncThunk(
     'auth/resetPassword',
-    async ({  email, password }, { rejectWithValue }) => {
+    async ({  email, newPassword }, { rejectWithValue }) => {
         try {
-            const response = await axios.post(`${BASE_URL}/user/new-password`, { email, password });
+            const response = await axios.post(`${BASE_URL}/changePassword`, { email, newPassword });
             if (response.status === 200) {
-                return response.data.message; // Assuming the API returns a success message
+                return response.data; // Assuming the API returns a success message
             }
         } catch (error) {
             return handleErrors(error, null, rejectWithValue);

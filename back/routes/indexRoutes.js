@@ -12,7 +12,7 @@ indexRoutes.post("/usrLogin", userLogin);
 indexRoutes.post("/google-login", googleLogin);
 indexRoutes.post('/forgotPassword', forgotPassword)
 indexRoutes.post('/verifyOtp', verifyOtp)
-indexRoutes.post('/changePassword/:id', changePassword)
+indexRoutes.post('/changePassword', changePassword)
 
 // User Routes
 

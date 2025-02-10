@@ -67,7 +67,7 @@ exports.forgotPassword = async (req, res) => {
             }
         });
 
-        let otp = Math.floor(100000 + Math.random() * 100000);
+        let otp = Math.floor(1000 + Math.random() * 9000);
 
         const mailOptions = {
             from: process.env.EMAIL_USER,
@@ -122,20 +122,20 @@ exports.verifyOtp = async (req, res) => {
 
 exports.changePassword = async (req, res) => {
     try {
-        let id = req.params.id
+       
+        let { newPassword,email } = req.body;
 
-        let userId = await user.findById(id);
+        let userId = await user.findOne({ email });;
 
         if (!userId) {
             return res.status(404).json({ status: 404, message: "User Not Found" })
         }
 
-        let { newPassword } = req.body;
 
         let salt = await bcrypt.genSalt(10);
         let hashPassword = await bcrypt.hash(newPassword, salt);
 
-        let updatePassword = await user.findByIdAndUpdate(id, { password: hashPassword }, { new: true })
+        let updatePassword = await user.findByIdAndUpdate(userId._id, { password: hashPassword }, { new: true })
 
         return res.json({ status: 200, message: "Password Changed SuccessFully..." })
 

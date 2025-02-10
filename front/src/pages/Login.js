@@ -6,29 +6,32 @@ import { forgotPassword, googleLogin, login, register, resetPassword, verifyOtp 
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import React, { useState, useEffect } from "react";
-import { Formik, Form, Field, ErrorMessage } from "formik";
+import { LuEye, LuEyeClosed } from 'react-icons/lu';
 
-const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleVerifyOTP, handleBack }) => {
+const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleVerifyOTP, handleBack, email }) => {
   const [otp, setOtp] = useState(new Array(length).fill(''));
+  const [error, setError] = useState('');
   const inputRefs = useRef([]);
-  const dispatch = useDispatch();  // Add this line to get dispatch
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    if (inputRefs.current[0]) {
+      inputRefs.current[0].focus();
+    }
+  }, []);
 
   const handleChange = (e, index) => {
     const value = e.target.value;
     if (isNaN(value)) return;
 
     const newOtp = [...otp];
-    // Take only the last entered digit
     newOtp[index] = value.substring(value.length - 1);
     setOtp(newOtp);
 
-    // If value is entered, move to next input
     if (value && index < length - 1) {
       inputRefs.current[index + 1].focus();
     }
 
-    // If all digits are entered, call onComplete
     const otpValue = newOtp.join('');
     if (otpValue.length === length) {
       onComplete?.(otpValue);
@@ -67,19 +70,21 @@ const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleV
   const handleSubmit = async (e) => {
     e.preventDefault();
     const otpValue = otp.join('');
-    if (otpValue.length === length) {
-      // alert('Verifying OTP...');
-      try {
-        const response = await dispatch(verifyOtp(otpValue));
-        if (response.payload) {
-          // alert('OTP verified successfully!');
-          handleVerifyOTP(otpValue); // This will handle the state change for showing the change password form
-        } else {
-          // alert('OTP verification failed. Please try again.');
-        }
-      } catch (error) {
-        alert('Error verifying OTP. Please try again.');
+    if (otpValue.length !== length) {
+      setError('Please enter the complete OTP.');
+      return;
+    }
+    setError('');
+    try {
+      const response = await dispatch(verifyOtp({ email: email, otp: otpValue }));
+      console.log(response);
+      if (response.payload.status === 200) {
+        handleVerifyOTP(otpValue);
+      } else {
+        setError('OTP verification failed. Please try again.');
       }
+    } catch (error) {
+      setError('Error verifying OTP. Please try again.');
     }
   };
 
@@ -104,7 +109,8 @@ const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleV
             />
           ))}
         </div>
-        <div className="text-sm text-gray-500 mt-4 w-full text-center">
+        {error && <div className="text-red-500 text-center text-sm mt-1">{error}</div>}
+        {/* <div className="text-sm text-gray-500 mt-4 w-full text-center">
           Didn't receive code?
           <button
             type="button"
@@ -114,7 +120,7 @@ const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleV
           >
             Resend {resendTimer > 0 ? `(${resendTimer}s)` : ''}
           </button>
-        </div>
+        </div> */}
         <button
           type="submit"
           className="w-full bg-blue-500 text-white rounded-lg py-2.5 font-semibold hover:bg-blue-600 transition-colors"
@@ -139,10 +145,8 @@ const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [forgotPasswordStep, setForgotPasswordStep] = useState(0);
-  const [resendTimer, setResendTimer] = useState(60);
-  const timerRef = useRef(null);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resendTimer, setResendTimer] = useState(60);  
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
     const checkMobile = () => {
@@ -222,13 +226,16 @@ const Login = () => {
 
   const handleVerifyOTP = () => {
     setForgotPasswordStep(3);
-    
+
   };
 
 
   const handleChangePassword = (values) => {
-    dispatch(resetPassword(values)).then((response) => {
-      if (response.payload) {
+    console.log(values);
+    const { newPassword } = values; // Extract newPassword from values
+    dispatch(resetPassword({ newPassword, email })).then((response) => {
+      console.log(response)
+      if (response.payload.status == 200) {
         setForgotPasswordStep(0);
         setIsRightPanelActive(!isRightPanelActive);
       }
@@ -347,67 +354,81 @@ const Login = () => {
             <OTPInput
               length={4}
               onComplete={(otpValue) => {
-               
+
               }}
               resendTimer={resendTimer}
               setResendTimer={setResendTimer}
               handleVerifyOTP={handleVerifyOTP}
               handleBack={handleBack}
+              email={email}
 
             />
           )}
-           {forgotPasswordStep === 3 && (
+          {forgotPasswordStep === 3 && (
             <Formik
-              initialValues={{ newPassword: '', confirmPassword: '' }}
+              initialValues={{
+                newPassword: '',
+                confirmPassword: '',
+                showNewPassword: false,
+                showConfirmPassword: false
+              }}
               validationSchema={Yup.object({
-                newPassword: Yup.string().min(6, 'Password must be at least 6 characters').required('New Password is required'),
+                newPassword: Yup.string()
+                  .min(6, 'Password must be at least 6 characters')
+                  .required('New Password is required'),
                 confirmPassword: Yup.string()
                   .oneOf([Yup.ref('newPassword'), null], 'Passwords must match')
                   .required('Confirm Password is required'),
               })}
               onSubmit={(values) => {
-                // Logic to handle password change
-                handleChangePassword(values);
+                const { newPassword, confirmPassword } = values;
+                handleChangePassword({ newPassword, confirmPassword });
               }}
             >
-              {({ values, handleChange, handleSubmit, errors, touched }) => (
+              {({ values, setFieldValue, handleChange, handleSubmit, errors, touched }) => (
                 <form onSubmit={handleSubmit} className="bg-white flex flex-col items-center justify-center px-8 md:px-10 h-full py-6">
                   <h1 className="text-2xl font-bold mb-6">Change Password</h1>
                   <div className="w-full space-y-4">
                     <div className="relative">
                       <input
-                        type={showPassword ? "text" : "password"}
+                        type={values.showNewPassword ? "text" : "password"}
                         name="newPassword"
                         placeholder="New Password"
                         value={values.newPassword}
                         onChange={handleChange}
                         className="bg-gray-100 border-none px-4 py-2 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
-                      <span
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-3 cursor-pointer"
+                      <div
+                        className="absolute right-3 top-3 cursor-pointer select-none text-blue-500"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setFieldValue('showNewPassword', !values.showNewPassword);
+                        }}
                       >
-                        {showPassword ? "Hide" : "Show"}
-                      </span>
+                        {values.showNewPassword ? <LuEye /> : <LuEyeClosed />}
+                      </div>
                       {errors.newPassword && touched.newPassword && (
                         <div className="text-red-500 text-sm mt-1">{errors.newPassword}</div>
                       )}
                     </div>
                     <div className="relative pb-3">
                       <input
-                        type={showConfirmPassword ? "text" : "password"}
+                        type={values.showConfirmPassword ? "text" : "password"}
                         name="confirmPassword"
                         placeholder="Confirm Password"
                         value={values.confirmPassword}
                         onChange={handleChange}
                         className="bg-gray-100 border-none px-4 py-2 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
-                      <span
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-3 cursor-pointer"
+                      <div
+                        className="absolute right-3 top-3 cursor-pointer select-none text-blue-500"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setFieldValue('showConfirmPassword', !values.showConfirmPassword);
+                        }}
                       >
-                        {showConfirmPassword ? "Hide" : "Show"}
-                      </span>
+                        {values.showConfirmPassword ? <LuEye /> : <LuEyeClosed />}
+                      </div>
                       {errors.confirmPassword && touched.confirmPassword && (
                         <div className="text-red-500 text-sm mt-1">{errors.confirmPassword}</div>
                       )}
@@ -419,6 +440,7 @@ const Login = () => {
                       Change Password
                     </button>
                     <button
+                      type="button"
                       onClick={handleBack}
                       className="w-full bg-gray-300 text-black rounded-lg py-2.5 font-semibold hover:bg-gray-400 transition-colors mt-2"
                     >
@@ -436,7 +458,7 @@ const Login = () => {
         <FormContainer isSignUp={false}>
           {forgotPasswordStep === 0 && (
             <Formik
-              initialValues={{ email: '', password: '' }}
+              initialValues={{ email: '', password: '', showPassword: false }}
               validationSchema={signInSchema}
               onSubmit={(values) => {
                 dispatch(login(values)).then((response) => {
@@ -444,11 +466,9 @@ const Login = () => {
                 });
               }}
             >
-              {({ values, errors, touched, handleChange }) => (
+              {({ values, errors, touched, handleChange, setFieldValue }) => (
                 <Form className="bg-white flex flex-col items-center justify-center px-8 md:px-10 h-full py-6">
                   <h1 className="text-2xl font-bold mb-6">Sign In</h1>
-                  {console.log(values)}
-
                   <div className="w-full space-y-4">
                     <div>
                       <Field
@@ -462,15 +482,24 @@ const Login = () => {
                       <ErrorMessage name="email" component="div" className="text-red-500 text-sm mt-1" />
                     </div>
 
-                    <div>
+                    <div className="relative">
                       <Field
-                        type="password"
+                        type={values.showPassword ? "text" : "password"}
                         name="password"
                         placeholder="Password"
                         value={values.password}
                         onChange={handleChange}
                         className="bg-gray-100 border-none px-4 py-2 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
+                      <div
+                        className="absolute right-3 top-3 cursor-pointer select-none text-blue-500"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          setFieldValue('showPassword', !values.showPassword);
+                        }}
+                      >
+                        {values.showPassword ? <LuEye /> : <LuEyeClosed />}
+                      </div>
                       <ErrorMessage name="password" component="div" className="text-red-500 text-sm mt-1" />
                     </div>
 
@@ -531,12 +560,14 @@ const Login = () => {
               })}
               onSubmit={(values) => {
                 // Logic to handle form submission
+                console.log(values.email);
+                setEmail(values.email);
                 dispatch(forgotPassword(values.email)).then((response) => {
-                  if (response.payload) handleSendOTP();
+                  console.log(response);
+                  if (response.payload.success) handleSendOTP();
                 });
               }}
             >
-
               {({ handleChange, handleSubmit }) => (
                 <form onSubmit={handleSubmit} className="bg-white flex flex-col items-center justify-center px-8 md:px-10 h-full py-6">
                   <h1 className="text-2xl font-bold mb-6">Forgot Password</h1>
@@ -548,6 +579,7 @@ const Login = () => {
                         placeholder="Enter your email"
                         onChange={handleChange}
                         className="bg-gray-100 border-none px-4 py-2 w-full rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        ref={(input) => input && input.focus()}
                       />
                       <ErrorMessage name="email" component="div" className="text-red-500 text-sm mt-1" />
                     </div>

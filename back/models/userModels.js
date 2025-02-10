@@ -13,6 +13,9 @@ const userSchema = mongoose.Schema({
     password: {
         type: String,
         require: true
+    },
+    otp: {
+        type: Number,
     }
 }, {
     timestamps: true,
