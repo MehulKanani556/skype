@@ -46,3 +46,100 @@ exports.googleLogin = async (req, res) => {
         throw new Error(error);
     }
 };
+
+
+exports.forgotPassword = async (req, res) => {
+    try {
+        let { email } = req.body
+
+        let checkEmail = await user.findOne({ email })
+
+        if (!checkEmail) {
+            return res.status(404).json({ status: 404, message: "Email Not Found" })
+        }
+
+        const transport = nodemailer.createTransport({
+            service: "Gmail",
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        let otp = Math.floor(100000 + Math.random() * 100000);
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Reset Password",
+            text: `Your code is: ${otp} `
+        }
+
+        checkEmail.otp = otp
+
+        await checkEmail.save()
+
+        transport.sendMail(mailOptions, (error) => {
+            if (error) {
+                console.log(error);
+                return res.status(500).json({ status: 500, success: false, message: error.message })
+            }
+            return res.status(200).json({ status: 200, success: true, message: "Email Sent SuccessFully..." });
+        })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({ status: 500, message: error.message })
+    }
+}
+
+exports.verifyOtp = async (req, res) => {
+    try {
+        let { email, otp } = req.body
+
+        let chekcEmail = await user.findOne({ email })
+
+        if (!chekcEmail) {
+            return res.status(404).json({ status: 404, message: "Email Not Found" })
+        }
+
+        if (chekcEmail.otp != otp) {
+            return res.status(404).json({ status: 404, message: "Invalid Otp" })
+        }
+
+        chekcEmail.otp = undefined
+
+        await chekcEmail.save();
+
+        return res.status(200).json({ status: 200, message: "Otp Verify SuccessFully...", user: chekcEmail })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({ status: 500, message: error.message })
+    }
+}
+
+exports.changePassword = async (req, res) => {
+    try {
+        let id = req.params.id
+
+        let userId = await user.findById(id);
+
+        if (!userId) {
+            return res.status(404).json({ status: 404, message: "User Not Found" })
+        }
+
+        let { newPassword } = req.body;
+
+        let salt = await bcrypt.genSalt(10);
+        let hashPassword = await bcrypt.hash(newPassword, salt);
+
+        let updatePassword = await user.findByIdAndUpdate(id, { password: hashPassword }, { new: true })
+
+        return res.json({ status: 200, message: "Password Changed SuccessFully..." })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({ status: 500, message: error.message })
+    }
+}
