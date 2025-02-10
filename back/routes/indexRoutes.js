@@ -3,7 +3,13 @@ const { createUser, getAllUsers } = require("../controller/userController");
 const { userLogin, googleLogin,forgotPassword,verifyOtp,changePassword } = require("../auth/auth");
 const { auth } = require("../helper/auth");
 const { getOnlineUsers } = require("../socketManager/SocketManager");
-const { getMessageHistory, getAllMessages } = require("../controller/messageController");
+const {
+  getMessageHistory,
+  getAllMessages,
+} = require("../controller/messageController");
+const upload = require("../helper/upload");
+const uploadController = require("../controller/uploadController");
+
 const indexRoutes = express.Router();
 
 // Auth Routes
@@ -23,4 +29,13 @@ indexRoutes.get("/allUsers", auth, getAllUsers);
 indexRoutes.get("/messages/:userId", auth, getMessageHistory);
 indexRoutes.get("/online-users", auth, getOnlineUsers);
 indexRoutes.post("/allMessages", auth, getAllMessages);
+
+// File upload endpoint
+indexRoutes.post(
+  "/upload",
+  auth,
+  upload.single("file"),
+  uploadController.uploadFile
+);
+
 module.exports = indexRoutes;

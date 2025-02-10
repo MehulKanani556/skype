@@ -21,34 +21,48 @@ function getSocketByUserId(userId) {
 }
 
 async function handlePrivateMessage(socket, data) {
-  const { senderId, receiverId, message } = data;
-  const receiverSocketId = onlineUsers.get(receiverId);
+  const { senderId, receiverId, content } = data;
+  console.log("Handling private message:", data);
 
-  if (receiverSocketId) {
-    // Send to receiver
-    socket.to(receiverSocketId).emit("receive-message", {
-      id: Date.now(),
+  try {
+    // Save message to database
+    await saveMessage({
       senderId,
-      text: message,
-      time: new Date().toLocaleTimeString(),
+      receiverId,
+      message: content,
     });
-    // await saveMessage({
-    //     senderId,
-    //     receiverId,
-    //     message
-    // });
-    console.log("message", message);
 
-    // Confirm delivery to sender
+    const receiverSocketId = onlineUsers.get(receiverId);
+    console.log("Receiver socket ID:", receiverSocketId);
+
+    if (receiverSocketId) {
+      // Send to receiver
+      socket.to(receiverSocketId).emit("receive-message", {
+        _id: Date.now().toString(),
+        sender: senderId,
+        content: content,
+        createdAt: new Date().toISOString(),
+      });
+
+      // Confirm delivery to sender
+      socket.emit("message-sent-status", {
+        messageId: Date.now(),
+        status: "delivered",
+      });
+    } else {
+      console.log("Receiver is offline:", receiverId);
+      // Receiver is offline - save message and mark as pending
+      socket.emit("message-sent-status", {
+        messageId: Date.now(),
+        status: "pending",
+      });
+    }
+  } catch (error) {
+    console.error("Error handling private message:", error);
     socket.emit("message-sent-status", {
       messageId: Date.now(),
-      status: "sent",
-    });
-  } else {
-    // Receiver is offline
-    socket.emit("message-sent-status", {
-      messageId: Date.now(),
-      status: "pending",
+      status: "failed",
+      error: error.message,
     });
   }
 }
