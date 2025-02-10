@@ -9,6 +9,8 @@ import {
   FaVideo,
   FaEllipsisH,
   FaDownload,
+  FaMusic,
+  FaFile,
 } from "react-icons/fa";
 import { useSocket } from "../hooks/useSocket";
 import { useDispatch, useSelector } from "react-redux";
@@ -17,8 +19,9 @@ import {
   getAllUsers,
   getOnlineUsers,
 } from "../redux/slice/user.slice";
-import { useScreenShare } from "../hooks/useScreenShare";
-import { SocketContext } from "../context/SocketContext"; // Adjust the import path based on your structure
+import { BASE_URL } from "../utils/baseUrl";
+import axios from "axios";
+// Adjust the import path based on your structure
 
 const Chat2 = () => {
   const [selectedTab, setSelectedTab] = useState("Chats");
@@ -34,12 +37,6 @@ const Chat2 = () => {
   const { onlineUser, isLoading, allUsers, messages } = useSelector(
     (state) => state.user
   );
-  const { socket } = useSocket();
-
-  // Get socket from context
-//   const { socket } = useContext(SocketContext);
-  const { startScreenShare, stopScreenShare, handleIncomingScreenShare } =
-    useScreenShare(socket);
   const remoteVideoRef = useRef(null);
 
   console.log(messages);
@@ -57,12 +54,16 @@ const Chat2 = () => {
 
   // Use the custom socket hook
   const {
+    socket,
     isConnected,
     onlineUsers,
     sendPrivateMessage,
     sendTypingStatus,
     subscribeToMessages,
     subscribeToTyping,
+    startScreenShare,
+    stopScreenShare,
+    handleIncomingScreenShare,
   } = useSocket(currentUser);
 
   console.log(onlineUsers);
@@ -82,6 +83,7 @@ const Chat2 = () => {
           sender: message.senderId === currentUser ? "me" : "other",
         },
       ]);
+      dispatch(getAllMessages({ selectedId: selectedChat._id }));
     });
 
     // Subscribe to typing status
@@ -104,11 +106,13 @@ const Chat2 = () => {
   ]);
 
   // Handle sending messages
-  const handleSendMessage = async (text) => {
-    if (text.trim() === "" || !selectedChat) return;
+  const handleSendMessage = async (data) => {
+    console.log(data);
+    if ((data.type == "text" && data?.content?.trim() === "") || !selectedChat)
+      return;
 
     try {
-      const status = await sendPrivateMessage(selectedChat._id, text);
+      const status = await sendPrivateMessage(selectedChat._id, data);
 
       console.log(status);
 
@@ -117,7 +121,7 @@ const Chat2 = () => {
         ...prev,
         {
           id: Date.now(),
-          text,
+          content: data,
           time: new Date().toLocaleTimeString(),
           sender: "me",
           status: status.status,
@@ -206,26 +210,95 @@ const Chat2 = () => {
     fetchMessages();
   }, []);
 
+  // Update the useEffect for screen sharing
   useEffect(() => {
-    if (socket) {
-      socket.on("screenShareOffer", (data) => {
-        handleIncomingScreenShare(data, remoteVideoRef.current);
-      });
-    }
+    const videoElement = remoteVideoRef.current;
 
-    // Cleanup socket listener on unmount
-    return () => {
-      if (socket) {
-        socket.off("screenShareOffer");
+    const handleScreenShareOffer = async (data) => {
+      console.log("Received screen share offer:", data);
+      try {
+        if (!videoElement) {
+          console.error("Video element not found");
+          return;
+        }
+
+        // Show notification to user
+        const acceptShare = window.confirm(
+          `${data.senderId} wants to share their screen. Accept?`
+        );
+
+        if (acceptShare) {
+          await handleIncomingScreenShare(data, videoElement);
+        } else {
+          // Optionally notify the sender that the share was rejected
+          socket?.emit("screenShareRejected", {
+            receiverId: data.senderId,
+          });
+        }
+      } catch (error) {
+        console.error("Error handling screen share:", error);
       }
     };
-  }, [socket, handleIncomingScreenShare]);
+
+    if (isConnected && socket) {
+      socket.on("screenShareOffer", handleScreenShareOffer);
+      // console.log("Subscribed to screen share offers");
+    }
+
+    return () => {
+      if (socket) {
+        socket.off("screenShareOffer", handleScreenShareOffer);
+        // console.log("Unsubscribed from screen share offers");
+      }
+    };
+  }, [isConnected, handleIncomingScreenShare, socket]);
 
   const handleStartScreenShare = async () => {
-    if (selectedChat && socket) {
+    console.log(selectedChat);
+    if (selectedChat) {
       const success = await startScreenShare(selectedChat._id);
+      console.log(success);
       if (!success) {
         console.error("Failed to start screen sharing");
+      }
+    }
+  };
+
+  const handleMultipleFileUpload = async (files) => {
+    // Convert FileList to Array
+    const filesArray = Array.from(files);
+
+    // Upload each file
+    for (const file of filesArray) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        // Upload file to your server
+          
+        const response = await axios.post(`${BASE_URL}/upload`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+          },
+        });
+
+        if (response.status === 200) {
+
+        const { fileUrl, fileType } = response.data;
+
+          // Send separate message for each file
+          await handleSendMessage({
+            type: "file",
+            content: file.name,
+            fileUrl: fileUrl,
+            fileType: fileType || file.type,
+            size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+          });
+        }
+      } catch (error) {
+        console.error(`Error uploading file ${file.name}:`, error);
+        // Handle error (show notification, etc.)
       }
     }
   };
@@ -392,14 +465,76 @@ const Chat2 = () => {
                       : "justify-start"
                   } mb-4`}
                 >
-                  {message.type === "file" ? (
+                  {message.content?.type === "file" ? (
                     <div className="bg-blue-50 rounded-lg p-4 max-w-sm">
                       <div className="flex items-center">
-                        <FaDownload className="w-6 h-6" />
+                        {message.content?.fileType?.startsWith("image/") ? (
+                          <img
+                            src={message.content.fileUrl}
+                            alt={message.content.content}
+                            className="w-6 h-6 object-cover"
+                          />
+                        ) : message.content?.fileType?.startsWith("video/") ? (
+                          <FaVideo className="w-6 h-6" />
+                        ) : message.content?.fileType?.startsWith("audio/") ? (
+                          <FaMusic className="w-6 h-6" />
+                        ) : (
+                          <FaFile className="w-6 h-6" />
+                        )}
+
                         <div className="ml-3">
-                          <div className="font-medium">{message.content}</div>
-                          <div className="text-sm text-gray-500">
-                            {message.size}
+                          <div className="font-medium">
+                            {message.content?.content}
+                          </div>
+                          {message.content?.fileUrl && (
+                            <div className="mt-2">
+                              {message.content?.fileType?.startsWith(
+                                "image/"
+                              ) ? (
+                                <img
+                                  src={message.content.fileUrl}
+                                  alt={message.content.content}
+                                  className="max-w-xs rounded cursor-pointer"
+                                  onClick={() =>
+                                    window.open(
+                                      message.content.fileUrl,
+                                      "_blank"
+                                    )
+                                  }
+                                />
+                              ) : message.content?.fileType?.startsWith(
+                                  "video/"
+                                ) ? (
+                                <video
+                                  controls
+                                  className="max-w-xs"
+                                  src={message.content.fileUrl}
+                                />
+                              ) : message.content?.fileType?.startsWith(
+                                  "audio/"
+                                ) ? (
+                                <audio controls src={message.content.fileUrl} />
+                              ) : (
+                                <a
+                                  href={message.content.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 hover:underline"
+                                >
+                                  Download {message.content.content}
+                                </a>
+                              )}
+                            </div>
+                          )}
+                          <div className="flex items-center text-sm text-gray-500 mt-1">
+                            <span>{message.content?.size || "0 KB"}</span>
+                            <a
+                              href={message.content.fileUrl}
+                              download={message.content.content}
+                              className="ml-2 text-blue-500 hover:underline"
+                            >
+                              <FaDownload className="w-4 h-4" />
+                            </a>
                           </div>
                         </div>
                       </div>
@@ -407,7 +542,7 @@ const Chat2 = () => {
                   ) : (
                     <div className="flex flex-col">
                       <div className="bg-blue-50 rounded-lg py-2 px-4">
-                        <p>{message.content}</p>
+                        <p>{message.content?.content}</p>
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         {(() => {
@@ -462,18 +597,31 @@ const Chat2 = () => {
               <input
                 id="file-upload"
                 type="file"
+                multiple
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    handleSendMessage({
-                      type: "file",
-                      content: file.name,
-                      size: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-                    });
+                  const files = e.target.files;
+                  if (files.length > 0) {
+                    handleMultipleFileUpload(files);
                   }
                 }}
               />
+
+              <div
+                className="ml-2 p-2 border-2 border-dashed rounded-lg cursor-pointer"
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const files = e.dataTransfer.files;
+                  if (files.length > 0) {
+                    handleMultipleFileUpload(files);
+                  }
+                }}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                Drag files here
+              </div>
+
               <input
                 type="text"
                 placeholder="Type a message"

@@ -7,8 +7,9 @@ export const useSocket = (userId) => {
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const socketRef = useRef(null);
+  const peerConnectionRef = useRef(null);
 
-  console.log(isConnected);
+  // console.log(isConnected);
 
   useEffect(() => {
     // Create socket connection
@@ -44,21 +45,18 @@ export const useSocket = (userId) => {
   // Send private message
   const sendPrivateMessage = (receiverId, message) => {
     return new Promise((resolve, reject) => {
-    //   console.log(receiverId,message);
       if (!socketRef.current?.connected) {
         reject(new Error("Socket not connected"));
         return;
       }
 
-      console.log(userId,receiverId,message);
-
       const messageData = {
         senderId: userId,
         receiverId,
-        message,
+        content: message, // Changed from 'message' to 'content' to match your data structure
       };
 
-      console.log(messageData);
+      console.log("Sending message:", messageData);
 
       socketRef.current.emit("private-message", messageData);
 
@@ -73,7 +71,7 @@ export const useSocket = (userId) => {
   const sendTypingStatus = (receiverId, isTyping) => {
     if (!socketRef.current?.connected) return;
 
-    console.log(userId,receiverId,isTyping);
+    console.log(userId, receiverId, isTyping);
 
     socketRef.current.emit("typing-status", {
       senderId: userId,
@@ -86,8 +84,13 @@ export const useSocket = (userId) => {
   const subscribeToMessages = (callback) => {
     if (!socketRef.current?.connected) return;
 
-    socketRef.current.on("receive-message", callback);
-    return () => socketRef.current.off("receive-message", callback);
+    const messageHandler = (message) => {
+      console.log("Received message:", message);
+      callback(message);
+    };
+
+    socketRef.current.on("receive-message", messageHandler);
+    return () => socketRef.current.off("receive-message", messageHandler);
   };
 
   // Subscribe to typing status
@@ -98,6 +101,100 @@ export const useSocket = (userId) => {
     return () => socketRef.current.off("user-typing", callback);
   };
 
+  // Screen sharing functions
+  const startScreenShare = async (receiverId) => {
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+
+      // Create new RTCPeerConnection
+      peerConnectionRef.current = new RTCPeerConnection();
+
+      // Add tracks to peer connection
+      stream.getTracks().forEach((track) => {
+        peerConnectionRef.current.addTrack(track, stream);
+      });
+
+      // Create and set local description
+      const offer = await peerConnectionRef.current.createOffer();
+      await peerConnectionRef.current.setLocalDescription(offer);
+
+      // Send offer to receiver via socket
+      socketRef.current.emit("screen-share-offer", {
+        senderId: userId,
+        receiverId,
+        offer: peerConnectionRef.current.localDescription,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error starting screen share:", error);
+      return false;
+    }
+  };
+
+  const handleIncomingScreenShare = async (data, videoElement) => {
+    try {
+      peerConnectionRef.current = new RTCPeerConnection();
+
+      // Set remote description from offer
+      await peerConnectionRef.current.setRemoteDescription(
+        new RTCSessionDescription(data.offer)
+      );
+
+      console.log(data);
+
+      // Create and send answer
+      const answer = await peerConnectionRef.current.createAnswer();
+      await peerConnectionRef.current.setLocalDescription(answer);
+
+      socketRef.current.emit("screen-share-answer", {
+        senderId: userId,
+        receiverId: data.senderId,
+        answer: peerConnectionRef.current.localDescription,
+      });
+
+      // Handle incoming stream
+      peerConnectionRef.current.ontrack = (event) => {
+        if (videoElement) {
+          videoElement.srcObject = event.streams[0];
+        }
+      };
+    } catch (error) {
+      console.error("Error handling incoming screen share:", error);
+    }
+  };
+
+  const stopScreenShare = () => {
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+  };
+
+  // Add socket listeners for screen sharing
+  useEffect(() => {
+    if (!socketRef.current) return;
+
+    socketRef.current.on("screen-share-answer", async (data) => {
+      try {
+        if (peerConnectionRef.current) {
+          await peerConnectionRef.current.setRemoteDescription(
+            new RTCSessionDescription(data.answer)
+          );
+        }
+      } catch (error) {
+        console.error("Error setting remote description:", error);
+      }
+    });
+
+    return () => {
+      socketRef.current?.off("screen-share-answer");
+    };
+  }, []);
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -106,5 +203,8 @@ export const useSocket = (userId) => {
     sendTypingStatus,
     subscribeToMessages,
     subscribeToTyping,
+    startScreenShare,
+    stopScreenShare,
+    handleIncomingScreenShare,
   };
 };
