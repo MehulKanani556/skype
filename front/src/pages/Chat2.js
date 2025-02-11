@@ -717,18 +717,18 @@ const Chat2 = () => {
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <IoMdSearch className="w-6 h-6" />
-            <LuScreenShare className="w-6 h-6" />
+            <IoMdSearch className="w-6 h-6 cursor-pointer" />
+            <LuScreenShare className="w-6 h-6 cursor-pointer" onClick={() => handleStartScreenShare()} />
             <MdGroupAdd
               className="w-6 h-6 cursor-pointer"
               onClick={() => setIsModalOpen(true)}
             />
             <MdPhoneEnabled
-              className=" w-6 h-6"
+              className=" w-6 h-6 cursor-pointer"
               onClick={() => handleMakeCall("audio")}
             />
             <GoDeviceCameraVideo
-              className="w-6 h-6"
+              className="w-6 h-6 cursor-pointer"
               onClick={() => handleMakeCall("video")}
             />
             {/* <FaEllipsisH className="" /> */}
