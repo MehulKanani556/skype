@@ -1,5 +1,12 @@
 const { saveMessage } = require("../controller/messageController");
 const Message = require("../models/messageModel");
+const {
+  createGroup,
+  updateGroup,
+  deleteGroup,
+  getGroupById,
+  findGroupById,
+} = require("../controller/groupController");
 
 const onlineUsers = new Map();
 
@@ -76,14 +83,13 @@ function handleTypingStatus(socket, data) {
     socket.to(receiverSocketId).emit("user-typing", {
       userId: senderId,
       isTyping,
-      receiverId
+      receiverId,
     });
   }
 }
 
 async function handleDeleteMessage(socket, messageId) {
   try {
-
     console.log("messageId", messageId);
     // Assuming the message document contains senderId and receiverId
     const message = await Message.findById(messageId);
@@ -97,7 +103,6 @@ async function handleDeleteMessage(socket, messageId) {
     if (receiverSocketId) {
       socket.to(receiverSocketId).emit("message-deleted", messageId);
     }
-
   } catch (error) {
     console.error("Error handling message deletion:", error);
   }
@@ -114,7 +119,7 @@ async function handleUpdateMessage(socket, data) {
     if (receiverSocketId) {
       socket.to(receiverSocketId).emit("message-updated", {
         messageId,
-        content
+        content,
       });
     }
   } catch (error) {
@@ -136,8 +141,12 @@ function handleDisconnect(socket) {
 
 function handleScreenShare(socket, data) {
   const { receiverId, senderId, offer } = data;
-  console.log("Handling screen share request:", { receiverId, senderId, offer });
-  
+  console.log("Handling screen share request:", {
+    receiverId,
+    senderId,
+    offer,
+  });
+
   const receiverSocketId = onlineUsers.get(receiverId);
 
   if (receiverSocketId) {
@@ -154,22 +163,20 @@ function handleScreenShare(socket, data) {
   }
 }
 
-
 function handleScreenShareAnswer(socket, data) {
-  console.log("aa",data)
+  // console.log("aa", data);
   const { senderId, answer } = data;
   const senderSocket = onlineUsers.get(senderId);
 
   if (senderSocket) {
     socket.to(senderSocket).emit("screenShareAnswer", {
       answer,
+      from: socket.userId,
     });
   }
 }
 
-
 // ===========================call=============================
-
 
 function handleCallOffer(socket, data) {
   const { to, from, offer, type } = data;
@@ -179,7 +186,7 @@ function handleCallOffer(socket, data) {
     socket.to(receiverSocketId).emit("callOffer", {
       from,
       offer,
-      type // 'video' or 'audio'
+      type, // 'video' or 'audio'
     });
   }
 }
@@ -190,18 +197,20 @@ function handleCallAnswer(socket, data) {
 
   if (callerSocketId) {
     socket.to(callerSocketId).emit("callAnswer", {
-      answer
+      answer,
     });
   }
 }
 
 function handleIceCandidate(socket, data) {
   const { to, candidate } = data;
+  console.log("candidate", data);
   const targetSocketId = onlineUsers.get(to);
 
   if (targetSocketId) {
-    socket.to(targetSocketId).emit("iceCandidate", {
-      candidate
+    socket.to(targetSocketId).emit("ice-candidate", {
+      candidate,
+      from: socket.userId,
     });
   }
 }
@@ -214,6 +223,62 @@ function handleCallEnd(socket, data) {
     socket.to(targetSocketId).emit("callEnded");
   }
 }
+
+function handleCreateGroup(socket, data) {
+  const { name, members } = data;
+  const groupId = createGroup(name, members);
+  socket.emit("group-created", { groupId, name, members });
+}
+
+function handleUpdateGroup(socket, data) {
+  const { groupId, name, members } = data;
+  updateGroup(groupId, name, members);
+  socket.emit("group-updated", { groupId, name, members });
+}
+
+function handleDeleteGroup(socket, groupId) {
+  deleteGroup(groupId);
+  socket.emit("group-deleted", groupId);
+}
+
+async function handleGroupMessage(socket, data) {
+  const { groupId, senderId, content } = data;
+  console.log("Handling group message:", data, socket.id);
+
+  try {
+    // Save message to database (you may need to adjust this part)
+    await saveMessage({
+      senderId,
+      receiverId: groupId,
+      content,
+    });
+
+    async function getGroupMembers(groupId) {
+      // Assuming you have a way to get group members from your database or in-memory store
+      const group = await findGroupById(groupId); // Implement this function to retrieve the group
+      console.log("group", group);
+      return group.members.map(memberId => onlineUsers.get(memberId.toString())).filter(Boolean);
+    }
+
+    const groupMembers = await getGroupMembers(groupId);
+       console.log("Group members' socket IDs:", groupMembers); // Log the socket IDs
+
+       groupMembers.forEach(memberSocketId => {
+         if (memberSocketId !== socket.id) {
+           socket.to(memberSocketId).emit("receive-group", {
+             _id: Date.now().toString(),
+             sender: senderId,
+             content: content,
+             createdAt: new Date().toISOString(),
+           });
+         }
+       });
+  } catch (error) {
+    console.error("Error handling group message:", error);
+  }
+}
+
+
 
 function handleConnection(socket) {
   console.log("User connected:", socket.id);
@@ -231,27 +296,32 @@ function handleConnection(socket) {
   socket.on("disconnect", () => handleDisconnect(socket));
 
   // Handle message deletion
-  socket.on("delete-message", (messageId) => handleDeleteMessage(socket, messageId));
+  socket.on("delete-message", (messageId) =>
+    handleDeleteMessage(socket, messageId)
+  );
 
   // Handle message update
   socket.on("update-message", (data) => handleUpdateMessage(socket, data));
 
   // Add screen sharing handlers
-  socket.on("screenShareOffer", (data) => { handleScreenShare(socket, data)});
+  socket.on("screenShareOffer", (data) => handleScreenShare(socket, data));
   socket.on("screenShareAnswer", (data) =>
-  {
-
-    console.log("screen-share", data)
-    
     handleScreenShareAnswer(socket, data)
-  }
   );
 
   // =====calll======
   socket.on("callOffer", (data) => handleCallOffer(socket, data));
   socket.on("callAnswer", (data) => handleCallAnswer(socket, data));
-  socket.on("iceCandidate", (data) => handleIceCandidate(socket, data));
+  socket.on("ice-candidate", (data) => handleIceCandidate(socket, data));
   socket.on("endCall", (data) => handleCallEnd(socket, data));
+
+  // Add group handlers
+  socket.on("create-group", (data) => handleCreateGroup(socket, data));
+  socket.on("update-group", (data) => handleUpdateGroup(socket, data));
+  socket.on("delete-group", (groupId) => handleDeleteGroup(socket, groupId));
+
+  // Handle group messages
+  socket.on("group-message", (data) => handleGroupMessage(socket, data));
 }
 
 function getOnlineUsers() {

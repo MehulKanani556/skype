@@ -1,5 +1,5 @@
 const express = require("express");
-const { createUser, getAllUsers } = require("../controller/userController");
+const { createUser, getAllUsers, getAllMessageUsers } = require("../controller/userController");
 const { userLogin, googleLogin,forgotPassword,verifyOtp,changePassword } = require("../auth/auth");
 const { auth } = require("../helper/auth");
 const { getOnlineUsers } = require("../socketManager/SocketManager");
@@ -11,6 +11,7 @@ const {
 } = require("../controller/messageController");
 const upload = require("../helper/upload");
 const uploadController = require("../controller/uploadController");
+const { createGroup, updateGroup, deleteGroup, getAllGroups, getGroupById } = require("../controller/groupController");
 
 const indexRoutes = express.Router();
 
@@ -26,6 +27,14 @@ indexRoutes.post('/changePassword', changePassword)
 
 indexRoutes.post("/createUser", createUser);
 indexRoutes.get("/allUsers", auth, getAllUsers);
+indexRoutes.get("/allMessageUsers", auth, getAllMessageUsers);
+
+// Group Routes
+indexRoutes.post("/createGroup", auth, createGroup);
+indexRoutes.put("/updateGroup/:groupId", auth, updateGroup);
+indexRoutes.delete("/deleteGroup/:groupId", auth, deleteGroup);
+indexRoutes.get("/allGroups", auth, getAllGroups);
+indexRoutes.get("/getGroupById/:groupId", auth, getGroupById);
 
 // Message Routes
 indexRoutes.get("/messages/:userId", auth, getMessageHistory);

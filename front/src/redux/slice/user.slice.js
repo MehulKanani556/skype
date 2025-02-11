@@ -14,7 +14,9 @@ const initialState = {
     user: null,
     onlineUser: [],
     allUsers: [],
+    allMessageUsers: [],
     messages: [],
+    groups: [],
     isAuthenticated: !!sessionStorage.getItem('token') && sessionStorage.getItem('role') === 'admin',
     loading: false,
     error: null,
@@ -156,7 +158,24 @@ export const getAllUsers = createAsyncThunk(
                     Authorization: `Bearer ${token}`
                 }
             });
-            console.log(response.data.users);
+           
+            return response.data.users;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
+export const getAllMessageUsers = createAsyncThunk(
+    'user/getAllMessageUsers',
+    async (_ , { rejectWithValue }) => {
+        try {
+            const token = await sessionStorage.getItem("token");
+            const response = await axios.get(`${BASE_URL}/allMessageUsers`,{
+                headers:{
+                    Authorization: `Bearer ${token}`
+                }
+            });
             return response.data.users;
         } catch (error) {
             return handleErrors(error, null, rejectWithValue);
@@ -239,6 +258,72 @@ export const updateMessage = createAsyncThunk(
       }
     }
   );
+
+  export const createGroup = createAsyncThunk(
+    'user/createGroup',
+    async (groupData, { rejectWithValue }) => {
+        const token = await sessionStorage.getItem("token");
+      try { 
+        const response = await axios.post(`${BASE_URL}/createGroup`, groupData,{
+            headers:{
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+      } catch (error) {
+        return handleErrors(error, null, rejectWithValue);
+      }
+    }
+  );
+
+  export const getAllGroups = createAsyncThunk(
+    'user/getAllGroups',
+    async (_ , { rejectWithValue }) => {
+        const token = await sessionStorage.getItem("token");
+        const response = await axios.get(`${BASE_URL}/allGroups`,{
+            headers:{
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+    }
+  );
+
+  export const updateGroup = createAsyncThunk(
+    'user/updateGroup',
+    async (groupData, { rejectWithValue }) => {
+        const token = await sessionStorage.getItem("token");
+        const { groupId, name, members } = groupData;
+      try { 
+        const response = await axios.put(`${BASE_URL}/updateGroup/${groupId}`, groupData ,{
+            headers:{
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+      } catch (error) {
+        return handleErrors(error, null, rejectWithValue);
+      }
+    }
+  );
+
+  export const deleteGroup = createAsyncThunk(
+    'user/deleteGroup',
+    async (groupId, { rejectWithValue }) => {
+        const token = await sessionStorage.getItem("token");
+      try {
+        const response = await axios.delete(`${BASE_URL}/deleteGroup/${groupId}`,{
+            headers:{
+                Authorization: `Bearer ${token}`
+            }
+        });
+        return response.data;
+      } catch (error) {
+        return handleErrors(error, null, rejectWithValue);
+      }
+    }
+  );
+
 
 const authSlice = createSlice({
     name: 'auth',
@@ -434,6 +519,28 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload.message;
                 state.message = action.payload?.message || "Failed to update message";
+            })
+            .addCase(getAllMessageUsers.fulfilled, (state, action) => {
+                state.allMessageUsers = action.payload;
+                state.loading = false;
+                state.error = null;
+                state.message = "Message users retrieved successfully";
+            })
+            .addCase(getAllMessageUsers.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload.message;
+                state.message = action.payload?.message || "Failed to retrieve message users";
+            })
+            .addCase(getAllGroups.fulfilled, (state, action) => {
+                state.groups = action.payload;
+                state.loading = false;
+                state.error = null;
+                state.message = "Groups retrieved successfully";
+            })
+            .addCase(getAllGroups.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+                state.message = action.payload?.message || "Failed to retrieve groups";
             })
 
 

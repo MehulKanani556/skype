@@ -2,7 +2,7 @@ const Message = require("../models/messageModel");
 
 exports.saveMessage = async (messageData) => {
   try {
-    console.log("messageData");
+    // console.log("messageData");
     const message = new Message({
       sender: messageData.senderId,
       receiver: messageData.receiverId,

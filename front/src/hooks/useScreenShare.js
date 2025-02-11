@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
-import { remote } from 'electron';
+import { useEffect, useRef, useState } from "react";
 
 const useScreenShare = (socketInstance) => {
   const peerConnection = useRef(null);
@@ -8,15 +7,13 @@ const useScreenShare = (socketInstance) => {
 
   const initializePeerConnection = () => {
     const configuration = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' }
-      ]
+      iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
     };
 
     peerConnection.current = new RTCPeerConnection(configuration);
 
     peerConnection.current.ontrack = (event) => {
-      console.log('Track received:', event);
+      console.log("Track received:", event);
       if (videoRef.current) {
         videoRef.current.srcObject = event.streams[0];
       }
@@ -24,40 +21,44 @@ const useScreenShare = (socketInstance) => {
 
     peerConnection.current.onicecandidate = (event) => {
       if (event.candidate) {
-        socketInstance.emit('ice-candidate', event.candidate);
+        socketInstance.emit("ice-candidate", event.candidate);
       }
     };
   };
 
   const handleScreenShareOffer = async (offer) => {
     try {
-      console.log('Received screen share offer:', offer);
-      
+      console.log("Received screen share offer:", offer);
+
       if (!peerConnection.current) {
         initializePeerConnection();
       }
 
-      await peerConnection.current.setRemoteDescription(new RTCSessionDescription(offer));
-      
+      await peerConnection.current.setRemoteDescription(
+        new RTCSessionDescription(offer)
+      );
+
       const answer = await peerConnection.current.createAnswer();
       await peerConnection.current.setLocalDescription(answer);
-      
-      socketInstance.emit('screenShareAnswer', { to: offer.from, answer });
+
+      socketInstance.emit("screenShareAnswer", { to: offer.from, answer });
       setIsConnected(true);
     } catch (error) {
-      console.error('Error handling screen share offer:', error);
+      console.error("Error handling screen share offer:", error);
     }
   };
 
   const startScreenShare = async () => {
     try {
-      const sources = await remote.desktopCapturer.getSources({ types: ['screen'] });
+      const sources = await window.electron.desktopCapturer.getSources({
+        types: ["screen"],
+      });
       const screenSource = sources[0];
 
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           mandatory: {
-            chromeMediaSource: 'desktop',
+            chromeMediaSource: "desktop",
             chromeMediaSourceId: screenSource.id,
           },
         },
@@ -73,22 +74,24 @@ const useScreenShare = (socketInstance) => {
   useEffect(() => {
     if (!socketInstance) return;
 
-    socketInstance.on('screenShareOffer', handleScreenShareOffer);
-    
-    socketInstance.on('ice-candidate', async (candidate) => {
+    socketInstance.on("screenShareOffer", handleScreenShareOffer);
+
+    socketInstance.on("ice-candidate", async (candidate) => {
       try {
         if (peerConnection.current) {
-          await peerConnection.current.addIceCandidate(new RTCIceCandidate(candidate));
+          await peerConnection.current.addIceCandidate(
+            new RTCIceCandidate(candidate)
+          );
         }
       } catch (error) {
-        console.error('Error adding ICE candidate:', error);
+        console.error("Error adding ICE candidate:", error);
       }
     });
 
     return () => {
-      socketInstance.off('screenShareOffer');
-      socketInstance.off('ice-candidate');
-      
+      socketInstance.off("screenShareOffer");
+      socketInstance.off("ice-candidate");
+
       if (peerConnection.current) {
         peerConnection.current.close();
         peerConnection.current = null;
@@ -99,7 +102,7 @@ const useScreenShare = (socketInstance) => {
   return {
     videoRef,
     isConnected,
-    peerConnection: peerConnection.current
+    peerConnection: peerConnection.current,
   };
 };
 
