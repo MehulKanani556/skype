@@ -6,7 +6,7 @@ exports.saveMessage = async (messageData) => {
     const message = new Message({
       sender: messageData.senderId,
       receiver: messageData.receiverId,
-      content: messageData.message,
+      content: messageData.content,
     });
     await message.save();
     return message;
@@ -53,7 +53,7 @@ exports.getAllMessages = async (req, res) => {
 
     const { selectedId } = req.body;
     console.log(selectedId);
-    
+
     let paginatedUser;
 
     paginatedUser = await Message.find({
@@ -84,5 +84,103 @@ exports.getAllMessages = async (req, res) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json({ status: 500, message: error.message });
+  }
+};
+
+exports.deleteMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+
+    console.log(messageId);
+
+    // Find the message first to check if it exists and if the user has permission
+    const message = await Message.findById(messageId);
+
+    if (!message) {
+      return res.status(404).json({
+        status: 404,
+        message: "Message not found",
+      });
+    }
+
+    // Check if the user is either the sender or receiver of the message
+    if (
+      message.sender.toString() !== req.user._id.toString() &&
+      message.receiver.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        status: 403,
+        message: "You don't have permission to delete this message",
+      });
+    }
+
+    // Update the message instead of deleting it
+    await Message.findByIdAndUpdate(messageId, {
+      content: { content: "deleted message", type: "text" },
+      deletedAt: new Date(),
+      status: "deleted",
+    });
+
+    return res.status(200).json({
+      status: 200,
+      message: "Message deleted successfully",
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+};
+
+exports.updateMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const { content } = req.body;
+
+    // Find the message first to check if it exists and if the user has permission
+    const message = await Message.findById(messageId);
+
+    if (!message) {
+      return res.status(404).json({
+        status: 404,
+        message: "Message not found",
+      });
+    }
+
+    // Only allow sender to update the message
+    if (message.sender.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        status: 403,
+        message: "You don't have permission to update this message",
+      });
+    }
+
+    // Only allow updating text messages
+    if (message.content.type !== "text") {
+      return res.status(400).json({
+        status: 400,
+        message: "Only text messages can be updated",
+      });
+    }
+
+    const updatedMessage = await Message.findByIdAndUpdate(
+      messageId,
+      { content: { content, type: "text" } },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      status: 200,
+      message: "Message updated successfully",
+      data: updatedMessage,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
   }
 };

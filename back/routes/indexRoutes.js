@@ -6,6 +6,8 @@ const { getOnlineUsers } = require("../socketManager/SocketManager");
 const {
   getMessageHistory,
   getAllMessages,
+  deleteMessage,
+  updateMessage,
 } = require("../controller/messageController");
 const upload = require("../helper/upload");
 const uploadController = require("../controller/uploadController");
@@ -29,13 +31,10 @@ indexRoutes.get("/allUsers", auth, getAllUsers);
 indexRoutes.get("/messages/:userId", auth, getMessageHistory);
 indexRoutes.get("/online-users", auth, getOnlineUsers);
 indexRoutes.post("/allMessages", auth, getAllMessages);
+indexRoutes.get("/deleteMessage/:messageId", auth, deleteMessage);
+indexRoutes.put("/updateMessage/:messageId", auth, updateMessage);
 
 // File upload endpoint
-indexRoutes.post(
-  "/upload",
-  auth,
-  upload.single("file"),
-  uploadController.uploadFile
-);
+indexRoutes.post("/upload",auth,upload.single("file"),uploadController.uploadFile);
 
 module.exports = indexRoutes;

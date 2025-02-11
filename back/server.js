@@ -9,10 +9,15 @@ const indexRoutes = require("./routes/indexRoutes");
 const { Server } = require("socket.io");
 const { saveMessage } = require("./controller/messageController");
 const socketManager = require("./socketManager/SocketManager");
-
+const path = require("path");
 server.use(express.json());
-server.use(cors());
-
+server.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  // allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
+}));
+server.use("/uploads", express.static(path.join(__dirname, "uploads")));
 server.use("/api", indexRoutes);
 
 // Create HTTP server from Express app for Socket.IO
@@ -22,7 +27,7 @@ const socketServer = http.createServer(server);
 // Initialize Socket.IO
 const io = new Server(socketServer, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: "*",
     credentials: true,
   },
 });
@@ -38,29 +43,21 @@ io.on("connection", (socket) => {
   // Handle private messages
   socket.on("private-message", async (data) => {
     try {
-      const { receiverId, message, senderId } = data;
-
-      // Save message to database
-      const savedMessage = await saveMessage({
-        senderId,
-        receiverId,
-        message,
-      });
-
+      const { receiverId, content, senderId } = data;
       // Emit to recipient if online
       const recipientSocket = socketManager.getSocketByUserId(receiverId);
       if (recipientSocket) {
         recipientSocket.emit("private-message", {
           senderId,
-          message,
-          timestamp: savedMessage.createdAt,
+          content,
+          timestamp: new Date(),
         });
       }
 
       // Acknowledge message receipt
       socket.emit("message-sent-status", {
         status: "sent",
-        timestamp: savedMessage.createdAt,
+        timestamp: new Date(),
       });
     } catch (error) {
       console.error("Error handling private message:", error);

@@ -202,6 +202,44 @@ export const getAllMessages = createAsyncThunk(
     }
 );
 
+export const deleteMessage = createAsyncThunk(
+    'user/deleteMessage',
+    async (messageId, { rejectWithValue }) => {
+        try {
+            const token = await sessionStorage.getItem("token");
+            const response = await axios.get(`${BASE_URL}/deleteMessage/${messageId}`,{
+                headers:{
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
+
+export const updateMessage = createAsyncThunk(
+    'user/updateMessage',
+    async ({ messageId, content }, { rejectWithValue }) => {
+      try {
+        const token = await sessionStorage.getItem("token");
+        const response = await axios.put(
+          `${BASE_URL}/updateMessage/${messageId}`,
+          { content },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+        return response.data;
+      } catch (error) {
+        return handleErrors(error, null, rejectWithValue);
+      }
+    }
+  );
+
 const authSlice = createSlice({
     name: 'auth',
     initialState,
@@ -376,6 +414,26 @@ const authSlice = createSlice({
                 state.loading = true;
                 state.error = null;
                 state.message = "Retrieving messages...";
+            })
+            .addCase(deleteMessage.fulfilled, (state, action) => {
+                state.loading = false;
+                state.error = null;
+                state.message = action.payload?.message || "Message deleted successfully";
+            })
+            .addCase(deleteMessage.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload.message;
+                state.message = action.payload?.message || "Failed to delete message";
+            })
+            .addCase(updateMessage.fulfilled, (state, action) => {
+                state.loading = false;
+                state.error = null;
+                state.message = "Message updated successfully";
+            })
+            .addCase(updateMessage.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload.message;
+                state.message = action.payload?.message || "Failed to update message";
             })
 
 

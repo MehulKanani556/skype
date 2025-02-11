@@ -18,7 +18,7 @@ const uploadController = {
 
       // Return the file URL and type
       res.status(200).json({
-        fileUrl: `${process.env.SERVER_URL}/${file.path}`,
+        fileUrl: `${file.path}`,
         fileType: file.mimetype,
       });
     } catch (error) {

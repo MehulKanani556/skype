@@ -89,8 +89,28 @@ export const useSocket = (userId) => {
       callback(message);
     };
 
+     // Add handlers for message updates and deletions
+     const messageDeletedHandler = (messageId) => {
+      console.log("Received message deleted:", messageId);
+      callback({ type: 'delete', messageId });
+    };
+
+    const messageUpdatedHandler = (message) => {
+      console.log("Received message updated:", message);
+      callback(message);
+    };
+
+
+
     socketRef.current.on("receive-message", messageHandler);
-    return () => socketRef.current.off("receive-message", messageHandler);
+    socketRef.current.on("message-deleted", messageDeletedHandler);
+    socketRef.current.on("message-updated", messageUpdatedHandler);
+
+    return () => {
+      socketRef.current.off("receive-message", messageHandler);
+      socketRef.current.off("message-deleted", messageDeletedHandler);
+      socketRef.current.off("message-updated", messageUpdatedHandler);
+    };
   };
 
   // Subscribe to typing status
@@ -239,6 +259,224 @@ const handleIncomingScreenShare = async (data, videoElement) => {
     };
   }, []);
 
+
+  // ===========================call=============================
+
+
+  const [currentCall, setCurrentCall] = useState(null);
+  const localStreamRef = useRef(null);
+  const remoteStreamRef = useRef(null);
+  
+    const initializeCallConnection = async (type) => {
+      try {
+        const configuration = {
+          iceServers: [
+            { urls: 'stun:stun.localhost:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' },
+            { urls: 'stun:stun3.l.google.com:19302' },
+            { urls: 'stun:stun4.l.google.com:19302' }
+          ]
+        };
+
+        peerConnectionRef.current = new RTCPeerConnection(configuration);
+
+        // Set up event handlers before getting media
+        peerConnectionRef.current.onicecandidate = (event) => {
+          if (event.candidate) {
+            socketRef.current.emit("iceCandidate", {
+              to: currentCall?.with,
+              candidate: event.candidate
+            });
+          }
+        };
+
+        peerConnectionRef.current.ontrack = (event) => {
+          remoteStreamRef.current = event.streams[0];
+        };
+
+        // Get user media based on call type
+        const constraints = {
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
+          video: type === 'video' ? {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: "user",
+            echoCancellation: true
+          } : false
+        };
+
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        localStreamRef.current = stream;
+
+        console.log(stream);
+
+        stream.getTracks().forEach(track => {
+          track.enabled = true; // Ensure tracks are enabled
+          peerConnectionRef.current.addTrack(track, stream);
+        });
+
+        console.log(peerConnectionRef.current);
+
+        return stream;
+      } catch (err) {
+        console.error("Error initializing call:", err);
+        throw new Error("Failed to initialize call connection");
+      }
+    };
+  
+    const makeCall = async (receiverId, type = 'video') => {
+      try {
+        const localStream = await initializeCallConnection(type);
+
+        console.log(localStream);
+        
+        // Create and set local description
+        const offer = await peerConnectionRef.current.createOffer();
+        await peerConnectionRef.current.setLocalDescription(offer);
+
+        console.log(offer);
+  
+        // Send offer to receiver
+        socketRef.current.emit("callOffer", {
+          to: receiverId,
+          from: userId,
+          offer: offer,
+          type: type
+        });
+  
+        setCurrentCall({
+          with: receiverId,
+          type: type,
+          status: 'calling'
+        });
+  
+        return localStream;
+      } catch (error) {
+        console.error("Error making call:", error);
+        throw error;
+      }
+    };
+  
+    const answerCall = async (callData) => {
+      try {
+        const localStream = await initializeCallConnection(callData.type);
+        
+        // Set remote description from offer
+        await peerConnectionRef.current.setRemoteDescription(
+          new RTCSessionDescription(callData.offer)
+        );
+  
+        // Create and send answer
+        const answer = await peerConnectionRef.current.createAnswer();
+        await peerConnectionRef.current.setLocalDescription(answer);
+  
+        socketRef.current.emit("callAnswer", {
+          to: callData.from,
+          answer: answer
+        });
+  
+        setCurrentCall({
+          with: callData.from,
+          type: callData.type,
+          status: 'connected'
+        });
+  
+        return localStream;
+      } catch (error) {
+        console.error("Error answering call:", error);
+        throw error;
+      }
+    };
+  
+    const endCall = () => {
+      if (currentCall) {
+        socketRef.current.emit("endCall", {
+          to: currentCall.with
+        });
+      }
+  
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+  
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+      }
+  
+      setCurrentCall(null);
+    };
+  
+    // Add call-related socket listeners
+    useEffect(() => {
+      if (!socketRef.current) return;
+  
+      socketRef.current.on("callOffer", (data) => {
+        // Handle incoming call
+        const incomingCall = {
+          ...data,
+          status: 'incoming'
+        };
+        setCurrentCall(incomingCall);
+      });
+  
+      socketRef.current.on("callAnswer", async (data) => {
+        try {
+          await peerConnectionRef.current.setRemoteDescription(
+            new RTCSessionDescription(data.answer)
+          );
+          setCurrentCall(prev => ({ ...prev, status: 'connected' }));
+        } catch (error) {
+          console.error("Error setting remote description:", error);
+        }
+      });
+  
+      socketRef.current.on("iceCandidate", async (data) => {
+        try {
+          if (data.candidate) {
+            await peerConnectionRef.current.addIceCandidate(
+              new RTCIceCandidate(data.candidate)
+            );
+          }
+        } catch (error) {
+          console.error("Error adding ICE candidate:", error);
+        }
+      });
+  
+      socketRef.current.on("callEnded", () => {
+        endCall();
+      });
+  
+      return () => {
+        socketRef.current?.off("callOffer");
+        socketRef.current?.off("callAnswer");
+        socketRef.current?.off("iceCandidate");
+        socketRef.current?.off("callEnded");
+      };
+    }, []);
+  
+    // Handle ICE candidates
+    useEffect(() => {
+      if (!peerConnectionRef.current) return;
+  
+      peerConnectionRef.current.onicecandidate = (event) => {
+        if (event.candidate && currentCall) {
+          socketRef.current.emit("iceCandidate", {
+            to: currentCall.with,
+            candidate: event.candidate
+          });
+        }
+      };
+  
+      peerConnectionRef.current.ontrack = (event) => {
+        remoteStreamRef.current = event.streams[0];
+      };
+    }, [currentCall]);
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -249,6 +487,12 @@ const handleIncomingScreenShare = async (data, videoElement) => {
     subscribeToTyping,
     startScreenShare,
     stopScreenShare,
-    handleIncomingScreenShare,
-  };
+    handleIncomingScreenShare, 
+    makeCall,
+    answerCall,
+    endCall,
+    currentCall,
+    localStreamRef,
+    remoteStreamRef
+  }
 };
