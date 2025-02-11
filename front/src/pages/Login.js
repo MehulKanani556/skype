@@ -7,6 +7,8 @@ import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { LuEye, LuEyeClosed } from 'react-icons/lu';
+// import React, { useState, useEffect } from "react";
+// import { Formik, Form, Field, ErrorMessage } from "formik";
 
 const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleVerifyOTP, handleBack, email }) => {
   const [otp, setOtp] = useState(new Array(length).fill(''));

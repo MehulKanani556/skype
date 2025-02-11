@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import EmojiPicker from 'emoji-picker-react';
 import {
-    FaSearch, FaCommentDots, FaPhone, FaUsers, FaBell, FaPlus,
-    FaVideo, FaEllipsisH, FaDownload, FaShareAlt, FaUserPlus,
-    FaBookmark, FaCog, FaQrcode, FaStar, FaSmile, FaPaperclip, FaMicrophone, FaImage
+    FaSearch, FaCommentDots, FaPhone, FaUsers, FaBell, FaEllipsisH, FaDownload, FaShareAlt, FaUserPlus, FaBookmark, FaCog, FaQrcode, FaStar, FaPaperclip, FaMicrophone, FaRegSmile
 } from 'react-icons/fa';
-// import { Smile, Paperclip, Mic, Image, MoreHorizontal } from 'react-icons/your-icon-library'; // Ensure these icons are correctly imported
+import { LuScreenShare } from "react-icons/lu";
+import { IoMdSearch } from "react-icons/io";
+import { MdPhoneEnabled, MdGroupAdd } from "react-icons/md";
+import { GoDeviceCameraVideo } from "react-icons/go";
+import { LuSendHorizontal } from "react-icons/lu";
+import { ImCross } from "react-icons/im";
 
 const Chat = () => {
     const [selectedTab, setSelectedTab] = useState('Chats');
@@ -14,6 +18,9 @@ const Chat = () => {
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
     const [selectedChat, setSelectedChat] = useState(null);
     const [message, setMessage] = useState('');
+    const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+    const emojiPickerRef = useRef(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchChats = async () => {
@@ -35,7 +42,6 @@ const Chat = () => {
 
         const fetchMessages = async () => {
             const fetchedMessages = [
-                // { id: 1, text: 'hello', time: '09:14', sender: 'other' },
                 { id: 2, content: 'Baby-project (2).zip', size: '47.3 MB', type: 'file', time: '17:49', sender: 'other' },
                 { id: 3, content: 'grid.zip', size: '30 KB', type: 'file', time: '10:50', sender: 'other' },
             ];
@@ -68,6 +74,25 @@ const Chat = () => {
         handleSendMessage(message);
         setMessage('');
     };
+
+    const onEmojiClick = (event, emojiObject) => {
+        console.log(emojiObject.emoji);
+        setMessage(prevMessage => prevMessage + event.emoji);
+    };
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+                setIsEmojiPickerOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
 
     return (
         <div className="flex h-screen bg-white">
@@ -241,10 +266,12 @@ const Chat = () => {
                         </div>
                     </div>
                     <div className="flex items-center space-x-4">
-                        <FaSearch className="" />
-                        <FaPhone className="" />
-                        <FaVideo className="" />
-                        <FaEllipsisH className="" />
+                        <IoMdSearch className="w-6 h-6" />
+                        <LuScreenShare className="w-6 h-6" />
+                        <MdGroupAdd className="w-6 h-6 cursor-pointer" onClick={() => setIsModalOpen(true)} />
+                        <MdPhoneEnabled className=" w-6 h-6" />
+                        <GoDeviceCameraVideo className="w-6 h-6" />
+                        {/* <FaEllipsisH className="" /> */}
                     </div>
                 </div>
 
@@ -272,22 +299,30 @@ const Chat = () => {
                     ))}
                 </div>
 
-                <div className="w-full max-w-4xl mx-auto p-4 bg-gray-50 rounded-lg">
-                    <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-white rounded-full px-4 py-2 shadow-sm">
+                <div className="w-full max-w-4xl mx-auto p-4 rounded-lg">
+                    <form onSubmit={handleSubmit} className="flex items-center gap-2 rounded-full px-4 py-2 shadow" style={{ backgroundColor: "#e5e7eb" }} >
                         <button
                             type="button"
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                             aria-label="Add emoji"
+                            onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
                         >
-                            {/* <Smile className="w-5 h-5 text-gray-500" /> */}
+                            <FaRegSmile className="w-5 h-5 text-gray-500" />
                         </button>
+
+                        {isEmojiPickerOpen && (
+                            <div ref={emojiPickerRef} className="absolute bg-white border rounded shadow-lg p-2 bottom-[70px]">
+                                <EmojiPicker onEmojiClick={onEmojiClick} />
+                            </div>
+                        )}
 
                         <input
                             type="text"
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             placeholder="Type a message"
-                            className="flex-1 px-2 py-1 outline-none text-gray-700 placeholder-gray-400"
+                            className="flex-1 px-2 py-1 outline-none text-black"
+                            style={{ backgroundColor: "#e5e7eb" }}
                         />
 
                         <div className="flex items-center gap-1">
@@ -296,33 +331,68 @@ const Chat = () => {
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                                 aria-label="Attach file"
                             >
-                                {/* <Paperclip className="w-5 h-5 text-gray-500" /> */}
+                                <FaPaperclip className="w-5 h-5 text-gray-500" />
                             </button>
                             <button
                                 type="button"
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                                 aria-label="Voice message"
                             >
-                                {/* <Mic className="w-5 h-5 text-gray-500" /> */}
+                                <FaMicrophone className="w-5 h-5 text-gray-500" />
                             </button>
-                            <button
-                                type="button"
-                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                                aria-label="Add image"
-                            >
-                                {/* <Image className="w-5 h-5 text-gray-500" /> */}
-                            </button>
-                            <button
-                                type="button"
-                                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                                aria-label="More options"
-                            >
-                                {/* <MoreHorizontal className="w-5 h-5 text-gray-500" /> */}
-                            </button>
+                            {message.trim() && (
+                                <button
+                                    type="submit"
+                                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    style={{ backgroundColor: "#3B82F6", color: "white" }}
+                                    aria-label="Send message"
+                                >
+                                    <LuSendHorizontal />
+                                </button>
+                            )}
                         </div>
                     </form>
                 </div>
             </div>
+
+            {isModalOpen && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+                    <div className="bg-white rounded-lg w-96 p-4">
+                        <div className="flex justify-between items-center border-b pb-2">
+                            <h2 className="text-lg font-bold">Add to Group</h2>
+                            <button onClick={() => setIsModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+                                {/* &times; */}
+                                <ImCross />
+                            </button>
+                        </div>
+                        <div className="mt-4">
+                            <input
+                                type="text"
+                                placeholder="Search"
+                                className="w-full p-2 border rounded mb-4"
+                            />
+                            <div className="space-y-2 h-80 overflow-y-auto">
+                                {['Akshay Padaliya', 'Archit Bhuva', 'Jay Kalathiya', 'Dhruvish Sorathiya', 'Parth Patoliya', 'Darshit Khichadiya', 'Darshan', 'Keyur Dhameliya', 'Vasu Gabani', 'Mehul Kanani'].map((name, index) => (
+                                    <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-100 rounded">
+                                        <div className="flex items-center">
+                                            <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-2">
+                                                {name.split(' ').map(n => n[0]).join('')}
+                                            </div>
+                                            <span>{name}</span>
+                                        </div>
+                                        <input type="checkbox" className="form-checkbox rounded-full" style={{ width: '20px', height: '20px', borderRadius: '50%', border: '2px solid #ccc', backgroundColor: '#fff', cursor: 'pointer' }} />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="mt-4 flex justify-center">
+                            <button onClick={() => setIsModalOpen(false)} className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600">
+                                Done
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

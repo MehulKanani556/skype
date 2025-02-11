@@ -24,6 +24,8 @@ import {
 import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
 // Adjust the import path based on your structure
+import { useScreenShare } from "../hooks/useScreenShare";
+// import { SocketContext } from "../context/SocketContext"; // Adjust the import path based on your structure
 
 const Chat2 = () => {
   const [selectedTab, setSelectedTab] = useState("Chats");
