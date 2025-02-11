@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { remote } from 'electron';
+// import { remote } from 'electron';
 
 const useScreenShare = (socketInstance) => {
   const peerConnection = useRef(null);
@@ -49,26 +49,26 @@ const useScreenShare = (socketInstance) => {
     }
   };
 
-  const startScreenShare = async () => {
-    try {
-      const sources = await remote.desktopCapturer.getSources({ types: ['screen'] });
-      const screenSource = sources[0];
+  // const startScreenShare = async () => {
+  //   try {
+  //     const sources = await remote.desktopCapturer.getSources({ types: ['screen'] });
+  //     const screenSource = sources[0];
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          mandatory: {
-            chromeMediaSource: 'desktop',
-            chromeMediaSourceId: screenSource.id,
-          },
-        },
-        audio: true,
-      });
+  //     const stream = await navigator.mediaDevices.getUserMedia({
+  //       video: {
+  //         mandatory: {
+  //           chromeMediaSource: 'desktop',
+  //           chromeMediaSourceId: screenSource.id,
+  //         },
+  //       },
+  //       audio: true,
+  //     });
 
-      // ... existing code to handle stream ...
-    } catch (error) {
-      console.error("Error starting screen share:", error);
-    }
-  };
+  //     // ... existing code to handle stream ...
+  //   } catch (error) {
+  //     console.error("Error starting screen share:", error);
+  //   }
+  // };
 
   useEffect(() => {
     if (!socketInstance) return;
