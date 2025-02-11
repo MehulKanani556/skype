@@ -38,8 +38,25 @@ const Chat2 = () => {
     (state) => state.user
   );
   const remoteVideoRef = useRef(null);
+  console.log(remoteVideoRef);
+
+  
 
   console.log(messages);
+  const localStreamRef = useRef(null);
+
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = null;
+      }
+    };
+  }, []);
+
 
   useEffect(() => {
     dispatch(getAllUsers());
@@ -216,27 +233,23 @@ const Chat2 = () => {
 
     const handleScreenShareOffer = async (data) => {
       try {
-        console.log("Received screen share offer:", data,videoElement,remoteVideoRef);
-        if (!videoElement) {
-          console.error("Video element not found");
-          return;
-        }
-        
-
-        // Show notification to user
-        const acceptShare = window.confirm(
-          `${data.senderId} wants to share their screen. Accept?`
-        );
+        console.log("Received screen share offer:", data);
+        const acceptShare = window.confirm(`Someone wants to share their screen. Accept?`);
 
         if (acceptShare) {
-          console.log("object")
-          // Accept the screen share offer
-          await handleIncomingScreenShare(data.offer, videoElement); // Pass the offer object
+          await handleIncomingScreenShare(data.offer);
+          
+          // Check if data.offer is a valid MediaStream
+          if (videoElement && data.offer && data.offer instanceof MediaStream) {
+            videoElement.srcObject = data.offer; // Set the srcObject to the incoming stream
+            videoElement.play().catch(error => {
+              console.error("Error playing video:", error);
+            });
+          } else {
+            console.error("Invalid MediaStream:", data.offer);
+          }
         } else {
-          // Optionally notify the sender that the share was rejected
-          socket?.emit("screenShareRejected", {
-            receiverId: data.senderId,
-          });
+          socket.emit("screenShareRejected", { to: data.senderId });
         }
       } catch (error) {
         console.error("Error handling screen share:", error);
@@ -245,13 +258,11 @@ const Chat2 = () => {
 
     if (isConnected && socket) {
       socket.on("screenShareOffer", handleScreenShareOffer);
-      // console.log("Subscribed to screen share offers");
     }
 
     return () => {
       if (socket) {
         socket.off("screenShareOffer", handleScreenShareOffer);
-        // console.log("Unsubscribed from screen share offers");
       }
     };
   }, [isConnected, handleIncomingScreenShare, socket]);
@@ -278,7 +289,7 @@ const Chat2 = () => {
 
       try {
         // Upload file to your server
-          
+
         const response = await axios.post(`${BASE_URL}/upload`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
@@ -288,7 +299,7 @@ const Chat2 = () => {
 
         if (response.status === 200) {
 
-        const { fileUrl, fileType } = response.data;
+          const { fileUrl, fileType } = response.data;
 
           // Send separate message for each file
           await handleSendMessage({
@@ -305,7 +316,7 @@ const Chat2 = () => {
       }
     }
   };
-  console.log('Upload',remoteVideoRef)
+  console.log('Upload', remoteVideoRef)
 
   return (
     <div className="flex h-screen bg-white">
@@ -353,25 +364,22 @@ const Chat2 = () => {
         {/* Tabs */}
         <div className="flex px-4 space-x-4 border-b">
           <button
-            className={`py-2 ${
-              selectedTab === "All" ? "border-b-2 border-blue-500" : ""
-            }`}
+            className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
+              }`}
             onClick={() => setSelectedTab("All")}
           >
             All
           </button>
           <button
-            className={`py-2 ${
-              selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
-            }`}
+            className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
+              }`}
             onClick={() => setSelectedTab("Chats")}
           >
             Chats
           </button>
           <button
-            className={`py-2 ${
-              selectedTab === "Channels" ? "border-b-2 border-blue-500" : ""
-            }`}
+            className={`py-2 ${selectedTab === "Channels" ? "border-b-2 border-blue-500" : ""
+              }`}
             onClick={() => setSelectedTab("Channels")}
           >
             Channels
@@ -390,9 +398,8 @@ const Chat2 = () => {
             .map((chat) => (
               <div
                 key={chat._id}
-                className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${
-                  selectedChat?._id === chat._id ? "bg-gray-100" : ""
-                }`}
+                className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === chat._id ? "bg-gray-100" : ""
+                  }`}
                 onClick={() => setSelectedChat(chat)}
               >
                 <div className="relative">
@@ -463,11 +470,10 @@ const Chat2 = () => {
               messages.map((message) => (
                 <div
                   key={message._id}
-                  className={`flex ${
-                    message.sender === sessionStorage.getItem("userId")
-                      ? "justify-end"
-                      : "justify-start"
-                  } mb-4`}
+                  className={`flex ${message.sender === sessionStorage.getItem("userId")
+                    ? "justify-end"
+                    : "justify-start"
+                    } mb-4`}
                 >
                   {message.content?.type === "file" ? (
                     <div className="bg-blue-50 rounded-lg p-4 max-w-sm">
@@ -507,16 +513,16 @@ const Chat2 = () => {
                                   }
                                 />
                               ) : message.content?.fileType?.startsWith(
-                                  "video/"
-                                ) ? (
+                                "video/"
+                              ) ? (
                                 <video
                                   controls
                                   className="max-w-xs"
                                   src={message.content.fileUrl}
                                 />
                               ) : message.content?.fileType?.startsWith(
-                                  "audio/"
-                                ) ? (
+                                "audio/"
+                              ) ? (
                                 <audio controls src={message.content.fileUrl} />
                               ) : (
                                 <a
@@ -594,7 +600,14 @@ const Chat2 = () => {
           <div className="border-t p-4">
             <div className="flex items-center">
               <button onClick={handleStartScreenShare}>Share Screen</button>
-              <video ref={remoteVideoRef} autoPlay playsInline />
+              {/* <video ref={remoteVideoRef} autoPlay playsInline /> */}
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="w-full max-w-lg border rounded-lg"
+                style={{ display: remoteVideoRef.current?.srcObject ? 'block' : '' }}
+              />
               <label htmlFor="file-upload" className="cursor-pointer">
                 <FaPlus className="w-6 h-6" />
               </label>

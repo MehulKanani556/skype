@@ -108,87 +108,107 @@ export const useSocket = (userId) => {
         video: true,
         audio: true,
       });
-
-      // Create new RTCPeerConnection
-      peerConnectionRef.current = new RTCPeerConnection();
-
+  
+      if (peerConnectionRef.current) {
+        peerConnectionRef.current.close();
+      }
+  
+      peerConnectionRef.current = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      });
+  
       // Add tracks to peer connection
       stream.getTracks().forEach((track) => {
         peerConnectionRef.current.addTrack(track, stream);
       });
-
+  
       // Create and set local description
       const offer = await peerConnectionRef.current.createOffer();
       await peerConnectionRef.current.setLocalDescription(offer);
-
-      // Send offer to receiver via socket
+  
+      // Send properly formatted offer
       socketRef.current.emit("screenShareOffer", {
         senderId: userId,
         receiverId,
-        offer: peerConnectionRef.current.localDescription,
+        offer: {
+          type: 'offer',
+          sdp: offer.sdp
+        }
       });
-      
-
+  
       return true;
     } catch (error) {
-      console.error("Error starting screen share:", error);
+      console.error("Error in startScreenShare:", error);
       return false;
     }
   };
 
-  const handleIncomingScreenShare = async (data, videoElement) => {
-    try {
-      // Check if a peer connection already exists
-      if (peerConnectionRef.current) {
-        console.warn("A peer connection already exists. Closing it.");
-        peerConnectionRef.current.close();
-      }
+// In useSocket.js
+const handleIncomingScreenShare = async (data, videoElement) => {
+  try {
+    console.log("Received screen share data:", data); // Debug log
 
-      // Create a new RTCPeerConnection
-      peerConnectionRef.current = new RTCPeerConnection();
-
-      // Set remote description from offer
-      await peerConnectionRef.current.setRemoteDescription(
-        new RTCSessionDescription(data)
-      );
-
-      // Create and send answer
-      const answer = await peerConnectionRef.current.createAnswer();
-      await peerConnectionRef.current.setLocalDescription(answer);
-
-      socketRef.current.emit("screenShareAnswer", {
-        senderId: userId,
-        receiverId: data.senderId,
-        answer: peerConnectionRef.current.localDescription,
-      });
-   
-
-      // Handle incoming stream
-      peerConnectionRef.current.ontrack = (event) => {
-        console.log("ontrack event handler set up");
-        console.log("ontrack event received:", event);
-        if (videoElement) {
-          console.log("Setting video element source to incoming stream");
-          videoElement.srcObject = event.streams[0];
-        } else {
-          console.error("Video element is not defined");
-        }
-      };
-
-      // Added log to check if ICE candidates are being received
-      peerConnectionRef.current.onicecandidate = (event) => {
-        if (event.candidate) {
-          console.log("New ICE candidate:", event.candidate);
-          socketRef.current.emit("ice-candidate", event.candidate);
-        } else {
-          console.log("All ICE candidates have been sent");
-        }
-      };
-
-    } catch (error) {
-      console.error("Error handling incoming screen share:", error);
+    // The data itself is the offer now, so we adjust our validation
+    if (!data || !data.sdp) {
+      console.error("Invalid offer data:", data);
+      throw new Error("Invalid screen share data received");
     }
-  };
+
+    // Create new RTCPeerConnection if needed
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+    }
+
+    peerConnectionRef.current = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+      ]
+    });
+
+    // Set up event handlers before setting remote description
+    peerConnectionRef.current.ontrack = (event) => {
+      console.log("Track received:", event);
+      if (videoElement && event.streams[0]) {
+        videoElement.srcObject = event.streams[0];
+        videoElement.play().catch(err => console.error("Error playing video:", err));
+      }
+    };
+
+    peerConnectionRef.current.onicecandidate = (event) => {
+      if (event.candidate) {
+        socketRef.current.emit("ice-candidate", {
+          candidate: event.candidate,
+          to: data.senderId
+        });
+      }
+    };
+
+    // The data is already in the correct format
+    console.log("Setting remote description with offer:", data);
+    await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(data));
+
+    // Create and set local description
+    const answer = await peerConnectionRef.current.createAnswer();
+    await peerConnectionRef.current.setLocalDescription(answer);
+
+    // Send answer back
+    socketRef.current.emit("screenShareAnswer", {
+      to: data.senderId,
+      answer: answer
+    });
+
+  } catch (error) {
+    console.error("Error in handleIncomingScreenShare:", error);
+    console.error("Error details:", {
+      data: data,
+      peerConnection: peerConnectionRef.current
+    });
+  }
+};  
 
   const stopScreenShare = () => {
     if (peerConnectionRef.current) {

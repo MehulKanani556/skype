@@ -93,16 +93,24 @@ function handleDisconnect(socket) {
 
 function handleScreenShare(socket, data) {
   const { receiverId, senderId, offer } = data;
-  const receiverSocket = onlineUsers.get(receiverId);
-  // console.log("screen-sharezz", receiverId, senderId, offer )
+  console.log("Handling screen share request:", { receiverId, senderId, offer });
+  
+  const receiverSocketId = onlineUsers.get(receiverId);
 
-  if (receiverSocket) {
-    socket.to(receiverSocket).emit("screenShareOffer", {
+  if (receiverSocketId) {
+    socket.to(receiverSocketId).emit("screenShareOffer", {
       senderId,
       offer,
     });
+    console.log("Screen share offer sent to:", receiverId);
+  } else {
+    socket.emit("screenShare-error", {
+      error: "Receiver is offline",
+      receiverId,
+    });
   }
 }
+
 
 function handleScreenShareAnswer(socket, data) {
   console.log("aa",data)
@@ -113,6 +121,15 @@ function handleScreenShareAnswer(socket, data) {
     socket.to(senderSocket).emit("screenShareAnswer", {
       answer,
     });
+  }
+}
+
+function handleIceCandidate(socket, data) {
+  const { userId, candidate } = data;
+  const targetSocketId = onlineUsers.get(userId);
+
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit('ice-candidate', candidate);
   }
 }
 
@@ -141,6 +158,8 @@ function handleConnection(socket) {
     handleScreenShareAnswer(socket, data)
   }
   );
+
+  socket.on('ice-candidate', (data) => handleIceCandidate(socket, data));
 }
 
 function getOnlineUsers() {
