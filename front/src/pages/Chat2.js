@@ -77,6 +77,9 @@ const Chat2 = () => {
   const [userId, setUserId] = useState(sessionStorage.getItem("userId"));
   const [groupUsers, setGroupUsers] = useState([]);
   const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [filteredUsers, setFilteredUsers] = useState([]);
 
   const dispatch = useDispatch();
 
@@ -112,7 +115,7 @@ const Chat2 = () => {
     setIsReceiving,
     toggleCamera,
     toggleMicrophone,
-  } = useSocket(currentUser,localVideoRef,remoteVideoRef);
+  } = useSocket(currentUser, localVideoRef, remoteVideoRef);
 
   //   console.log(onlineUsers);
 
@@ -123,6 +126,17 @@ const Chat2 = () => {
     dispatch(getAllMessageUsers());
     dispatch(getAllGroups());
   }, [dispatch]);
+
+  // Add this effect to filter users based on search input
+  useEffect(() => {
+    if (searchInput) {
+      setFilteredUsers(allUsers.filter(user =>
+        user.userName.toLowerCase().includes(searchInput.toLowerCase())
+      ));
+    } else {
+      setFilteredUsers(allMessageUsers); // Show allMessageUsers when searchInput is empty
+    }
+  }, [searchInput, allUsers, allMessageUsers]);
 
   //===========profile dropdown===========
   useEffect(() => {
@@ -158,6 +172,8 @@ const Chat2 = () => {
       dispatch(getAllMessages({ selectedId: selectedChat._id }));
     }
   }, [selectedChat]);
+
+
 
   // ============Subscribe to messages ===========
   useEffect(() => {
@@ -352,7 +368,7 @@ const Chat2 = () => {
   const handleMakeCall = async (type) => {
     if (!selectedChat) return;
 
-    if(type == "video"){
+    if (type == "video") {
       const success = await startVideoCall(selectedChat._id);
       console.log(success);
       if (!success) {
@@ -455,6 +471,53 @@ const Chat2 = () => {
     setMessageInput("");
   };
 
+  const scrollToBottom = () => {
+    if (messagesContainerRef.current) {
+      const element = messagesContainerRef.current;
+      element.scrollTop = element.scrollHeight;
+    }
+  };
+
+  // Scroll when messages change
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Scroll when chat is selected
+  useEffect(() => {
+    if (selectedChat) {
+      scrollToBottom();
+    }
+  }, [selectedChat]);
+
+  // Add this effect to ensure scrolling works after the component mounts
+  useEffect(() => {
+    scrollToBottom();
+  }, []);
+
+  // Ensure scroll happens after messages are loaded
+  useEffect(() => {
+    if (messages.length > 0) {
+      const timeoutId = setTimeout(scrollToBottom, 100); // Delay to ensure DOM updates
+      return () => clearTimeout(timeoutId);
+    }
+  }, [messages.length]);
+
+  // Scroll after component updates
+  useEffect(() => {
+    const messageContainer = messagesContainerRef.current;
+    if (messageContainer) {
+      const config = { childList: true, subtree: true };
+
+      const observer = new MutationObserver(() => {
+        messageContainer.scrollTop = messageContainer.scrollHeight;
+      });
+
+      observer.observe(messageContainer, config);
+      return () => observer.disconnect();
+    }
+  }, []);
+
   return (
     <div className="flex h-screen bg-white">
       <div className="w-80 border-r flex flex-col">
@@ -550,6 +613,9 @@ const Chat2 = () => {
               type="text"
               placeholder="People, groups, messages"
               className="bg-transparent ml-2 outline-none flex-1"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+
             />
           </div>
         </div>
@@ -598,49 +664,62 @@ const Chat2 = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {[...allMessageUsers, ...groups]
+          {console.log(filteredUsers)}
+          {filteredUsers
+            .slice()
             .sort((a, b) => {
               if (a._id === currentUser) return -1;
               if (b._id === currentUser) return 1;
               return 0;
             })
-            .map((item) => (
-              <div
-                key={item._id}
-                className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""
-                  }`}
-                onClick={() => setSelectedChat(item)}
-              >
-                <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                  {item.avatar || item.userName.charAt(0).toUpperCase()}
-                  {onlineUsers.includes(item._id) && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
-                  )}
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="flex justify-between">
-                    <span className="font-medium">
-                      {item._id === currentUser
-                        ? `${item.userName} (You)`
-                        : item.userName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(item.createdAt).toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {item.email}
-                    {item.hasPhoto && (
-                      <span className="text-xs ml-1">[photo]</span>
+            .map((item) => {
+              // Ensure messages is defined and is an array
+              const lastMessage = Array.isArray(item.messages) ?
+                item.messages
+                  .filter(message => message.sender === item._id)
+                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+                : null;
+
+
+
+              return (
+                <div
+                  key={item._id}
+                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""
+                    }`}
+                  onClick={() => setSelectedChat(item)}
+                >
+                  <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
+                    {item.avatar || item.userName.charAt(0).toUpperCase()}
+                    {onlineUsers.includes(item._id) && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
                     )}
                   </div>
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between">
+                      <span className="font-medium">
+                        {item._id === currentUser
+                          ? `${item.userName} (You)`
+                          : item.userName}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {lastMessage ? new Date(lastMessage.createdAt).toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        }) : "No messages"}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {item.email}
+                      {item.hasPhoto && (
+                        <span className="text-xs ml-1">[photo]</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
         </div>
       </div>
 
@@ -684,10 +763,14 @@ const Chat2 = () => {
         </div>
         {/*========== Messages ==========*/}
         {selectedChat ? (
-          <div className="flex-1 overflow-y-auto p-4">
-            {messages && messages.length > 0 ? (
-              messages.map((message) => (
-                <>
+          <div
+            ref={messagesContainerRef}
+            className="flex-1 overflow-y-auto p-4"
+            style={{ height: 'calc(100vh - 280px)' }}
+          >
+            <div className="flex flex-col min-h-full justify-end">
+              {messages && messages.length > 0 ? (
+                messages.map((message) => (
                   <div
                     key={message._id}
                     className={`flex flex-col ${message.sender === userId
@@ -696,20 +779,20 @@ const Chat2 = () => {
                       } mb-4`}
                   >
                     {message.content?.type === "file" ? (
-                     message.content?.fileType.includes('image/') ? (
+                      message.content?.fileType.includes('image/') ? (
                         <div
-                          className={`rounded-lg p-2 max-w-sm max-h-[500px]  overflow-hidden${message.sender === userId
+                          className={`rounded-lg p-2 max-w-sm  overflow-hidden${message.sender === userId
                             ? ""
                             : ""
                             }`}
                           style={{ maxWidth: "500px", wordWrap: "break-word" }}
                           onContextMenu={(e) => handleContextMenu(e, message)}
                         >
-                          
+
                           <img
                             src={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, '/')}`}
                             alt={message.content.content}
-                            className={`w-full object-contain ${message.sender === userId
+                            className={`w-full object-contain max-h-[500px]  ${message.sender === userId
                               ? "rounded-s-lg rounded-tr-lg"
                               : "rounded-e-lg rounded-tl-lg"
                               } `}
@@ -724,7 +807,7 @@ const Chat2 = () => {
                           style={{ maxWidth: "500px", wordWrap: "break-word" }}
                           onContextMenu={(e) => handleContextMenu(e, message)}
                         >
-                         
+
                           <div className="flex items-center">
                             <FaDownload className="w-6 h-6" />
                             <div className="ml-3">
@@ -785,35 +868,32 @@ const Chat2 = () => {
                       })()}
                     </div>
                   </div>
-                  {messages?.length > 0 && (
-                    <div ref={messagesEndRef} aria-hidden="true" />
-                  )}
-                </>
-              ))
-            ) : (
-              <div className="h-full flex items-center justify-center text-gray-500">
-                No messages yet
-              </div>
-            )}
-            {selectedChat && typingUsers[selectedChat._id] && (
-              <div className="flex items-center space-x-2 text-gray-500 text-sm ml-4 mb-2">
-                <div className="flex space-x-1">
-                  <div
-                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "0ms" }}
-                  ></div>
-                  <div
-                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "150ms" }}
-                  ></div>
-                  <div
-                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "300ms" }}
-                  ></div>
+                ))
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-500">
+                  No messages yet
                 </div>
-                <span>{selectedChat.userName} is typing...</span>
-              </div>
-            )}
+              )}
+              {selectedChat && typingUsers[selectedChat._id] && (
+                <div className="flex items-center space-x-2 text-gray-500 text-sm ml-4 mb-2">
+                  <div className="flex space-x-1">
+                    <div
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    ></div>
+                  </div>
+                  <span>{selectedChat.userName} is typing...</span>
+                </div>
+              )}
+            </div>
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-500">
@@ -864,90 +944,90 @@ const Chat2 = () => {
 
         {/*========== video call ==========*/}
         {incomingCall && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                    <div className="bg-white p-4 rounded-lg shadow-lg">
-                        <h3 className="text-lg font-semibold mb-4">
-                            Incoming video call from {incomingCall.fromEmail}
-                        </h3>
-                        <div className="flex gap-4">
-                            <button
-                                onClick={acceptVideoCall}
-                                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-                            >
-                                Accept
-                            </button>
-                            <button
-                                onClick={() => setIncomingCall(null)}
-                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-                            >
-                                Decline
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <div className="bg-white p-4 rounded-lg shadow-lg">
+              <h3 className="text-lg font-semibold mb-4">
+                Incoming video call from {incomingCall.fromEmail}
+              </h3>
+              <div className="flex gap-4">
+                <button
+                  onClick={acceptVideoCall}
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => setIncomingCall(null)}
+                  className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
 
         {/*========== screen share ==========*/}
         {(isSharing || isReceiving || isVideoCalling) && (
-                        <button
-                            onClick={cleanupConnection}
-                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
-                        >
-                            Stop {isSharing ? 'Sharing' : isReceiving ? 'Receiving' : 'Video Call'}
-                        </button>
-                    )}
+          <button
+            onClick={cleanupConnection}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+          >
+            Stop {isSharing ? 'Sharing' : isReceiving ? 'Receiving' : 'Video Call'}
+          </button>
+        )}
 
-                    {isVideoCalling && (
-                        <div className="flex gap-2 mb-4">
-                            <button
-                                onClick={toggleCamera}
-                                className={`px-4 py-2 rounded ${isCameraOn ? 'bg-green-500' : 'bg-red-500'} text-white`}
-                            >
-                                {isCameraOn ? 'Turn Camera Off' : 'Turn Camera On'}
-                            </button>
-                            <button
-                                onClick={toggleMicrophone}
-                                className={`px-4 py-2 rounded ${isMicrophoneOn ? 'bg-green-500' : 'bg-red-500'} text-white`}
-                            >
-                                {isMicrophoneOn ? 'Turn Microphone Off' : 'Turn Microphone On'}
-                            </button>
-                        </div>
-                    )}
+        {isVideoCalling && (
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={toggleCamera}
+              className={`px-4 py-2 rounded ${isCameraOn ? 'bg-green-500' : 'bg-red-500'} text-white`}
+            >
+              {isCameraOn ? 'Turn Camera Off' : 'Turn Camera On'}
+            </button>
+            <button
+              onClick={toggleMicrophone}
+              className={`px-4 py-2 rounded ${isMicrophoneOn ? 'bg-green-500' : 'bg-red-500'} text-white`}
+            >
+              {isMicrophoneOn ? 'Turn Microphone Off' : 'Turn Microphone On'}
+            </button>
+          </div>
+        )}
 
-        
-        <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <h4 className="font-medium">
-                                {isVideoCalling ? 'Your Camera' : 'Your Screen'}
-                                {isSharing && '(Sharing)'}
-                                {(isVideoCalling && !isCameraOn) && <div className="text-center" >{selectedChat._id}</div>}
-                            </h4>
-                            <video
-                                ref={localVideoRef}
-                                  autoPlay
-                                  playsInline
-                                muted
-                                className="w-full bg-gray-100 rounded"
-                                style={{ maxHeight: '40vh' }}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <h4 className="font-medium">
-                                {isVideoCalling ? 'Remote Camera' : 'Remote Screen'}
-                                {isReceiving && '(Receiving)'}
-                            </h4>
-                            {console.log(remoteVideoRef.current)}
-                            <video
-                                ref={remoteVideoRef}
-                                autoPlay
-                                playsInline
-                                className="w-full bg-gray-100 rounded"
-                                style={{ maxHeight: '40vh' }}
-                            />
-                        </div>
-                    </div>
-      
+          {/* <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h4 className="font-medium">
+                {isVideoCalling ? 'Your Camera' : 'Your Screen'}
+                {isSharing && '(Sharing)'}
+                {(isVideoCalling && !isCameraOn) && <div className="text-center" >{selectedChat._id}</div>}
+              </h4>
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full bg-gray-100 rounded"
+                style={{ maxHeight: '40vh' }}
+              />
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium">
+                {isVideoCalling ? 'Remote Camera' : 'Remote Screen'}
+                {isReceiving && '(Receiving)'}
+              </h4>
+              {console.log(remoteVideoRef.current)}
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="w-full bg-gray-100 rounded"
+                style={{ maxHeight: '40vh' }}
+              />
+            </div>
+          </div> */}
+
+
 
         {/*========== Message Input ==========*/}
         {selectedChat && (

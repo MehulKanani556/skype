@@ -16,8 +16,8 @@ function App() {
         <Route path="/login" element={<Login />}></Route>
         <Route path="/" element={<Login />}></Route>
         {/* <Route path="/clone" element={<SkypeClone />}></Route> */}
-        <Route path="/chat2" element={<Chat2 />}></Route>
-        <Route path="/chat" element={<Chat />}></Route>
+        <Route path="/chat" element={<Chat2 />}></Route>
+        <Route path="/chat2" element={<Chat />}></Route>
         <Route path="/front" element={<Front />}></Route>
       </Routes>
 
