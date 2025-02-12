@@ -91,18 +91,28 @@ const Chat2 = () => {
     sendPrivateMessage,
     sendTypingStatus,
     subscribeToMessages,
-    subscribeToTyping,
-    startScreenShare,
-    stopScreenShare,
-    handleIncomingScreenShare,
-    makeCall,
-    answerCall,
-    endCall,
-    currentCall,
-    localStreamRef,
-    remoteStreamRef,
     sendGroupMessage,
-  } = useSocket(currentUser);
+    isVideoCalling,
+    incomingCall,
+    setIncomingCall,
+    cleanupConnection,
+    peerEmail,
+    setPeerEmail,
+    hasWebcam,
+    hasMicrophone,
+    isCameraOn,
+    isMicrophoneOn,
+    startSharing,
+    startVideoCall,
+    acceptVideoCall,
+    endVideoCall,
+    isSharing,
+    setIsSharing,
+    isReceiving,
+    setIsReceiving,
+    toggleCamera,
+    toggleMicrophone,
+  } = useSocket(currentUser,localVideoRef,remoteVideoRef);
 
   //   console.log(onlineUsers);
 
@@ -127,20 +137,20 @@ const Chat2 = () => {
   }, [isProfileDropdownOpen]);
 
   //===========Add cleanup effect  localStreamRef remoteVideoRef peerConnectionRef===========
-  useEffect(() => {
-    return () => {
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = null;
-      }
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-        peerConnectionRef.current = null;
-      }
-    };
-  }, []);
+  // useEffect(() => {
+  //   return () => {
+  //     if (localStreamRef.current) {
+  //       localStreamRef.current.getTracks().forEach((track) => track.stop());
+  //     }
+  //     if (remoteVideoRef.current) {
+  //       remoteVideoRef.current.srcObject = null;
+  //     }
+  //     if (peerConnectionRef.current) {
+  //       peerConnectionRef.current.close();
+  //       peerConnectionRef.current = null;
+  //     }
+  //   };
+  // }, []);
 
   //===========get all messages ===========
   useEffect(() => {
@@ -324,64 +334,11 @@ const Chat2 = () => {
   };
 
   //================screen sharing================
-  useEffect(() => {
-    const videoElement = remoteVideoRef.current;
-
-    const handleScreenShareOffer = async (data) => {
-      try {
-        console.log("Received screen share offer:", data);
-        const acceptShare = window.confirm(
-          `Someone wants to share their screen. Accept?`
-        );
-
-        if (acceptShare) {
-          const peerConnection = new RTCPeerConnection();
-
-          peerConnection.ontrack = (event) => {
-            if (videoElement) {
-              videoElement.srcObject = event.streams[0];
-              videoElement.play().catch((error) => {
-                console.error("Error playing video:", error);
-              });
-            }
-          };
-
-          await peerConnection.setRemoteDescription(
-            new RTCSessionDescription(data.offer)
-          );
-
-          const answer = await peerConnection.createAnswer();
-          await peerConnection.setLocalDescription(answer);
-
-          socket.emit("screenShareAnswer", {
-            to: data.senderId,
-            answer: peerConnection.localDescription,
-          });
-
-          peerConnectionRef.current = peerConnection;
-        } else {
-          socket.emit("screenShareRejected", { to: data.senderId });
-        }
-      } catch (error) {
-        console.error("Error handling screen share:", error);
-      }
-    };
-
-    if (isConnected && socket) {
-      socket.on("screenShareOffer", handleScreenShareOffer);
-    }
-
-    return () => {
-      if (socket) {
-        socket.off("screenShareOffer", handleScreenShareOffer);
-      }
-    };
-  }, [isConnected, handleIncomingScreenShare, socket]);
 
   const handleStartScreenShare = async () => {
     console.log(selectedChat);
     if (selectedChat) {
-      const success = await startScreenShare(selectedChat._id);
+      const success = await startSharing(selectedChat._id);
       console.log(success);
       if (!success) {
         console.error("Failed to start screen sharing");
@@ -389,41 +346,20 @@ const Chat2 = () => {
     }
   };
 
-  // ===========================call=============================
+  // =========================== video call=============================
 
   // Add call handling functions
   const handleMakeCall = async (type) => {
     if (!selectedChat) return;
 
-    try {
-      const localStream = await makeCall(selectedChat._id, type);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream;
+    if(type == "video"){
+      const success = await startVideoCall(selectedChat._id);
+      console.log(success);
+      if (!success) {
+        console.error("Failed to start screen sharing");
       }
-      setShowCallModal(true);
-    } catch (error) {
-      console.error("Error starting call:", error);
     }
   };
-
-  const handleAnswerCall = async () => {
-    try {
-      const localStream = await answerCall(currentCall);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = localStream;
-      }
-      setShowCallModal(true);
-    } catch (error) {
-      console.error("Error answering call:", error);
-    }
-  };
-
-  // Add useEffect for remote stream
-  useEffect(() => {
-    if (remoteVideoRef.current && remoteStreamRef.current) {
-      remoteVideoRef.current.srcObject = remoteStreamRef.current;
-    }
-  }, [remoteStreamRef.current]);
 
   // ===========================delete message=============================
 
@@ -925,6 +861,94 @@ const Chat2 = () => {
         }
 
 
+
+        {/*========== video call ==========*/}
+        {incomingCall && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="bg-white p-4 rounded-lg shadow-lg">
+                        <h3 className="text-lg font-semibold mb-4">
+                            Incoming video call from {incomingCall.fromEmail}
+                        </h3>
+                        <div className="flex gap-4">
+                            <button
+                                onClick={acceptVideoCall}
+                                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                            >
+                                Accept
+                            </button>
+                            <button
+                                onClick={() => setIncomingCall(null)}
+                                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                            >
+                                Decline
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+        {/*========== screen share ==========*/}
+        {(isSharing || isReceiving || isVideoCalling) && (
+                        <button
+                            onClick={cleanupConnection}
+                            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition-colors"
+                        >
+                            Stop {isSharing ? 'Sharing' : isReceiving ? 'Receiving' : 'Video Call'}
+                        </button>
+                    )}
+
+                    {isVideoCalling && (
+                        <div className="flex gap-2 mb-4">
+                            <button
+                                onClick={toggleCamera}
+                                className={`px-4 py-2 rounded ${isCameraOn ? 'bg-green-500' : 'bg-red-500'} text-white`}
+                            >
+                                {isCameraOn ? 'Turn Camera Off' : 'Turn Camera On'}
+                            </button>
+                            <button
+                                onClick={toggleMicrophone}
+                                className={`px-4 py-2 rounded ${isMicrophoneOn ? 'bg-green-500' : 'bg-red-500'} text-white`}
+                            >
+                                {isMicrophoneOn ? 'Turn Microphone Off' : 'Turn Microphone On'}
+                            </button>
+                        </div>
+                    )}
+
+        
+        <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <h4 className="font-medium">
+                                {isVideoCalling ? 'Your Camera' : 'Your Screen'}
+                                {isSharing && '(Sharing)'}
+                                {(isVideoCalling && !isCameraOn) && <div className="text-center" >{selectedChat._id}</div>}
+                            </h4>
+                            <video
+                                ref={localVideoRef}
+                                  autoPlay
+                                  playsInline
+                                muted
+                                className="w-full bg-gray-100 rounded"
+                                style={{ maxHeight: '40vh' }}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <h4 className="font-medium">
+                                {isVideoCalling ? 'Remote Camera' : 'Remote Screen'}
+                                {isReceiving && '(Receiving)'}
+                            </h4>
+                            {console.log(remoteVideoRef.current)}
+                            <video
+                                ref={remoteVideoRef}
+                                autoPlay
+                                playsInline
+                                className="w-full bg-gray-100 rounded"
+                                style={{ maxHeight: '40vh' }}
+                            />
+                        </div>
+                    </div>
+      
+
         {/*========== Message Input ==========*/}
         {selectedChat && (
           <div className="w-full max-w-4xl mx-auto p-4 rounded-lg">
@@ -1112,86 +1136,6 @@ const Chat2 = () => {
                 className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600"
               >
                 Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Call Modal */}
-      {/* Call Modal */}
-      {showCallModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 max-w-2xl w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">
-                {currentCall?.status === "calling" ? "Calling..." : "In Call"}
-              </h3>
-              <button
-                onClick={() => {
-                  endCall();
-                  setShowCallModal(false);
-                }}
-                className="text-red-500"
-              >
-                End Call
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="relative">
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full rounded-lg"
-                />
-                <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  You
-                </span>
-              </div>
-              <div className="relative">
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full rounded-lg"
-                />
-                <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  {selectedChat?.userName}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Incoming Call Modal */}
-      {currentCall?.status === "incoming" && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4">
-              Incoming {currentCall.type} call from{" "}
-              {allUsers.find((u) => u._id === currentCall.from)?.userName}
-            </h3>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => {
-                  endCall();
-                  setShowCallModal(false);
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded"
-              >
-                Decline
-              </button>
-              <button
-                onClick={() => {
-                  handleAnswerCall();
-                  setShowCallModal(true);
-                }}
-                className="px-4 py-2 bg-green-500 text-white rounded"
-              >
-                Answer
               </button>
             </div>
           </div>

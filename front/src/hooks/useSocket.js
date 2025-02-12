@@ -1,27 +1,85 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import Peer from 'simple-peer';
+
 
 const SOCKET_SERVER_URL = "http://localhost:4000"; // Move to environment variable in production
 
-export const useSocket = (userId) => {
+export const useSocket = (userId,localVideoRef,remoteVideoRef) => {
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const socketRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const [iceCandidatesQueue, setIceCandidatesQueue] = useState([]);
-
-  // console.log(isConnected);
+  const [peer, setPeer] = useState(null);
+  const peerRef = useRef(null);
+  const [peerEmail, setPeerEmail] = useState('');
+  const [isReceiving, setIsReceiving] = useState(false);
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [isVideoCalling, setIsVideoCalling] = useState(false);
+  const [error, setError] = useState(null);
+  const [isSharing, setIsSharing] = useState(false);
+  const [hasWebcam, setHasWebcam] = useState(false);
+  const [hasMicrophone, setHasMicrophone] = useState(false);
+  const [isCameraOn, setIsCameraOn] = useState(false);
+  const [isMicrophoneOn, setIsMicrophoneOn] = useState(false);
+  const streamRef = useRef(null);
 
   useEffect(() => {
-    // Create socket connection
+    // Check for available media devices when component mounts
+    checkMediaDevices();
+}, []);
+
+const checkMediaDevices = async () => {
+    try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        const audioDevices = devices.filter(device => device.kind === 'audioinput');
+
+        console.log(devices);
+
+        setHasWebcam(videoDevices.length > 0);
+        setHasMicrophone(audioDevices.length > 0);
+
+        console.log('Available devices:', {
+            webcams: videoDevices.length,
+            microphones: audioDevices.length
+        });
+    } catch (err) {
+        console.error('Error checking media devices:', err);
+        setError('Unable to detect media devices. Please ensure you have granted necessary permissions.');
+    }
+};
+
+const toggleCamera = () => {
+  if (streamRef.current) {
+      const videoTracks = streamRef.current.getVideoTracks();
+      videoTracks.forEach(track => track.enabled = !track.enabled);
+      setIsCameraOn(prev => !prev);
+  }
+};
+
+const toggleMicrophone = () => {
+  if (streamRef.current) {
+      const audioTracks = streamRef.current.getAudioTracks();
+      audioTracks.forEach(track => track.enabled = !track.enabled);
+      setIsMicrophoneOn(prev => !prev);
+  }
+};
+
+
+  // ===========================socket connection=============================
+
+  useEffect(() => {
+
     socketRef.current = io(SOCKET_SERVER_URL);
 
-    // Connection event handlers
+    console.log(socketRef.current);
+
     socketRef.current.on("connect", () => {
       setIsConnected(true);
       console.log("Socket connected");
 
-      // Login user after connection
       if (userId) {
         socketRef.current.emit("user-login", userId);
       }
@@ -32,18 +90,17 @@ export const useSocket = (userId) => {
       console.log("Socket disconnected");
     });
 
-    // Update online users
     socketRef.current.on("user-status-changed", (onlineUserIds) => {
       setOnlineUsers(onlineUserIds);
     });
 
-    // Cleanup on unmount
     return () => {
       socketRef.current.disconnect();
     };
   }, [userId]);
 
-  // Send private message
+  // ===========================private message=============================
+
   const sendPrivateMessage = (receiverId, message) => {
     return new Promise((resolve, reject) => {
       if (!socketRef.current?.connected) {
@@ -54,21 +111,21 @@ export const useSocket = (userId) => {
       const messageData = {
         senderId: userId,
         receiverId,
-        content: message, // Changed from 'message' to 'content' to match your data structure
+        content: message,
       };
 
       console.log("Sending message:", messageData);
 
       socketRef.current.emit("private-message", messageData);
 
-      // Wait for message status
       socketRef.current.once("message-sent-status", (status) => {
         resolve(status);
       });
     });
   };
 
-  // Send typing status
+  // ===========================typing status=============================
+
   const sendTypingStatus = (receiverId, isTyping) => {
     if (!socketRef.current?.connected) return;
 
@@ -81,7 +138,8 @@ export const useSocket = (userId) => {
     });
   };
 
-  // Subscribe to messages
+  // ===========================messages=============================
+
   const subscribeToMessages = (callback) => {
     if (!socketRef.current?.connected) return;
 
@@ -90,7 +148,6 @@ export const useSocket = (userId) => {
       callback(message);
     };
 
-    // Add handlers for message updates and deletions
     const messageDeletedHandler = (messageId) => {
       console.log("Received message deleted:", messageId);
       callback({ type: "delete", messageId });
@@ -119,7 +176,8 @@ export const useSocket = (userId) => {
     };
   };
 
-  // Subscribe to typing status
+  // ===========================typing status=============================
+
   const subscribeToTyping = (callback) => {
     if (!socketRef.current?.connected) return;
 
@@ -127,159 +185,464 @@ export const useSocket = (userId) => {
     return () => socketRef.current.off("user-typing", callback);
   };
 
-  // Screen sharing functions
-  const startScreenShare = async (receiverId) => {
+  // ===========================screen share=============================
+
+  // const startScreenShare = async (receiverId) => {
+  //   try {
+  //     const stream = await navigator.mediaDevices.getDisplayMedia({
+  //       video: true,
+  //       audio: true,
+  //     });
+
+  //     if (peerConnectionRef.current) {
+  //       peerConnectionRef.current.close();
+  //     }
+
+  //     // Create new RTCPeerConnection with STUN servers
+  //     peerConnectionRef.current = new RTCPeerConnection({
+  //       iceServers: [
+  //         { urls: "stun:stun.l.google.com:19302" },
+  //         { urls: "stun:stun1.l.google.com:19302" },
+  //       ],
+  //     });
+
+  //     // Add ICE candidate handler
+  //     peerConnectionRef.current.onicecandidate = (event) => {
+  //       if (event.candidate) {
+  //         socketRef.current.emit("ice-candidate", {
+  //           candidate: event.candidate,
+  //           to: receiverId,
+  //         });
+  //       }
+  //     };
+
+  //     // Add tracks to peer connection
+  //     stream.getTracks().forEach((track) => {
+  //       peerConnectionRef.current.addTrack(track, stream);
+  //     });
+
+  //     // Create and set local description
+  //     const offer = await peerConnectionRef.current.createOffer();
+  //     await peerConnectionRef.current.setLocalDescription(offer);
+
+  //     // Send offer to receiver
+  //     socketRef.current.emit("screenShareOffer", {
+  //       senderId: userId,
+  //       receiverId,
+  //       offer: peerConnectionRef.current.localDescription,
+  //     });
+
+  //     return true;
+  //   } catch (error) {
+  //     console.error("Error in startScreenShare:", error);
+  //     return false;
+  //   }
+  // };
+
+  // const handleIncomingScreenShare = async (data, videoElement) => {
+  //   try {
+  //     console.log("Received screen share data:", data);
+
+  //     // Handle both data structures - either {offer, senderId} or direct offer
+  //     const offer = data.offer ? data.offer : data;
+  //     const senderId = data.senderId || null;
+
+  //     // Validate the offer has required fields
+  //     if (!offer || !offer.sdp) {
+  //       console.error("Invalid offer data:", data);
+  //       throw new Error("Invalid screen share data received");
+  //     }
+
+  //     // Create new RTCPeerConnection if needed
+  //     if (peerConnectionRef.current) {
+  //       peerConnectionRef.current.close();
+  //     }
+
+  //     peerConnectionRef.current = new RTCPeerConnection({
+  //       iceServers: [
+  //         { urls: "stun:stun.l.google.com:19302" },
+  //         { urls: "stun:stun1.l.google.com:19302" },
+  //       ],
+  //     });
+
+  //     // Set up event handlers before setting remote description
+  //     peerConnectionRef.current.ontrack = (event) => {
+  //       console.log("Track received:", event);
+  //       if (videoElement && event.streams[0]) {
+  //         videoElement.srcObject = event.streams[0];
+  //         videoElement.muted = true;
+  //         videoElement.autoplay = true;
+  //         videoElement.playsInline = true;
+  //         videoElement
+  //           .play()
+  //           .catch((err) => console.error("Error playing video:", err));
+  //       }
+  //     };
+
+  //     peerConnectionRef.current.onicecandidate = (event) => {
+  //       if (event.candidate) {
+  //         socketRef.current.emit("ice-candidate", {
+  //           candidate: event.candidate,
+  //           to: senderId, // Use senderId if available
+  //         });
+  //       }
+  //     };
+
+  //     // Set remote description with the offer
+  //     await peerConnectionRef.current.setRemoteDescription(
+  //       new RTCSessionDescription(offer)
+  //     );
+
+  //     // Create and set local description
+  //     const answer = await peerConnectionRef.current.createAnswer();
+  //     await peerConnectionRef.current.setLocalDescription(answer);
+
+  //     // Send answer back
+  //     socketRef.current.emit("screenShareAnswer", {
+  //       to: senderId,
+  //       answer: answer,
+  //     });
+  //   } catch (error) {
+  //     console.error("Error in handleIncomingScreenShare:", error);
+  //     console.error("Error details:", {
+  //       data: data,
+  //       peerConnection: peerConnectionRef.current,
+  //     });
+  //   }
+  // };
+
+  // const stopScreenShare = () => {
+  //   if (peerConnectionRef.current) {
+  //     peerConnectionRef.current.close();
+  //     peerConnectionRef.current = null;
+  //   }
+  // };
+
+
+  const startSharing = async (receiverId) => {
+    if (!receiverId) {
+        setError('Please enter peer email first');
+        return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
+        console.log('Requesting screen share...');
+        const stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true
+        });
 
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-      }
+        console.log('Got screen stream, creating peer...');
+        streamRef.current = stream;
 
-      // Create new RTCPeerConnection with STUN servers
-      peerConnectionRef.current = new RTCPeerConnection({
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" },
-        ],
-      });
-
-      // Add ICE candidate handler
-      peerConnectionRef.current.onicecandidate = (event) => {
-        if (event.candidate) {
-          socketRef.current.emit("ice-candidate", {
-            candidate: event.candidate,
-            to: receiverId,
-          });
+        // Show local stream
+        if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
         }
-      };
 
-      // Add tracks to peer connection
-      stream.getTracks().forEach((track) => {
-        peerConnectionRef.current.addTrack(track, stream);
-      });
+        // Create sending peer
+        const peer = new Peer({
+            initiator: true,
+            trickle: false,
+            stream: stream
+        });
 
-      // Create and set local description
-      const offer = await peerConnectionRef.current.createOffer();
-      await peerConnectionRef.current.setLocalDescription(offer);
+        peer.on('signal', signal => {
+            console.log('Sender generated signal, sending request');
+            socketRef.current.emit('screen-share-request', {
+                fromEmail: userId,
+                toEmail: receiverId,
+                signal
+            });
+        });
 
-      // Send offer to receiver
-      socketRef.current.emit("screenShareOffer", {
-        senderId: userId,
-        receiverId,
-        offer: peerConnectionRef.current.localDescription,
-      });
+        peer.on('error', err => {
+            console.error('Peer error:', err);
+            setError('Connection error occurred: ' + err.message);
+            cleanupConnection();
+        });
 
-      return true;
-    } catch (error) {
-      console.error("Error in startScreenShare:", error);
-      return false;
+        peer.on('connect', () => {
+            console.log('Peer connection established');
+        });
+
+        peerRef.current = peer;
+        setIsSharing(true);
+
+        // Handle stream end
+        stream.getVideoTracks()[0].onended = () => {
+            console.log('Stream ended by user');
+            cleanupConnection();
+        };
+    } catch (err) {
+        console.error('Error starting share:', err);
+        setError('Failed to start screen sharing: ' + (err.message || 'Unknown error'));
+        cleanupConnection();
     }
-  };
-
-  const handleIncomingScreenShare = async (data, videoElement) => {
-    try {
-      console.log("Received screen share data:", data);
-
-      // Handle both data structures - either {offer, senderId} or direct offer
-      const offer = data.offer ? data.offer : data;
-      const senderId = data.senderId || null;
-
-      // Validate the offer has required fields
-      if (!offer || !offer.sdp) {
-        console.error("Invalid offer data:", data);
-        throw new Error("Invalid screen share data received");
-      }
-
-      // Create new RTCPeerConnection if needed
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-      }
-
-      peerConnectionRef.current = new RTCPeerConnection({
-        iceServers: [
-          { urls: "stun:stun.l.google.com:19302" },
-          { urls: "stun:stun1.l.google.com:19302" },
-        ],
-      });
-
-      // Set up event handlers before setting remote description
-      peerConnectionRef.current.ontrack = (event) => {
-        console.log("Track received:", event);
-        if (videoElement && event.streams[0]) {
-          videoElement.srcObject = event.streams[0];
-          videoElement.muted = true;
-          videoElement.autoplay = true;
-          videoElement.playsInline = true;
-          videoElement
-            .play()
-            .catch((err) => console.error("Error playing video:", err));
-        }
-      };
-
-      peerConnectionRef.current.onicecandidate = (event) => {
-        if (event.candidate) {
-          socketRef.current.emit("ice-candidate", {
-            candidate: event.candidate,
-            to: senderId, // Use senderId if available
-          });
-        }
-      };
-
-      // Set remote description with the offer
-      await peerConnectionRef.current.setRemoteDescription(
-        new RTCSessionDescription(offer)
-      );
-
-      // Create and set local description
-      const answer = await peerConnectionRef.current.createAnswer();
-      await peerConnectionRef.current.setLocalDescription(answer);
-
-      // Send answer back
-      socketRef.current.emit("screenShareAnswer", {
-        to: senderId,
-        answer: answer,
-      });
-    } catch (error) {
-      console.error("Error in handleIncomingScreenShare:", error);
-      console.error("Error details:", {
-        data: data,
-        peerConnection: peerConnectionRef.current,
-      });
-    }
-  };
-
-  const stopScreenShare = () => {
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-  };
+};
 
   // Add socket listeners for screen sharing
   useEffect(() => {
-    console.log("answer");
+
     if (!socketRef.current) return;
 
-    socketRef.current.on("screenShareAnswer", async (data) => {
-      try {
-        if (peerConnectionRef.current) {
-          await peerConnectionRef.current.setRemoteDescription(
-            new RTCSessionDescription(data.answer)
-          );
+    // Handle incoming video call request
+    socketRef.current.on('video-call-request', async (data) => {
+        console.log('Incoming video call from:', data.fromEmail);
+        setIncomingCall({ fromEmail: data.fromEmail, signal: data.signal });
+    });
+
+    socketRef.current.on('screen-share-request', async (data) => {
+        console.log('Received share request from:', data.fromEmail);
+        const accept = window.confirm(`${data.fromEmail} wants to share their screen. Accept?`);
+
+        console.log(accept);
+
+        if (accept) {
+            setIsReceiving(true);
+            setPeerEmail(data.fromEmail);
+
+            // Create receiving peer
+            const peer = new Peer({
+                initiator: false,
+                trickle: false
+            });
+
+            peer.on('signal', signal => {
+                console.log('Receiver generated signal, sending accept');
+                socketRef.current.emit('share-accept', {
+                    signal,
+                    fromEmail: data.fromEmail,
+                    toEmail: userId
+                });
+            });
+
+            peer.on('stream', stream => {
+                console.log('Receiver got stream');
+                if (remoteVideoRef.current) {
+                    remoteVideoRef.current.srcObject = stream;
+                    remoteVideoRef.current.play().catch(e => console.error('Error playing:', e));
+                }
+            });
+
+            peer.on('error', err => {
+                console.error('Peer error:', err);
+                setError('Connection error occurred');
+                cleanupConnection();
+            });
+
+            // Signal the peer with the initial offer
+            if (data.signal) {
+                console.log('Receiver signaling with initial offer');
+                peer.signal(data.signal);
+            }
+
+            peerRef.current = peer;
         }
-      } catch (error) {
-        console.error("Error setting remote description:", error);
-      }
+    });
+
+    // Handle incoming signals
+    socketRef.current.on('share-signal', ({ signal }) => {
+        console.log('Received peer signal');
+        if (peerRef.current) {
+            peerRef.current.signal(signal);
+        }
+    });
+    // Handle when share is accepted
+    socketRef.current.on('share-accepted', async ({ signal, fromEmail }) => {
+        console.log('Share accepted by peer, signaling...');
+        if (peerRef.current) {
+            peerRef.current.signal(signal);
+        }
+    });
+
+    // Handle when video call is accepted
+    socketRef.current.on('video-call-accepted', ({ signal, fromEmail }) => {
+        console.log('Video call accepted by:', fromEmail);
+        if (peerRef.current) {
+            peerRef.current.signal(signal);
+            setIsVideoCalling(true);
+        }
+    });
+
+    // Handle incoming video signals
+    socketRef.current.on('video-call-signal', ({ signal }) => {
+        console.log('Received video call signal');
+        if (peerRef.current) {
+            peerRef.current.signal(signal);
+        }
     });
 
     return () => {
-      socketRef.current?.off("screenShareAnswer");
+        cleanupConnection();
+        socketRef.current.off('video-call-request');
+        socketRef.current.off('video-call-accepted');
+        socketRef.current.off('video-call-signal');
+        socketRef.current.off('screen-share-request');
+        socketRef.current.off('share-accepted');
+        socketRef.current.off('share-signal');
     };
-  }, []);
+}, [userId]);
+
+
+ //==========================video call=============================
+
+ const startVideoCall = async (receiverId) => {
+  if (!receiverId) {
+      setError('Please enter peer email first');
+      return;
+  }
+
+  try {
+      let stream = null;
+      try {
+          // Try to get media stream but don't block if devices aren't available
+          stream = await navigator.mediaDevices.getUserMedia({
+              video: hasWebcam,
+              audio: hasMicrophone
+          });
+      } catch (err) {
+          console.warn('Could not get media devices:', err);
+          // Continue without media stream
+      }
+
+      if (stream) {
+          setIsCameraOn(true);
+          setIsMicrophoneOn(true);
+          streamRef.current = stream;
+          if (localVideoRef.current) {
+              localVideoRef.current.srcObject = stream;
+              try {
+                  await localVideoRef.current.play();
+              } catch (err) {
+                  console.error('Error playing local video:', err);
+              }
+          }
+      }
+
+      // Create peer connection even without media stream
+      const peer = new Peer({
+          initiator: true,
+          trickle: false,
+          stream // This can be null
+      });
+
+      peer.on('signal', signal => {
+          socketRef.current.emit('video-call-request', {
+              fromEmail: userId,
+              toEmail: receiverId,
+              signal
+          });
+      });
+
+      peer.on('stream', remoteStream => {
+          console.log('Received remote stream');
+          if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = remoteStream;
+              remoteVideoRef.current.play().catch(err => {
+                  console.error('Error playing remote video:', err);
+              });
+          }
+      });
+
+      peer.on('error', err => {
+          console.error('Peer error:', err);
+          setError('Video call connection error occurred');
+          endVideoCall();
+      });
+
+      peerRef.current = peer;
+      setIsVideoCalling(true);
+
+  } catch (err) {
+      console.error('Error starting video call:', err);
+      setError(err.message || 'Failed to start video call');
+      endVideoCall();
+  }
+};
+
+const acceptVideoCall = async () => {
+  if (!incomingCall) return;
+
+  try {
+      let stream = null;
+      try {
+          // Try to get media stream but don't block if devices aren't available
+          stream = await navigator.mediaDevices.getUserMedia({
+              video: hasWebcam,
+              audio: hasMicrophone
+          });
+      } catch (err) {
+          console.warn('Could not get media devices:', err);
+          // Continue without media stream
+      }
+
+      if (stream) {
+          streamRef.current = stream;
+          if (localVideoRef.current) {
+              localVideoRef.current.srcObject = stream;
+          }
+      }
+
+      const peer = new Peer({
+          initiator: false,
+          trickle: false,
+          stream // This can be null
+      });
+
+      peer.on('signal', signal => {
+          socketRef.current.emit('video-call-accept', {
+              signal,
+              fromEmail: incomingCall.fromEmail,
+              toEmail: userId
+          });
+      });
+
+      peer.on('stream', remoteStream => {
+          console.log('Received remote stream');
+          if (remoteVideoRef.current) {
+              remoteVideoRef.current.srcObject = remoteStream;
+          }
+      });
+
+      peer.on('error', err => {
+          console.error('Peer error:', err);
+          setError('Video call connection error occurred');
+          endVideoCall();
+      });
+
+      peer.signal(incomingCall.signal);
+      peerRef.current = peer;
+      setPeerEmail(incomingCall.fromEmail);
+      setIsVideoCalling(true);
+      setIncomingCall(null);
+
+  } catch (err) {
+      console.error('Error accepting video call:', err);
+      setError(err.message || 'Failed to accept video call');
+      endVideoCall();
+  }
+};
+
+const endVideoCall = () => {
+  if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+  }
+  if (peerRef.current) {
+      peerRef.current.destroy();
+      peerRef.current = null;
+  }
+  if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+  }
+  if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+  }
+  setIsVideoCalling(false);
+  setIncomingCall(null);
+  setIsCameraOn(true);
+  setIsMicrophoneOn(true);
+};
 
   // ===========================call=============================
 
@@ -588,6 +951,15 @@ export const useSocket = (userId) => {
     };
   };
 
+  const cleanupConnection = () => {
+    endVideoCall();
+    setIsSharing(false);
+    setIsReceiving(false);
+    setPeerEmail('');
+    setError('');
+};
+
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -595,17 +967,28 @@ export const useSocket = (userId) => {
     sendPrivateMessage,
     sendTypingStatus,
     subscribeToMessages,
-    subscribeToTyping,
-    startScreenShare,
-    stopScreenShare,
-    handleIncomingScreenShare,
-    makeCall,
-    answerCall,
-    endCall,
-    currentCall,
-    localStreamRef,
-    remoteStreamRef,
     sendGroupMessage,
-    subscribeToGroupMessages,
+    isVideoCalling,
+    incomingCall,
+    setIncomingCall,
+    cleanupConnection,
+    peerEmail,
+    setPeerEmail,
+    hasWebcam,
+    hasMicrophone,
+    isCameraOn,
+    isMicrophoneOn,
+    startSharing,
+    startVideoCall,
+    acceptVideoCall,
+    endVideoCall,
+    isSharing,
+    setIsSharing,
+    isReceiving,
+    setIsReceiving,
+    toggleCamera,
+    toggleMicrophone,
   };
 };
+
+
