@@ -19,6 +19,7 @@ const fileFilter = (req, file, cb) => {
     "image/jpeg",
     "image/png",
     "image/gif",
+    "image/webp",
     "video/mp4",
     "video/webm",
     "audio/mpeg",
@@ -27,6 +28,7 @@ const fileFilter = (req, file, cb) => {
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "text/plain",
+    "application/zip",
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
@@ -40,7 +42,7 @@ const upload = multer({
   storage: storage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB limit
+    fileSize: 600 * 1024 * 1024, // 600MB limit
   },
 });
 
