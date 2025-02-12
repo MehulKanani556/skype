@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
-import Peer from 'simple-peer';
-
+import Peer from "simple-peer";
 
 const SOCKET_SERVER_URL = "http://localhost:4000"; // Move to environment variable in production
 
-export const useSocket = (userId,localVideoRef,remoteVideoRef) => {
+export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const socketRef = useRef(null);
@@ -13,7 +12,7 @@ export const useSocket = (userId,localVideoRef,remoteVideoRef) => {
   const [iceCandidatesQueue, setIceCandidatesQueue] = useState([]);
   const [peer, setPeer] = useState(null);
   const peerRef = useRef(null);
-  const [peerEmail, setPeerEmail] = useState('');
+  const [peerEmail, setPeerEmail] = useState("");
   const [isReceiving, setIsReceiving] = useState(false);
   const [incomingCall, setIncomingCall] = useState(null);
   const [isVideoCalling, setIsVideoCalling] = useState(false);
@@ -28,53 +27,57 @@ export const useSocket = (userId,localVideoRef,remoteVideoRef) => {
   useEffect(() => {
     // Check for available media devices when component mounts
     checkMediaDevices();
-}, []);
+  }, []);
 
-const checkMediaDevices = async () => {
+  const checkMediaDevices = async () => {
     try {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-        const audioDevices = devices.filter(device => device.kind === 'audioinput');
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(
+        (device) => device.kind === "videoinput"
+      );
+      const audioDevices = devices.filter(
+        (device) => device.kind === "audioinput"
+      );
 
-        console.log(devices);
+      // console.log(devices);
 
-        setHasWebcam(videoDevices.length > 0);
-        setHasMicrophone(audioDevices.length > 0);
+      setHasWebcam(videoDevices.length > 0);
+      setHasMicrophone(audioDevices.length > 0);
 
-        console.log('Available devices:', {
-            webcams: videoDevices.length,
-            microphones: audioDevices.length
-        });
+      console.log("Available devices:", {
+        webcams: videoDevices.length,
+        microphones: audioDevices.length,
+      });
     } catch (err) {
-        console.error('Error checking media devices:', err);
-        setError('Unable to detect media devices. Please ensure you have granted necessary permissions.');
+      console.error("Error checking media devices:", err);
+      setError(
+        "Unable to detect media devices. Please ensure you have granted necessary permissions."
+      );
     }
-};
+  };
 
-const toggleCamera = () => {
-  if (streamRef.current) {
+  const toggleCamera = () => {
+    if (streamRef.current) {
       const videoTracks = streamRef.current.getVideoTracks();
-      videoTracks.forEach(track => track.enabled = !track.enabled);
-      setIsCameraOn(prev => !prev);
-  }
-};
+      videoTracks.forEach((track) => (track.enabled = !track.enabled));
+      setIsCameraOn((prev) => !prev);
+    }
+  };
 
-const toggleMicrophone = () => {
-  if (streamRef.current) {
+  const toggleMicrophone = () => {
+    if (streamRef.current) {
       const audioTracks = streamRef.current.getAudioTracks();
-      audioTracks.forEach(track => track.enabled = !track.enabled);
-      setIsMicrophoneOn(prev => !prev);
-  }
-};
-
+      audioTracks.forEach((track) => (track.enabled = !track.enabled));
+      setIsMicrophoneOn((prev) => !prev);
+    }
+  };
 
   // ===========================socket connection=============================
 
   useEffect(() => {
-
     socketRef.current = io(SOCKET_SERVER_URL);
 
-    console.log(socketRef.current);
+    // console.log(socketRef.current);
 
     socketRef.current.on("connect", () => {
       setIsConnected(true);
@@ -140,12 +143,35 @@ const toggleMicrophone = () => {
 
   // ===========================messages=============================
 
+  const markMessageAsRead = (messageIds) => {
+    if (!socketRef.current?.connected || !messageIds?.length) return;
+  
+    // Mark each message as read
+    messageIds.forEach(messageId => {
+      socketRef.current.emit("message-read", {
+        messageId,
+        readerId: userId
+      });
+    });
+  };
+
   const subscribeToMessages = (callback) => {
     if (!socketRef.current?.connected) return;
 
     const messageHandler = (message) => {
       console.log("Received message:", message);
+      // markMessageAsRead(message._id);
       callback(message);
+    };
+
+    const messageStatusHandler = (data) => {
+      console.log("Message status update:", data);
+      callback({ type: "status", ...data });
+    };
+
+    const messageReadHandler = (data) => {
+      console.log("Message read update:", data);
+      callback({ type: "read", ...data });
     };
 
     const messageDeletedHandler = (messageId) => {
@@ -164,12 +190,16 @@ const toggleMicrophone = () => {
     };
 
     socketRef.current.on("receive-message", messageHandler);
+    socketRef.current.on("message-sent-status", messageStatusHandler);
+    socketRef.current.on("message-read", messageReadHandler);
     socketRef.current.on("message-deleted", messageDeletedHandler);
     socketRef.current.on("message-updated", messageUpdatedHandler);
     socketRef.current.on("receive-group", groupMessageHandler);
 
     return () => {
       socketRef.current.off("receive-message", messageHandler);
+      socketRef.current.off("message-sent-status", messageStatusHandler);
+      socketRef.current.off("message-read", messageReadHandler);
       socketRef.current.off("message-deleted", messageDeletedHandler);
       socketRef.current.off("message-updated", messageUpdatedHandler);
       socketRef.current.off("receive-group", groupMessageHandler);
@@ -318,296 +348,343 @@ const toggleMicrophone = () => {
   //   }
   // };
 
-
   const startSharing = async (receiverId) => {
     if (!receiverId) {
-        setError('Please enter peer email first');
-        return;
+      setError("Please enter peer email first");
+      return;
     }
 
     try {
-        console.log('Requesting screen share...');
-        const stream = await navigator.mediaDevices.getDisplayMedia({
-            video: true
+      console.log("Requesting screen share...");
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
+
+      console.log("Got screen stream, creating peer...");
+      streamRef.current = stream;
+
+      // Show local stream
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+
+      // Create sending peer
+      const peer = new Peer({
+        initiator: true,
+        trickle: false,
+        stream: stream,
+      });
+
+      peer.on("signal", (signal) => {
+        console.log("Sender generated signal, sending request");
+        socketRef.current.emit("screen-share-request", {
+          fromEmail: userId,
+          toEmail: receiverId,
+          signal,
         });
+      });
 
-        console.log('Got screen stream, creating peer...');
-        streamRef.current = stream;
-
-        // Show local stream
-        if (localVideoRef.current) {
-            localVideoRef.current.srcObject = stream;
-        }
-
-        // Create sending peer
-        const peer = new Peer({
-            initiator: true,
-            trickle: false,
-            stream: stream
-        });
-
-        peer.on('signal', signal => {
-            console.log('Sender generated signal, sending request');
-            socketRef.current.emit('screen-share-request', {
-                fromEmail: userId,
-                toEmail: receiverId,
-                signal
-            });
-        });
-
-        peer.on('error', err => {
-            console.error('Peer error:', err);
-            setError('Connection error occurred: ' + err.message);
-            cleanupConnection();
-        });
-
-        peer.on('connect', () => {
-            console.log('Peer connection established');
-        });
-
-        peerRef.current = peer;
-        setIsSharing(true);
-
-        // Handle stream end
-        stream.getVideoTracks()[0].onended = () => {
-            console.log('Stream ended by user');
-            cleanupConnection();
-        };
-    } catch (err) {
-        console.error('Error starting share:', err);
-        setError('Failed to start screen sharing: ' + (err.message || 'Unknown error'));
+      peer.on("error", (err) => {
+        console.error("Peer error:", err);
+        setError("Connection error occurred: " + err.message);
         cleanupConnection();
+      });
+
+      peer.on("connect", () => {
+        console.log("Peer connection established");
+      });
+
+      peerRef.current = peer;
+      setIsSharing(true);
+
+      // Handle stream end
+      stream.getVideoTracks()[0].onended = () => {
+        console.log("Stream ended by user");
+        cleanupConnection();
+      };
+    } catch (err) {
+      console.error("Error starting share:", err);
+      setError(
+        "Failed to start screen sharing: " + (err.message || "Unknown error")
+      );
+      cleanupConnection();
     }
-};
+  };
 
   // Add socket listeners for screen sharing
   useEffect(() => {
-
     if (!socketRef.current) return;
 
     // Handle incoming video call request
-    socketRef.current.on('video-call-request', async (data) => {
-        console.log('Incoming video call from:', data.fromEmail);
-        setIncomingCall({ fromEmail: data.fromEmail, signal: data.signal });
+    socketRef.current.on("video-call-request", async (data) => {
+      console.log("Incoming video call from:", data.fromEmail);
+      setIncomingCall({ fromEmail: data.fromEmail, signal: data.signal });
     });
 
-    socketRef.current.on('screen-share-request', async (data) => {
-        console.log('Received share request from:', data.fromEmail);
-        const accept = window.confirm(`${data.fromEmail} wants to share their screen. Accept?`);
+    socketRef.current.on("screen-share-request", async (data) => {
+      console.log("Received share request from:", data.fromEmail);
+      const accept =
+        document.visibilityState === "visible"
+          ? new Promise((resolve) => {
+              const confirmDialog = document.createElement("div");
+              confirmDialog.style.position = "fixed";
+              confirmDialog.style.top = "50%";
+              confirmDialog.style.left = "50%";
+              confirmDialog.style.transform = "translate(-50%, -50%)";
+              confirmDialog.style.backgroundColor = "white";
+              confirmDialog.style.padding = "20px";
+              confirmDialog.style.borderRadius = "8px";
+              confirmDialog.style.boxShadow = "0 2px 10px rgba(0,0,0,0.1)";
+              confirmDialog.style.zIndex = "1000";
 
-        console.log(accept);
+              confirmDialog.innerHTML = `
+                    <div style="margin-bottom: 20px;">
+                        ${data.fromEmail} wants to share their screen. Accept?
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button id="confirm-accept" style="background: #4CAF50; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">Accept</button>
+                        <button id="confirm-decline" style="background: #f44336; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">Decline</button>
+                    </div>
+                `;
 
-        if (accept) {
-            setIsReceiving(true);
-            setPeerEmail(data.fromEmail);
+              const overlay = document.createElement("div");
+              overlay.style.position = "fixed";
+              overlay.style.top = "0";
+              overlay.style.left = "0";
+              overlay.style.right = "0";
+              overlay.style.bottom = "0";
+              overlay.style.backgroundColor = "rgba(0,0,0,0.5)";
+              overlay.style.zIndex = "999";
 
-            // Create receiving peer
-            const peer = new Peer({
-                initiator: false,
-                trickle: false
-            });
+              document.body.appendChild(overlay);
+              document.body.appendChild(confirmDialog);
 
-            peer.on('signal', signal => {
-                console.log('Receiver generated signal, sending accept');
-                socketRef.current.emit('share-accept', {
-                    signal,
-                    fromEmail: data.fromEmail,
-                    toEmail: userId
-                });
-            });
+              document.getElementById("confirm-accept").onclick = () => {
+                document.body.removeChild(confirmDialog);
+                document.body.removeChild(overlay);
+                resolve(true);
+              };
+              document.getElementById("confirm-decline").onclick = () => {
+                document.body.removeChild(confirmDialog);
+                document.body.removeChild(overlay);
+                resolve(false);
+              };
+            })
+          : false;
 
-            peer.on('stream', stream => {
-                console.log('Receiver got stream');
-                if (remoteVideoRef.current) {
-                    remoteVideoRef.current.srcObject = stream;
-                    remoteVideoRef.current.play().catch(e => console.error('Error playing:', e));
-                }
-            });
+      console.log(accept);
 
-            peer.on('error', err => {
-                console.error('Peer error:', err);
-                setError('Connection error occurred');
-                cleanupConnection();
-            });
+      if (accept) {
+        setIsReceiving(true);
+        setPeerEmail(data.fromEmail);
 
-            // Signal the peer with the initial offer
-            if (data.signal) {
-                console.log('Receiver signaling with initial offer');
-                peer.signal(data.signal);
-            }
+        // Create receiving peer
+        const peer = new Peer({
+          initiator: false,
+          trickle: false,
+        });
 
-            peerRef.current = peer;
+        peer.on("signal", (signal) => {
+          console.log("Receiver generated signal, sending accept");
+          socketRef.current.emit("share-accept", {
+            signal,
+            fromEmail: data.fromEmail,
+            toEmail: userId,
+          });
+        });
+
+        peer.on("stream", (stream) => {
+          console.log("Receiver got stream");
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = stream;
+            remoteVideoRef.current
+              .play()
+              .catch((e) => console.error("Error playing:", e));
+          }
+        });
+
+        peer.on("error", (err) => {
+          console.error("Peer error:", err);
+          setError("Connection error occurred");
+          cleanupConnection();
+        });
+
+        // Signal the peer with the initial offer
+        if (data.signal) {
+          console.log("Receiver signaling with initial offer");
+          peer.signal(data.signal);
         }
+
+        peerRef.current = peer;
+      }
     });
 
     // Handle incoming signals
-    socketRef.current.on('share-signal', ({ signal }) => {
-        console.log('Received peer signal');
-        if (peerRef.current) {
-            peerRef.current.signal(signal);
-        }
+    socketRef.current.on("share-signal", ({ signal }) => {
+      console.log("Received peer signal");
+      if (peerRef.current) {
+        peerRef.current.signal(signal);
+      }
     });
     // Handle when share is accepted
-    socketRef.current.on('share-accepted', async ({ signal, fromEmail }) => {
-        console.log('Share accepted by peer, signaling...');
-        if (peerRef.current) {
-            peerRef.current.signal(signal);
-        }
+    socketRef.current.on("share-accepted", async ({ signal, fromEmail }) => {
+      console.log("Share accepted by peer, signaling...");
+      if (peerRef.current) {
+        peerRef.current.signal(signal);
+      }
     });
 
     // Handle when video call is accepted
-    socketRef.current.on('video-call-accepted', ({ signal, fromEmail }) => {
-        console.log('Video call accepted by:', fromEmail);
-        if (peerRef.current) {
-            peerRef.current.signal(signal);
-            setIsVideoCalling(true);
-        }
+    socketRef.current.on("video-call-accepted", ({ signal, fromEmail }) => {
+      console.log("Video call accepted by:", fromEmail);
+      if (peerRef.current) {
+        peerRef.current.signal(signal);
+        setIsVideoCalling(true);
+      }
     });
 
     // Handle incoming video signals
-    socketRef.current.on('video-call-signal', ({ signal }) => {
-        console.log('Received video call signal');
-        if (peerRef.current) {
-            peerRef.current.signal(signal);
-        }
+    socketRef.current.on("video-call-signal", ({ signal }) => {
+      console.log("Received video call signal");
+      if (peerRef.current) {
+        peerRef.current.signal(signal);
+      }
     });
 
     return () => {
-        cleanupConnection();
-        socketRef.current.off('video-call-request');
-        socketRef.current.off('video-call-accepted');
-        socketRef.current.off('video-call-signal');
-        socketRef.current.off('screen-share-request');
-        socketRef.current.off('share-accepted');
-        socketRef.current.off('share-signal');
+      cleanupConnection();
+      socketRef.current.off("video-call-request");
+      socketRef.current.off("video-call-accepted");
+      socketRef.current.off("video-call-signal");
+      socketRef.current.off("screen-share-request");
+      socketRef.current.off("share-accepted");
+      socketRef.current.off("share-signal");
     };
-}, [userId]);
+  }, [userId]);
 
+  //==========================video call=============================
 
- //==========================video call=============================
-
- const startVideoCall = async (receiverId) => {
-  if (!receiverId) {
-      setError('Please enter peer email first');
+  const startVideoCall = async (receiverId) => {
+    if (!receiverId) {
+      setError("Please enter peer email first");
       return;
-  }
+    }
 
-  try {
+    try {
       let stream = null;
       try {
-          // Try to get media stream but don't block if devices aren't available
-          stream = await navigator.mediaDevices.getUserMedia({
-              video: hasWebcam,
-              audio: hasMicrophone
-          });
+        // Try to get media stream but don't block if devices aren't available
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: hasWebcam,
+          audio: hasMicrophone,
+        });
       } catch (err) {
-          console.warn('Could not get media devices:', err);
-          // Continue without media stream
+        console.warn("Could not get media devices:", err);
+        // Continue without media stream
       }
 
       if (stream) {
-          setIsCameraOn(true);
-          setIsMicrophoneOn(true);
-          streamRef.current = stream;
-          if (localVideoRef.current) {
-              localVideoRef.current.srcObject = stream;
-              try {
-                  await localVideoRef.current.play();
-              } catch (err) {
-                  console.error('Error playing local video:', err);
-              }
+        setIsCameraOn(true);
+        setIsMicrophoneOn(true);
+        streamRef.current = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+          try {
+            await localVideoRef.current.play();
+          } catch (err) {
+            console.error("Error playing local video:", err);
           }
+        }
       }
 
       // Create peer connection even without media stream
       const peer = new Peer({
-          initiator: true,
-          trickle: false,
-          stream // This can be null
+        initiator: true,
+        trickle: false,
+        stream, // This can be null
       });
 
-      peer.on('signal', signal => {
-          socketRef.current.emit('video-call-request', {
-              fromEmail: userId,
-              toEmail: receiverId,
-              signal
+      peer.on("signal", (signal) => {
+        socketRef.current.emit("video-call-request", {
+          fromEmail: userId,
+          toEmail: receiverId,
+          signal,
+        });
+      });
+
+      peer.on("stream", (remoteStream) => {
+        console.log("Received remote stream");
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+          remoteVideoRef.current.play().catch((err) => {
+            console.error("Error playing remote video:", err);
           });
+        }
       });
 
-      peer.on('stream', remoteStream => {
-          console.log('Received remote stream');
-          if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream;
-              remoteVideoRef.current.play().catch(err => {
-                  console.error('Error playing remote video:', err);
-              });
-          }
-      });
-
-      peer.on('error', err => {
-          console.error('Peer error:', err);
-          setError('Video call connection error occurred');
-          endVideoCall();
+      peer.on("error", (err) => {
+        console.error("Peer error:", err);
+        setError("Video call connection error occurred");
+        endVideoCall();
       });
 
       peerRef.current = peer;
       setIsVideoCalling(true);
-
-  } catch (err) {
-      console.error('Error starting video call:', err);
-      setError(err.message || 'Failed to start video call');
+    } catch (err) {
+      console.error("Error starting video call:", err);
+      setError(err.message || "Failed to start video call");
       endVideoCall();
-  }
-};
+    }
+  };
 
-const acceptVideoCall = async () => {
-  if (!incomingCall) return;
+  const acceptVideoCall = async () => {
+    if (!incomingCall) return;
 
-  try {
+    try {
       let stream = null;
       try {
-          // Try to get media stream but don't block if devices aren't available
-          stream = await navigator.mediaDevices.getUserMedia({
-              video: hasWebcam,
-              audio: hasMicrophone
-          });
+        // Try to get media stream but don't block if devices aren't available
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: hasWebcam,
+          audio: hasMicrophone,
+        });
       } catch (err) {
-          console.warn('Could not get media devices:', err);
-          // Continue without media stream
+        console.warn("Could not get media devices:", err);
+        // Continue without media stream
       }
 
       if (stream) {
-          streamRef.current = stream;
-          if (localVideoRef.current) {
-              localVideoRef.current.srcObject = stream;
-          }
+        streamRef.current = stream;
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
       }
 
       const peer = new Peer({
-          initiator: false,
-          trickle: false,
-          stream // This can be null
+        initiator: false,
+        trickle: false,
+        stream, // This can be null
       });
 
-      peer.on('signal', signal => {
-          socketRef.current.emit('video-call-accept', {
-              signal,
-              fromEmail: incomingCall.fromEmail,
-              toEmail: userId
-          });
+      peer.on("signal", (signal) => {
+        socketRef.current.emit("video-call-accept", {
+          signal,
+          fromEmail: incomingCall.fromEmail,
+          toEmail: userId,
+        });
       });
 
-      peer.on('stream', remoteStream => {
-          console.log('Received remote stream');
-          if (remoteVideoRef.current) {
-              remoteVideoRef.current.srcObject = remoteStream;
-          }
+      peer.on("stream", (remoteStream) => {
+        console.log("Received remote stream");
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+        }
       });
 
-      peer.on('error', err => {
-          console.error('Peer error:', err);
-          setError('Video call connection error occurred');
-          endVideoCall();
+      peer.on("error", (err) => {
+        console.error("Peer error:", err);
+        setError("Video call connection error occurred");
+        endVideoCall();
       });
 
       peer.signal(incomingCall.signal);
@@ -615,34 +692,33 @@ const acceptVideoCall = async () => {
       setPeerEmail(incomingCall.fromEmail);
       setIsVideoCalling(true);
       setIncomingCall(null);
-
-  } catch (err) {
-      console.error('Error accepting video call:', err);
-      setError(err.message || 'Failed to accept video call');
+    } catch (err) {
+      console.error("Error accepting video call:", err);
+      setError(err.message || "Failed to accept video call");
       endVideoCall();
-  }
-};
+    }
+  };
 
-const endVideoCall = () => {
-  if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+  const endVideoCall = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
-  }
-  if (peerRef.current) {
+    }
+    if (peerRef.current) {
       peerRef.current.destroy();
       peerRef.current = null;
-  }
-  if (localVideoRef.current) {
+    }
+    if (localVideoRef.current) {
       localVideoRef.current.srcObject = null;
-  }
-  if (remoteVideoRef.current) {
+    }
+    if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = null;
-  }
-  setIsVideoCalling(false);
-  setIncomingCall(null);
-  setIsCameraOn(true);
-  setIsMicrophoneOn(true);
-};
+    }
+    setIsVideoCalling(false);
+    setIncomingCall(null);
+    setIsCameraOn(true);
+    setIsMicrophoneOn(true);
+  };
 
   // ===========================call=============================
 
@@ -955,10 +1031,9 @@ const endVideoCall = () => {
     endVideoCall();
     setIsSharing(false);
     setIsReceiving(false);
-    setPeerEmail('');
-    setError('');
-};
-
+    setPeerEmail("");
+    setError("");
+  };
 
   return {
     socket: socketRef.current,
@@ -988,7 +1063,6 @@ const endVideoCall = () => {
     setIsReceiving,
     toggleCamera,
     toggleMicrophone,
+    markMessageAsRead,
   };
 };
-
-

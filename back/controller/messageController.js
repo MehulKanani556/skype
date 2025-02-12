@@ -1,3 +1,4 @@
+const groupModel = require("../models/groupModel");
 const Message = require("../models/messageModel");
 
 exports.saveMessage = async (messageData) => {
@@ -56,18 +57,22 @@ exports.getAllMessages = async (req, res) => {
 
     let paginatedUser;
 
-    paginatedUser = await Message.find({
-      $or: [
-        { sender: req.user._id, receiver: selectedId },
-        { sender: selectedId, receiver: req.user._id },
-      ],
-    });
+    const group = await groupModel.findById(selectedId); 
+
+    if (group) {
+      paginatedUser = await Message.find({
+        receiver: selectedId,
+      });
+    } else {
+      paginatedUser = await Message.find({
+        $or: [
+          { sender: req.user._id, receiver: selectedId },
+          { sender: selectedId, receiver: req.user._id },
+        ],
+      });
+    }
 
     let count = paginatedUser.length;
-
-    // if (count === 0) {
-    //   return res.status(404).json({ status: 404, message: "User Not Found" });
-    // }
 
     if (page && pageSize) {
       let startIndex = (page - 1) * pageSize;
