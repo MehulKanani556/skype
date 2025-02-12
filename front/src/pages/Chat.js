@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import EmojiPicker from 'emoji-picker-react';
 import {
-    FaSearch, FaCommentDots, FaPhone, FaUsers, FaBell, FaEllipsisH, FaDownload, FaShareAlt, FaUserPlus, FaBookmark, FaCog, FaQrcode, FaStar, FaPaperclip, FaMicrophone, FaRegSmile
+    FaSearch, FaCommentDots, FaPhone, FaUsers, FaBell, FaDownload, FaShareAlt, FaUserPlus, FaBookmark, FaCog, FaQrcode, FaStar, FaPaperclip, FaMicrophone, FaRegSmile
 } from 'react-icons/fa';
 import { LuScreenShare } from "react-icons/lu";
 import { IoMdSearch } from "react-icons/io";
@@ -9,9 +9,10 @@ import { MdPhoneEnabled, MdGroupAdd } from "react-icons/md";
 import { GoDeviceCameraVideo } from "react-icons/go";
 import { LuSendHorizontal } from "react-icons/lu";
 import { ImCross } from "react-icons/im";
+import { RxCross2 } from "react-icons/rx";
 
 const Chat = () => {
-    const [selectedTab, setSelectedTab] = useState('Chats');
+    const [selectedTab, setSelectedTab] = useState('All');
     const [recentChats, setRecentChats] = useState([]);
     const [messages, setMessages] = useState([]);
     const [showDialpad, setShowDialpad] = useState(false);
@@ -21,6 +22,8 @@ const Chat = () => {
     const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
     const emojiPickerRef = useRef(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [imagePreview, setImagePreview] = useState(null);
+    const [selectedFiles, setSelectedFiles] = useState([]);
 
     useEffect(() => {
         const fetchChats = async () => {
@@ -63,15 +66,33 @@ const Chat = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isProfileDropdownOpen]);
 
-    const handleSendMessage = (text) => {
-        if (text.trim() === '') return;
-        const newMessage = { id: messages.length + 1, text, time: new Date().toLocaleTimeString(), sender: 'me' };
-        setMessages([...messages, newMessage]);
+    const handleSendMessage = (text, files = []) => {
+        if (text.trim() === '' && files.length === 0) return;
+
+        const newMessages = files.map((file, index) => ({
+            id: messages.length + index + 1,
+            type: 'image',
+            content: file,
+            time: new Date().toLocaleTimeString(),
+            sender: 'me',
+        }));
+
+        if (text.trim()) {
+            newMessages.push({
+                id: messages.length + newMessages.length + 1,
+                text,
+                time: new Date().toLocaleTimeString(),
+                sender: 'me',
+            });
+        }
+
+        setMessages([...messages, ...newMessages]);
+        setSelectedFiles([]); // Clear selected files after sending
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        handleSendMessage(message);
+        handleSendMessage(message, selectedFiles);
         setMessage('');
     };
 
@@ -93,6 +114,20 @@ const Chat = () => {
         };
     }, []);
 
+    const handleFileChange = (event) => {
+        const files = Array.from(event.target.files);
+        const filePreviews = files.map(file => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            return new Promise(resolve => {
+                reader.onloadend = () => resolve(reader.result);
+            });
+        });
+
+        Promise.all(filePreviews).then(previews => {
+            setSelectedFiles(previews);
+        });
+    };
 
     return (
         <div className="flex h-screen bg-white">
@@ -219,40 +254,46 @@ const Chat = () => {
                     >
                         Chats
                     </button>
-                    <button
+                    {/* <button
                         className={`py-2 ${selectedTab === 'Channels' ? 'border-b-2 border-blue-500' : ''}`}
                         onClick={() => setSelectedTab('Channels')}
                     >
                         Channels
-                    </button>
+                    </button> */}
                 </div>
 
                 <div className="flex-1 overflow-y-auto">
-                    {recentChats.map((chat) => (
-                        <div
-                            key={chat.id}
-                            className="flex items-center p-3 hover:bg-gray-100 cursor-pointer"
-                            onClick={() => setSelectedChat(chat)}
-                        >
-                            <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                                {chat.avatar || chat.name.charAt(0)}
-                                <span
-                                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${chat.status === 'online' ? 'bg-green-500' : 'bg-yellow-500'
-                                        }`}
-                                ></span>
-                            </div>
-                            <div className="ml-3 flex-1">
-                                <div className="flex justify-between">
-                                    <span className="font-medium">{chat.name}</span>
-                                    <span className="text-xs text-gray-500">{chat.time}</span>
+                    {recentChats
+                        .filter(chat => {
+                            if (selectedTab === 'All') return true;
+                            if (selectedTab === 'Chats') return chat.type === 'chat';
+                            // if (selectedTab === 'Channels') return chat.type === 'channel';
+                            return false;
+                        })
+                        .map((chat) => (
+                            <div
+                                key={chat.id}
+                                className="flex items-center p-3 hover:bg-gray-100 cursor-pointer"
+                                onClick={() => setSelectedChat(chat)}
+                            >
+                                <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
+                                    {chat.avatar || chat.name.charAt(0)}
+                                    <span
+                                        className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${chat.status === 'online' ? 'bg-green-500' : 'bg-yellow-500'}`}
+                                    ></span>
                                 </div>
-                                <div className="text-sm text-gray-500">
-                                    {chat.message}
-                                    {chat.hasPhoto && <span className="text-xs ml-1"></span>}
+                                <div className="ml-3 flex-1">
+                                    <div className="flex justify-between">
+                                        <span className="font-medium">{chat.name}</span>
+                                        <span className="text-xs text-gray-500">{chat.time}</span>
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                        {chat.message}
+                                        {chat.hasPhoto && <span className="text-xs ml-1"></span>}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
                 </div>
             </div>
 
@@ -275,13 +316,13 @@ const Chat = () => {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4">
+                <div className="container mx-auto flex-1 overflow-y-auto p-4">
                     {messages.map((message) => (
                         <div
                             key={message.id}
                             className={`flex ${message.sender === 'other' ? 'justify-start' : 'justify-end'} mb-4`}>
                             {message.type === 'file' ? (
-                                <div className=" rounded-lg p-4 max-w-sm" style={{ maxWidth: '500px', wordWrap: 'break-word', backgroundColor: '#F1F1F1' }}>
+                                <div className="rounded-lg p-4 max-w-sm" style={{ maxWidth: '500px', wordWrap: 'break-word', backgroundColor: '#F1F1F1' }}>
                                     <div className="flex items-center">
                                         <FaDownload className="w-6 h-6" />
                                         <div className="ml-3">
@@ -289,6 +330,10 @@ const Chat = () => {
                                             <div className="text-sm text-gray-500">{message.size}</div>
                                         </div>
                                     </div>
+                                </div>
+                            ) : message.type === 'image' ? (
+                                <div className="rounded max-w-sm" style={{ maxWidth: '500px', wordWrap: 'break-word', }}>
+                                    <img src={message.content} alt="Sent" className="w-full h-auto" style={{ width: '300px', height: 'auto' }} />
                                 </div>
                             ) : (
                                 <div className="bg-blue-50 rounded-lg py-2 px-4" style={{ backgroundColor: '#CCF7FF' }}>
@@ -299,8 +344,28 @@ const Chat = () => {
                     ))}
                 </div>
 
+                <div className="flex w-full max-w-4xl mx-auto p-4 rounded-lg">
+                    {selectedFiles.map((file, index) => (
+                        <div key={index} className="relative">
+                            <img src={file} alt={`Selected ${index}`} className="w-16 h-16 object-cover" />
+                            <button
+                                className="absolute top-0 right-0 bg-white rounded-full"
+                                onClick={() => {
+                                    setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
+                                }}
+                            >
+                                <RxCross2 />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+
                 <div className="w-full max-w-4xl mx-auto p-4 rounded-lg">
-                    <form onSubmit={handleSubmit} className="flex items-center gap-2 rounded-full px-4 py-2 shadow" style={{ backgroundColor: "#e5e7eb" }} >
+                    <form onSubmit={(e) => {
+                        e.preventDefault();
+                        handleSendMessage(message, selectedFiles);
+                        setMessage('');
+                    }} className="flex items-center gap-2 rounded-full px-4 py-2 shadow" style={{ backgroundColor: "#e5e7eb" }} >
                         <button
                             type="button"
                             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -326,13 +391,21 @@ const Chat = () => {
                         />
 
                         <div className="flex items-center gap-1">
+                            <input
+                                type="file"
+                                id="fileInput"
+                                style={{ display: 'none' }}
+                                onChange={handleFileChange}
+                            />
                             <button
                                 type="button"
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                                 aria-label="Attach file"
+                                onClick={() => document.getElementById('fileInput').click()}
                             >
                                 <FaPaperclip className="w-5 h-5 text-gray-500" />
                             </button>
+
                             <button
                                 type="button"
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -340,7 +413,7 @@ const Chat = () => {
                             >
                                 <FaMicrophone className="w-5 h-5 text-gray-500" />
                             </button>
-                            {message.trim() && (
+                            {(message.trim() || selectedFiles.length > 0) && (
                                 <button
                                     type="submit"
                                     className="p-2 hover:bg-gray-100 rounded-full transition-colors"

@@ -65,7 +65,7 @@ const useScreenShare = (socketInstance) => {
         audio: true,
       });
 
-      // ... existing code to handle stream ...
+  //     // ... existing code to handle stream ...
     } catch (error) {
       console.error("Error starting screen share:", error);
     }
