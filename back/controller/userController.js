@@ -82,43 +82,50 @@ exports.getAllUsers = async (req, res) => {
 
 exports.getAllMessageUsers = async (req, res) => {
     try {
-        let getAllMessageUsers = await message.aggregate([
-            {
-              $match: { $or: [{ sender: req.user._id }, { receiver: req.user._id }] }
-            },
-            {
-              $project: { user: { $cond: [{ $eq: ["$sender", req.user._id] }, "$receiver", "$sender"] } }
-            },
-            {
-              $group: { _id: "$user" }
-            },
-            {
-              $lookup: {
-                from: "users",
-                localField: "_id",
-                foreignField: "_id",
-                as: "userData"
+      let getAllMessageUsers = await message.aggregate([
+        {
+          $match: { $or: [{ sender: req.user._id }, { receiver: req.user._id }] }
+        },
+        {
+          $project: { user: { $cond: [{ $eq: ["$sender", req.user._id] }, "$receiver", "$sender"] } }
+        },
+        {
+          $group: { _id: "$user" }
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "_id",
+            foreignField: "_id",
+            as: "userData"
+          }
+        },
+        { $unwind: "$userData" },
+        {
+          $project: { _id: 1, userName: "$userData.userName", email: "$userData.email", createdAt: "$userData.createdAt" }
+        },
+        {
+          $unionWith: {
+            coll: "users",
+            pipeline: [
+              {
+                $match: { _id: req.user._id }
+              },
+              {
+                $project: { _id: 1, userName: "$userName", email: "$email", createdAt: "$createdAt" }
               }
-            },
-            { $unwind: "$userData" },
-            {
-              $project: { _id: 1, userName: "$userData.userName", email: "$userData.email",createdAt: "$userData.createdAt" }
-            },
-            // New stage to include the logged-in user
-            {
-              $unionWith: {
-                coll: "users",
-                pipeline: [
-                  {
-                    $match: { _id: req.user._id }
-                  },
-                  {
-                    $project: { _id: 1, userName: "$userName", email: "$email",createdAt: "$createdAt" }
-                  }
-                ]
-              }
-            }
-          ]);
+            ]
+          }
+        },
+        {
+          $group: {
+            _id: "$_id",
+            userName: { $first: "$userName" },
+            email: { $first: "$email" },
+            createdAt: { $first: "$createdAt" }
+          }
+        }
+      ]);
     
         return res.status(200).json({
           status: 200,

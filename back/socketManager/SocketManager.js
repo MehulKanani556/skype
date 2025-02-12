@@ -127,54 +127,103 @@ async function handleUpdateMessage(socket, data) {
   }
 }
 
-function handleDisconnect(socket) {
-  if (socket.userId) {
-    onlineUsers.delete(socket.userId);
-    // Broadcast updated online users list
-    socket.broadcast.emit(
-      "user-status-changed",
-      Array.from(onlineUsers.keys())
-    );
-  }
-  console.log("User disconnected:", socket.id);
+
+// ===========================screen share=============================
+
+function handleScreenShareRequest(socket, data) {
+
+  const targetSocketId = onlineUsers.get(data.toEmail);
+        if (targetSocketId) {
+            socket.to(targetSocketId).emit('screen-share-request', {
+                fromEmail: data.fromEmail,
+                signal: data.signal
+            });
+        }
+
+  // const { receiverId, senderId, offer } = data;
+  // console.log("Handling screen share request:", {
+  //   receiverId,
+  //   senderId,
+  //   offer,
+  // });
+  // console.log("onlineUsers", onlineUsers);
+  // const receiverSocketId = onlineUsers.get(receiverId);
+
+  // if (receiverSocketId) {
+  //   socket.to(receiverSocketId).emit("screenShareOffer", {
+  //     senderId,
+  //     offer,
+  //   });
+  //   console.log("Screen share offer sent to:", receiverId);
+  // } else {
+  //   socket.emit("screenShare-error", {
+  //     error: "Receiver is offline",
+  //     receiverId,
+  //   });
+  // }
 }
 
-function handleScreenShare(socket, data) {
-  const { receiverId, senderId, offer } = data;
-  console.log("Handling screen share request:", {
-    receiverId,
-    senderId,
-    offer,
-  });
+function handleScreenShareAccept(socket, data) {
 
-  const receiverSocketId = onlineUsers.get(receiverId);
+  const targetSocketId = onlineUsers.get(data.fromEmail);
+  if (targetSocketId) {
+      socket.to(targetSocketId).emit('share-accepted', {
+          signal: data.signal,
+          fromEmail: data.toEmail
+      });
+  }
+  // // console.log("aa", data);
+  // const { senderId, answer } = data;
+  // const senderSocket = onlineUsers.get(senderId);
 
-  if (receiverSocketId) {
-    socket.to(receiverSocketId).emit("screenShareOffer", {
-      senderId,
-      offer,
-    });
-    console.log("Screen share offer sent to:", receiverId);
-  } else {
-    socket.emit("screenShare-error", {
-      error: "Receiver is offline",
-      receiverId,
+  // if (senderSocket) {
+  //   socket.to(senderSocket).emit("screenShareAnswer", {
+  //     answer,
+  //     from: socket.userId,
+  //   });
+  // }
+}
+
+function handleScreenShareSignal(socket, data) {
+  const targetSocketId = onlineUsers.get(data.toEmail);
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit('share-signal', {
+      signal: data.signal,
     });
   }
 }
 
-function handleScreenShareAnswer(socket, data) {
-  // console.log("aa", data);
-  const { senderId, answer } = data;
-  const senderSocket = onlineUsers.get(senderId);
+// ===========================Video call=============================
 
-  if (senderSocket) {
-    socket.to(senderSocket).emit("screenShareAnswer", {
-      answer,
-      from: socket.userId,
-    });
-  }
+function handleVideoCallRequest(socket, data) {
+  const targetSocketId = onlineUsers.get(data.toEmail);
+        if (targetSocketId) {
+            socket.to(targetSocketId).emit('video-call-request', {
+                fromEmail: data.fromEmail,
+                signal: data.signal
+            });
+        }
 }
+
+function handleVideoCallAccept(socket, data) {
+   const targetSocketId = onlineUsers.get(data.fromEmail);
+        if (targetSocketId) {
+            socket.to(targetSocketId).emit('video-call-accepted', {
+                signal: data.signal,
+                fromEmail: data.toEmail
+            });
+        }
+}
+
+function handleVideoCallSignal(socket, data) {
+  const targetSocketId = onlineUsers.get(data.toEmail);
+        if (targetSocketId) {
+            socket.to(targetSocketId).emit('video-call-signal', {
+                signal: data.signal
+            });
+        }
+}
+
 
 // ===========================call=============================
 
@@ -223,6 +272,9 @@ function handleCallEnd(socket, data) {
     socket.to(targetSocketId).emit("callEnded");
   }
 }
+
+
+// ===========================group=============================
 
 function handleCreateGroup(socket, data) {
   const { name, members } = data;
@@ -278,8 +330,7 @@ async function handleGroupMessage(socket, data) {
   }
 }
 
-
-
+// ===========================socket connection=============================
 function handleConnection(socket) {
   console.log("User connected:", socket.id);
 
@@ -303,13 +354,17 @@ function handleConnection(socket) {
   // Handle message update
   socket.on("update-message", (data) => handleUpdateMessage(socket, data));
 
-  // Add screen sharing handlers
-  socket.on("screenShareOffer", (data) => handleScreenShare(socket, data));
-  socket.on("screenShareAnswer", (data) =>
-    handleScreenShareAnswer(socket, data)
-  );
+  // ===========================screen share=============================
+  socket.on("screen-share-request", (data) => handleScreenShareRequest(socket, data));
+  socket.on("share-accept", (data) =>handleScreenShareAccept(socket, data));
+  socket.on("share-signal", (data) =>handleScreenShareSignal(socket, data));
 
-  // =====calll======
+  // ===========================Video call=============================
+  socket.on("video-call-request", (data) => handleVideoCallRequest(socket, data));
+  socket.on("video-call-accept", (data) => handleVideoCallAccept(socket, data));
+  socket.on("video-call-signal", (data) => handleVideoCallSignal(socket, data));
+
+  // ===========================call=============================
   socket.on("callOffer", (data) => handleCallOffer(socket, data));
   socket.on("callAnswer", (data) => handleCallAnswer(socket, data));
   socket.on("ice-candidate", (data) => handleIceCandidate(socket, data));
@@ -322,6 +377,18 @@ function handleConnection(socket) {
 
   // Handle group messages
   socket.on("group-message", (data) => handleGroupMessage(socket, data));
+}
+
+function handleDisconnect(socket) {
+  if (socket.userId) {
+    onlineUsers.delete(socket.userId);
+    // Broadcast updated online users list
+    socket.broadcast.emit(
+      "user-status-changed",
+      Array.from(onlineUsers.keys())
+    );
+  }
+  console.log("User disconnected:", socket.id);
 }
 
 function getOnlineUsers() {

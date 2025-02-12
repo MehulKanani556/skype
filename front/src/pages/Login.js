@@ -464,7 +464,7 @@ const Login = () => {
               validationSchema={signInSchema}
               onSubmit={(values) => {
                 dispatch(login(values)).then((response) => {
-                  if (response.payload) navigate('/');
+                  if (response.payload) navigate('/chat2');
                 });
               }}
             >

@@ -7,7 +7,6 @@ const socketPort = process.env.SOCKET_PORT || 4000;
 const cors = require("cors");
 const indexRoutes = require("./routes/indexRoutes");
 const { Server } = require("socket.io");
-const { saveMessage } = require("./controller/messageController");
 const socketManager = require("./socketManager/SocketManager");
 const path = require("path");
 server.use(express.json());
@@ -40,43 +39,43 @@ io.on("connection", (socket) => {
 
   socketManager.handleConnection(socket);
 
-  // Handle private messages
-  socket.on("private-message", async (data) => {
-    try {
-      const { receiverId, content, senderId } = data;
-      // Emit to recipient if online
-      const recipientSocket = socketManager.getSocketByUserId(receiverId);
-      if (recipientSocket) {
-        recipientSocket.emit("private-message", {
-          senderId,
-          content,
-          timestamp: new Date(),
-        });
-      }
+  // // Handle private messages
+  // socket.on("private-message", async (data) => {
+  //   try {
+  //     const { receiverId, content, senderId } = data;
+  //     // Emit to recipient if online
+  //     const recipientSocket = socketManager.getSocketByUserId(receiverId);
+  //     if (recipientSocket) {
+  //       recipientSocket.emit("private-message", {
+  //         senderId,
+  //         content,
+  //         timestamp: new Date(),
+  //       });
+  //     }
 
-      // Acknowledge message receipt
-      socket.emit("message-sent-status", {
-        status: "sent",
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      console.error("Error handling private message:", error);
-      socket.emit("error", {
-        message: "Failed to send message",
-      });
-    }
-  });
+  //     // Acknowledge message receipt
+  //     socket.emit("message-sent-status", {
+  //       status: "sent",
+  //       timestamp: new Date(),
+  //     });
+  //   } catch (error) {
+  //     console.error("Error handling private message:", error);
+  //     socket.emit("error", {
+  //       message: "Failed to send message",
+  //     });
+  //   }
+  // });
 
-  // Handle typing status
-  socket.on("typing", ({ receiverId, isTyping, userId }) => {
-    const recipientSocket = socketManager.getSocketByUserId(receiverId);
-    if (recipientSocket) {
-      recipientSocket.emit("typing", {
-        userId,
-        isTyping,
-      });
-    }
-  });
+  // // Handle typing status
+  // socket.on("typing", ({ receiverId, isTyping, userId }) => {
+  //   const recipientSocket = socketManager.getSocketByUserId(receiverId);
+  //   if (recipientSocket) {
+  //     recipientSocket.emit("typing", {
+  //       userId,
+  //       isTyping,
+  //     });
+  //   }
+  // });
 
   // Handle disconnection
   socket.on("disconnect", () => {
