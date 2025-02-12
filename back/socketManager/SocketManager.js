@@ -33,11 +33,12 @@ async function handlePrivateMessage(socket, data) {
   console.log("Handling private message:", data);
 
   try {
-    // Save message to database
-    await saveMessage({
+    // Save message to database with initial status 'sent'
+    const savedMessage = await saveMessage({
       senderId,
       receiverId,
       content: content,
+      status: "sent", // Add initial status
     });
 
     const receiverSocketId = onlineUsers.get(receiverId);
@@ -46,23 +47,29 @@ async function handlePrivateMessage(socket, data) {
     if (receiverSocketId) {
       // Send to receiver
       socket.to(receiverSocketId).emit("receive-message", {
-        _id: Date.now().toString(),
+        _id: savedMessage._id,
         sender: senderId,
         content: content,
-        createdAt: new Date().toISOString(),
+        createdAt: savedMessage.createdAt,
+        status: "delivered", // Set status to delivered for online users
+      });
+
+      // Update message status to delivered in database
+      await Message.findByIdAndUpdate(savedMessage._id, {
+        status: "delivered",
       });
 
       // Confirm delivery to sender
       socket.emit("message-sent-status", {
-        messageId: Date.now(),
+        messageId: savedMessage._id,
         status: "delivered",
       });
     } else {
       console.log("Receiver is offline:", receiverId);
-      // Receiver is offline - save message and mark as pending
+      // Receiver is offline - message stays as 'sent'
       socket.emit("message-sent-status", {
-        messageId: Date.now(),
-        status: "pending",
+        messageId: savedMessage._id,
+        status: "sent",
       });
     }
   } catch (error) {
@@ -75,6 +82,31 @@ async function handlePrivateMessage(socket, data) {
   }
 }
 
+// ===========================handle message read status=============================
+async function handleMessageRead(socket, data) {
+  const { messageId, readerId } = data;
+
+  try {
+    // Update message status to 'read' in database
+    await Message.findByIdAndUpdate(messageId, { status: "read" });
+
+    // Get sender's socket ID to notify them
+    const message = await Message.findById(messageId);
+    const senderSocketId = onlineUsers.get(message.sender.toString());
+
+    if (senderSocketId) {
+      // Notify sender that message was read
+      socket.to(senderSocketId).emit("message-read", {
+        messageId,
+        readerId,
+      });
+    }
+  } catch (error) {
+    console.error("Error handling message read status:", error);
+  }
+}
+
+// ===========================handle typing status=============================
 function handleTypingStatus(socket, data) {
   const { senderId, receiverId, isTyping } = data;
   const receiverSocketId = onlineUsers.get(receiverId);
@@ -127,18 +159,16 @@ async function handleUpdateMessage(socket, data) {
   }
 }
 
-
 // ===========================screen share=============================
 
 function handleScreenShareRequest(socket, data) {
-
   const targetSocketId = onlineUsers.get(data.toEmail);
-        if (targetSocketId) {
-            socket.to(targetSocketId).emit('screen-share-request', {
-                fromEmail: data.fromEmail,
-                signal: data.signal
-            });
-        }
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("screen-share-request", {
+      fromEmail: data.fromEmail,
+      signal: data.signal,
+    });
+  }
 
   // const { receiverId, senderId, offer } = data;
   // console.log("Handling screen share request:", {
@@ -164,13 +194,12 @@ function handleScreenShareRequest(socket, data) {
 }
 
 function handleScreenShareAccept(socket, data) {
-
   const targetSocketId = onlineUsers.get(data.fromEmail);
   if (targetSocketId) {
-      socket.to(targetSocketId).emit('share-accepted', {
-          signal: data.signal,
-          fromEmail: data.toEmail
-      });
+    socket.to(targetSocketId).emit("share-accepted", {
+      signal: data.signal,
+      fromEmail: data.toEmail,
+    });
   }
   // // console.log("aa", data);
   // const { senderId, answer } = data;
@@ -187,7 +216,7 @@ function handleScreenShareAccept(socket, data) {
 function handleScreenShareSignal(socket, data) {
   const targetSocketId = onlineUsers.get(data.toEmail);
   if (targetSocketId) {
-    socket.to(targetSocketId).emit('share-signal', {
+    socket.to(targetSocketId).emit("share-signal", {
       signal: data.signal,
     });
   }
@@ -197,33 +226,32 @@ function handleScreenShareSignal(socket, data) {
 
 function handleVideoCallRequest(socket, data) {
   const targetSocketId = onlineUsers.get(data.toEmail);
-        if (targetSocketId) {
-            socket.to(targetSocketId).emit('video-call-request', {
-                fromEmail: data.fromEmail,
-                signal: data.signal
-            });
-        }
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("video-call-request", {
+      fromEmail: data.fromEmail,
+      signal: data.signal,
+    });
+  }
 }
 
 function handleVideoCallAccept(socket, data) {
-   const targetSocketId = onlineUsers.get(data.fromEmail);
-        if (targetSocketId) {
-            socket.to(targetSocketId).emit('video-call-accepted', {
-                signal: data.signal,
-                fromEmail: data.toEmail
-            });
-        }
+  const targetSocketId = onlineUsers.get(data.fromEmail);
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("video-call-accepted", {
+      signal: data.signal,
+      fromEmail: data.toEmail,
+    });
+  }
 }
 
 function handleVideoCallSignal(socket, data) {
   const targetSocketId = onlineUsers.get(data.toEmail);
-        if (targetSocketId) {
-            socket.to(targetSocketId).emit('video-call-signal', {
-                signal: data.signal
-            });
-        }
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("video-call-signal", {
+      signal: data.signal,
+    });
+  }
 }
-
 
 // ===========================call=============================
 
@@ -273,7 +301,6 @@ function handleCallEnd(socket, data) {
   }
 }
 
-
 // ===========================group=============================
 
 function handleCreateGroup(socket, data) {
@@ -309,22 +336,24 @@ async function handleGroupMessage(socket, data) {
       // Assuming you have a way to get group members from your database or in-memory store
       const group = await findGroupById(groupId); // Implement this function to retrieve the group
       console.log("group", group);
-      return group.members.map(memberId => onlineUsers.get(memberId.toString())).filter(Boolean);
+      return group.members
+        .map((memberId) => onlineUsers.get(memberId.toString()))
+        .filter(Boolean);
     }
 
     const groupMembers = await getGroupMembers(groupId);
-       console.log("Group members' socket IDs:", groupMembers); // Log the socket IDs
+    console.log("Group members' socket IDs:", groupMembers); // Log the socket IDs
 
-       groupMembers.forEach(memberSocketId => {
-         if (memberSocketId !== socket.id) {
-           socket.to(memberSocketId).emit("receive-group", {
-             _id: Date.now().toString(),
-             sender: senderId,
-             content: content,
-             createdAt: new Date().toISOString(),
-           });
-         }
-       });
+    groupMembers.forEach((memberSocketId) => {
+      if (memberSocketId !== socket.id) {
+        socket.to(memberSocketId).emit("receive-group", {
+          _id: Date.now().toString(),
+          sender: senderId,
+          content: content,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    });
   } catch (error) {
     console.error("Error handling group message:", error);
   }
@@ -335,10 +364,41 @@ function handleConnection(socket) {
   console.log("User connected:", socket.id);
 
   // Handle user login
-  socket.on("user-login", (userId) => handleUserLogin(socket, userId));
+   // When user comes online, update pending messages to delivered
+   socket.on("user-login", async (userId) => {
+    
+    handleUserLogin(socket, userId);
+
+    try {
+      // Find all unread messages for this user
+      const pendingMessages = await Message.find({
+        receiverId: userId,
+        status: "sent",
+      });
+
+      // Update status to delivered
+      for (const message of pendingMessages) {
+        await Message.findByIdAndUpdate(message._id, { status: "delivered" });
+
+        // Notify sender about delivery
+        const senderSocketId = onlineUsers.get(message.sender.toString());
+        if (senderSocketId) {
+          socket.to(senderSocketId).emit("message-sent-status", {
+            messageId: message._id,
+            status: "delivered",
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error updating pending messages:", error);
+    }
+  });
 
   // Handle private messages
   socket.on("private-message", (data) => handlePrivateMessage(socket, data));
+
+   // Add handler for message read status
+   socket.on("message-read", (data) => handleMessageRead(socket, data));
 
   // Handle typing status
   socket.on("typing-status", (data) => handleTypingStatus(socket, data));
@@ -355,12 +415,16 @@ function handleConnection(socket) {
   socket.on("update-message", (data) => handleUpdateMessage(socket, data));
 
   // ===========================screen share=============================
-  socket.on("screen-share-request", (data) => handleScreenShareRequest(socket, data));
-  socket.on("share-accept", (data) =>handleScreenShareAccept(socket, data));
-  socket.on("share-signal", (data) =>handleScreenShareSignal(socket, data));
+  socket.on("screen-share-request", (data) =>
+    handleScreenShareRequest(socket, data)
+  );
+  socket.on("share-accept", (data) => handleScreenShareAccept(socket, data));
+  socket.on("share-signal", (data) => handleScreenShareSignal(socket, data));
 
   // ===========================Video call=============================
-  socket.on("video-call-request", (data) => handleVideoCallRequest(socket, data));
+  socket.on("video-call-request", (data) =>
+    handleVideoCallRequest(socket, data)
+  );
   socket.on("video-call-accept", (data) => handleVideoCallAccept(socket, data));
   socket.on("video-call-signal", (data) => handleVideoCallSignal(socket, data));
 
@@ -377,6 +441,7 @@ function handleConnection(socket) {
 
   // Handle group messages
   socket.on("group-message", (data) => handleGroupMessage(socket, data));
+
 }
 
 function handleDisconnect(socket) {
@@ -394,6 +459,8 @@ function handleDisconnect(socket) {
 function getOnlineUsers() {
   return Array.from(onlineUsers.keys());
 }
+
+
 
 module.exports = {
   handleConnection,
