@@ -192,7 +192,7 @@ const Chat2 = () => {
       }
     }
   }, [selectedChat, messages]);
- 
+
 
   //===========profile dropdown===========
   useEffect(() => {
@@ -650,6 +650,8 @@ const Chat2 = () => {
     };
   }, []);
 
+
+
   console.log("isReceiving", isReceiving);
   console.log("isVideoCalling", isVideoCalling);
   console.log("incomingCall", incomingCall);
@@ -964,8 +966,8 @@ const Chat2 = () => {
                                       )}`}
                                       alt={message.content.content}
                                       className={`w-full object-contain ${message.sender === userId && isConsecutive
-                                          ? "rounded-s-lg rounded-tr-lg"
-                                          : "rounded-e-lg rounded-tl-lg"
+                                        ? "rounded-s-lg rounded-tr-lg"
+                                        : "rounded-e-lg rounded-tl-lg"
                                         } `}
                                     />
                                   </div>
@@ -1012,16 +1014,41 @@ const Chat2 = () => {
                               ) : (
                                 <div className="flex gap-1">
                                   <div
-                                    className={`py-2 px-4 ${message.sender === userId
-                                      ? `bg-[#CCF7FF]  ${showTime || isConsecutive ? "rounded-s-lg rounded-tr-lg " : "rounded-s-lg"}`
-                                      : `bg-[#F1F1F1] ${showTime || isConsecutive ? "rounded-e-lg rounded-tl-lg " : "rounded-e-lg"} `
+                                    className={`group rounded-lg py-2 px-2 flex justify-between items-center relative ${message.sender === userId
+                                      ? "bg-[#CCF7FF]"
+                                      : "bg-[#F1F1F1]"
                                       }`}
                                     onContextMenu={(e) =>
                                       handleContextMenu(e, message)
                                     }
                                   >
-                                    <p>{message.content?.content}</p>
+                                    <p className="flex-1">{message.content?.content}</p>
+                                    <PiDotsThreeVerticalBold
+                                      className="absolute top-1 -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => handleDropdownToggle(message._id)}
+                                    />
                                   </div>
+                                  {activeMessageId === message._id && (
+                                    <div className="text-xs text-gray-500 mt-1" ref={dropdownRef}>
+                                      <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-50">
+                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
+                                          <MdOutlineModeEdit className="mr-2" /> Edit
+                                        </button>
+                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
+                                          <VscCopy className="mr-2" /> Copy
+                                        </button>
+                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
+                                          <HiOutlineReply className="mr-2" /> Reply
+                                        </button>
+                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
+                                          <CgMailForward className="mr-2" /> Forward
+                                        </button>
+                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
+                                          <CiSquareRemove className="mr-2" /> Remove
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
 
                                   {message.sender === userId && (
                                     <div
