@@ -332,7 +332,7 @@ const Login = () => {
                       onSuccess={response => {
                         const { name, email, sub: uid } = jwtDecode(response.credential);
                         dispatch(googleLogin({ uid, userName: name, email })).then((response) => {
-                          if (response.payload) navigate('/');
+                          if (response.payload) navigate('/chat');
                         });
                       }}
                       onFailure={console.error}
@@ -533,7 +533,7 @@ const Login = () => {
                         const { name, email, sub: uid } = jwtDecode(response.credential);
 
                         dispatch(googleLogin({ uid, userName: name, email })).then((response) => {
-                          if (response.payload) navigate('/');
+                          if (response.payload) navigate('/chat');
                         });
 
                       }}
@@ -545,7 +545,7 @@ const Login = () => {
                           className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-lg p-2.5 hover:bg-gray-50 transition-colors"
                         >
                           <img src={require('../assets/google-logo.png')} alt="Google" className="w-5 h-5" />
-                          <span>Continue with Google</span>
+                          <span className='text-right flex-grow-0'>Continue with Google</span>
                         </button>
                       )}
                     />

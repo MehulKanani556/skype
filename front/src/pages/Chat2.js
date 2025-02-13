@@ -54,7 +54,7 @@ import {
 import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
 import { RxCross2 } from "react-icons/rx";
-import { IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
+import { IoCheckmarkCircleOutline, IoCheckmarkDoneCircle, IoCheckmarkDoneCircleOutline, IoCheckmarkDoneCircleSharp, IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
 import Front from '../component/Front';
 
 const Chat2 = () => {
@@ -157,6 +157,7 @@ const Chat2 = () => {
   }, [searchInput, allUsers, allMessageUsers]);
   useEffect(() => {
     if (selectedChat) {
+      dispatch(getAllMessageUsers());
       // Get unread messages for this conversation
       const unreadMessages = messages
         .filter(
@@ -221,6 +222,8 @@ const Chat2 = () => {
         if (selectedChat) {
           dispatch(getAllMessages({ selectedId: selectedChat._id }));
         }
+        dispatch(getAllMessageUsers());
+
       }
     });
     return () => {
@@ -294,6 +297,8 @@ const Chat2 = () => {
           content: data.content,
         });
         setEditingMessage(null);
+      dispatch(getAllMessageUsers());
+
         dispatch(getAllMessages({ selectedId: selectedChat._id }));
       } catch (error) {
         console.error("Failed to update message:", error);
@@ -308,6 +313,7 @@ const Chat2 = () => {
       try {
         const status = await sendPrivateMessage(selectedChat._id, data);
         dispatch(getAllMessages({ selectedId: selectedChat._id }));
+        dispatch(getAllMessageUsers());
       } catch (error) {
         console.error("Failed to send message:", error);
       }
@@ -702,24 +708,28 @@ const Chat2 = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {console.log(filteredUsers)}
           {filteredUsers
             .slice()
             .sort((a, b) => {
+              // Prioritize the current user
               if (a._id === currentUser) return -1;
               if (b._id === currentUser) return 1;
-              return 0;
+
+              const lastMessageA = Array.isArray(a.messages) ? [...a.messages].sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt))[0] : null;
+              const lastMessageB = Array.isArray(b.messages) ? [...b.messages].sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt))[0] : null;
+
+              if (!lastMessageA && !lastMessageB) return 0;
+              if (!lastMessageA) return 1;
+              if (!lastMessageB) return -1;
+
+              return new Date(lastMessageB.createdAt) - new Date(lastMessageA.createdAt);
             })
             .map((item) => {
-              // Ensure messages is defined and is an array
               const lastMessage = Array.isArray(item.messages) ?
-                item.messages
-                  .filter(message => message.sender === item._id)
+                [...item.messages] // Create a shallow copy of the array
                   .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
                 : null;
-
-
-
+              console.log(item, lastMessage)
               return (
                 <div
                   key={item._id}
@@ -728,7 +738,7 @@ const Chat2 = () => {
                   onClick={() => setSelectedChat(item)}
                 >
                   <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                    {item.avatar || item.userName.charAt(0).toUpperCase()}
+                    {item.avatar || (item.userName ? item.userName.charAt(0).toUpperCase() : '')}
                     {onlineUsers.includes(item._id) && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
                     )}
@@ -745,14 +755,29 @@ const Chat2 = () => {
                           hour: "numeric",
                           minute: "2-digit",
                           hour12: true,
-                        }) : "No messages"}
+                        }) : ""}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {item.email}
-                      {item.hasPhoto && (
-                        <span className="text-xs ml-1">[photo]</span>
-                      )}
+                    {/* {console.log("i", item, item?.messages?.[0]?.content.content)} */}
+                    {/* {item.email} */}
+
+                    <div className="flex justify-between">
+                      <div className="text-sm text-gray-500">
+                        {item?.messages?.[0]?.content.content}
+                        {item.hasPhoto && (
+                          <span className="text-xs ml-1">[photo]</span>
+                        )}
+                      </div>
+                      <div className="badge">
+
+                        {item.messages?.filter(message => message.receiver === currentUser && message.status !== 'read').length > 0 && (
+                          <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
+                            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                              {item.messages?.filter(message => message.receiver === currentUser && message.status !== 'read').length > 99 ? '99+' : item.messages?.filter(message => message.receiver === currentUser && message.status !== 'read').length}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -827,39 +852,37 @@ const Chat2 = () => {
                         hour12: true,
                       });
 
-                      
+
 
                       // Check if previous message exists and was sent within same minute
                       const prevMessage = index > 0 ? dateMessages[index - 1] : null;
                       const showTime = !prevMessage || new Date(message?.createdAt).getMinutes() - new Date(prevMessage?.createdAt).getMinutes() > 0;
 
                       console.log(new Date(message?.createdAt).getMinutes() - new Date(prevMessage?.createdAt).getMinutes());
-                      
+
 
                       // Check if next message is from same sender to adjust spacing
-                      const nextMessage =  index < dateMessages.length - 1  ? dateMessages[index + 1] : null;
+                      const nextMessage = index < dateMessages.length - 1 ? dateMessages[index + 1] : null;
                       const isConsecutive = nextMessage && nextMessage.sender === message.sender;
-                      console.log("fghfgh",currentTime, prevMessage , nextMessage, showTime,);
+                      console.log("fghfgh", currentTime, prevMessage, nextMessage, showTime,);
                       return (
                         <div
                           key={message._id}
-                          className={`flex flex-col relative ${
-                            message.sender === userId
-                              ? "justify-end items-end"
-                              : "justify-start items-start"
-                          } ${isConsecutive ? "mb-1" : "mb-4"}`}
+                          className={`flex flex-col relative ${message.sender === userId
+                            ? "justify-end items-end"
+                            : "justify-start items-start"
+                            } ${isConsecutive ? "mb-1" : "mb-4"}`}
                         >
                           {showTime && (
-                            <div className="text-xs text-gray-500 mt-1">
+                            <div className="text-xs text-gray-500 mt-1 pe-8">
                               {currentTime}
                             </div>
                           )}
                           {message.content?.type === "file" ? (
                             message.content?.fileType.includes("image/") ? (
                               <div
-                                className={`rounded-lg p-2 max-w-sm max-h-[500px]  overflow-hidden ${
-                                  message.sender === userId ? "" : ""
-                                }`}
+                                className={`rounded-lg p-2 max-w-sm max-h-[500px]  overflow-hidden ${message.sender === userId ? "" : ""
+                                  }`}
                                 style={{
                                   maxWidth: "500px",
                                   wordWrap: "break-word",
@@ -874,20 +897,18 @@ const Chat2 = () => {
                                     "/"
                                   )}`}
                                   alt={message.content.content}
-                                  className={`w-full object-contain ${
-                                    message.sender === userId
-                                      ? "rounded-s-lg rounded-tr-lg"
-                                      : "rounded-e-lg rounded-tl-lg"
-                                  } `}
+                                  className={`w-full object-contain ${message.sender === userId
+                                    ? "rounded-s-lg rounded-tr-lg"
+                                    : "rounded-e-lg rounded-tl-lg"
+                                    } `}
                                 />
                               </div>
                             ) : (
                               <div
-                                className={`rounded-lg p-4 max-w-sm ${
-                                  message.sender === userId
-                                    ? "bg-[#CCF7FF]"
-                                    : "bg-[#F1F1F1]"
-                                }`}
+                                className={`rounded-lg p-4 max-w-sm ${message.sender === userId
+                                  ? "bg-[#CCF7FF]"
+                                  : "bg-[#F1F1F1]"
+                                  }`}
                                 style={{
                                   maxWidth: "500px",
                                   wordWrap: "break-word",
@@ -923,70 +944,71 @@ const Chat2 = () => {
                               </div>
                             )
                           ) : (
-                            <div
-                              className={`py-2 px-4 ${
-                                message.sender === userId
-                                  ? `bg-[#CCF7FF]  ${showTime ? "rounded-lg" : "rounded-s-lg"}`
-                                  : `bg-[#F1F1F1] rounded-lg `
-                              }`}
-                              onContextMenu={(e) =>
-                                handleContextMenu(e, message)
-                              }
-                            >
-                              <p>{message.content?.content}</p>
+                            <div className="flex gap-1">
+                              <div
+                                className={`py-2 px-4 ${message.sender === userId
+                                  ? `bg-[#CCF7FF]  ${showTime ? "rounded-s-lg rounded-tr-lg " : "rounded-s-lg"}`
+                                  : `bg-[#F1F1F1] ${showTime ? "rounded-e-lg rounded-tl-lg " : "rounded-e-lg"} `
+                                  }`}
+                                onContextMenu={(e) =>
+                                  handleContextMenu(e, message)
+                                }
+                              >
+                                <p>{message.content?.content}</p>
+                              </div>
+
+                              {message.sender === userId && (
+                                <div
+                                  className={`flex items-center mt-1  ${showTime ? "bottom-3" : "-bottom-2"}  right-0`}
+                                >
+                                  {message.status === "sent" && (
+                                    <IoCheckmarkCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
+                                  )}
+                                  {message.status === "delivered" && (
+                                    <>
+                                      <IoCheckmarkDoneCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
+                                    </>
+                                  )}
+                                  {message.status === "read" && (
+                                    <>
+                                      <IoCheckmarkDoneCircle className="text-xl mr-1 text-blue-500 font-bold" />
+                                    </>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
-                          {message.sender === userId && (
-                            <div
-                              className={`flex items-center mt-1 absolute ${showTime ? "bottom-3" : "-bottom-2"}  right-0`}
-                            >
-                              {message.status === "sent" && (
-                                <IoCheckmarkSharp className="text-base mr-1 text-gray-600 font-bold" />
-                              )}
-                              {message.status === "delivered" && (
-                                <>
-                                  <IoCheckmarkDoneSharp className="text-base mr-1 text-gray-600 font-bold" />
-                                </>
-                              )}
-                              {message.status === "read" && (
-                                <>
-                                  <IoCheckmarkDoneSharp className="text-base mr-1 text-green-500 font-bold" />
-                                </>
-                              )}
-                            </div>
-                          )}
-                          
                         </div>
                       );
                     })}
                   </div>
                 ))
-              ) : (
-                <div className="h-full flex items-center justify-center text-gray-500">
-                  No messages yet
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-500">
+                No messages yet
+              </div>
+            )}
+            {selectedChat && typingUsers[selectedChat._id] && (
+              <div className="flex items-center space-x-2 text-gray-500 text-sm ml-4 mb-2">
+                <div className="flex space-x-1">
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "0ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "150ms" }}
+                  ></div>
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: "300ms" }}
+                  ></div>
                 </div>
-              )}
-              {selectedChat && typingUsers[selectedChat._id] && (
-                <div className="flex items-center space-x-2 text-gray-500 text-sm ml-4 mb-2">
-                  <div className="flex space-x-1">
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "0ms" }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "150ms" }}
-                    ></div>
-                    <div
-                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                      style={{ animationDelay: "300ms" }}
-                    ></div>
-                  </div>
-                  <span>{selectedChat.userName} is typing...</span>
-                </div>
-              )}
-            </div>
-        
+                <span>{selectedChat.userName} is typing...</span>
+              </div>
+            )}
+          </div>
+
         ) : (
           <Front />
         )}
@@ -1008,19 +1030,19 @@ const Chat2 = () => {
               } else if (
                 file.type === "application/vnd.ms-excel" ||
                 file.type ===
-                  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               ) {
                 fileIcon = <FaFileExcel className="w-20 h-20 text-gray-500" />; // Excel file icon
               } else if (
                 file.type === "application/msword" ||
                 file.type ===
-                  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               ) {
                 fileIcon = <FaFileWord className="w-20 h-20 text-gray-500" />; // Word file icon
               } else if (
                 file.type === "application/vnd.ms-powerpoint" ||
                 file.type ===
-                  "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation"
               ) {
                 fileIcon = (
                   <FaFilePowerpoint className="w-20 h-20 text-gray-500" />
@@ -1102,56 +1124,54 @@ const Chat2 = () => {
           <div className="flex gap-2 mb-4">
             <button
               onClick={toggleCamera}
-              className={`px-4 py-2 rounded ${
-                isCameraOn ? "bg-green-500" : "bg-red-500"
-              } text-white`}
+              className={`px-4 py-2 rounded ${isCameraOn ? "bg-green-500" : "bg-red-500"
+                } text-white`}
             >
               {isCameraOn ? "Turn Camera Off" : "Turn Camera On"}
             </button>
             <button
               onClick={toggleMicrophone}
-              className={`px-4 py-2 rounded ${
-                isMicrophoneOn ? "bg-green-500" : "bg-red-500"
-              } text-white`}
+              className={`px-4 py-2 rounded ${isMicrophoneOn ? "bg-green-500" : "bg-red-500"
+                } text-white`}
             >
               {isMicrophoneOn ? "Turn Microphone Off" : "Turn Microphone On"}
             </button>
           </div>
         )}
         {(isSharing || isReceiving || isVideoCalling) && (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium">
-              {isVideoCalling ? "Your Camera" : "Your Screen"}
-              {isSharing && "(Sharing)"}
-              {isVideoCalling && !isCameraOn && (
-                <div className="text-center">{selectedChat._id}</div>
-              )}
-            </h4>
-            <video
-              ref={localVideoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full bg-gray-100 rounded"
-              style={{ maxHeight: "40vh" }}
-            />
-          </div>
-          <div className="space-y-2">
-            <h4 className="font-medium">
-              {isVideoCalling ? "Remote Camera" : "Remote Screen"}
-              {isReceiving && "(Receiving)"}
-            </h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <h4 className="font-medium">
+                {isVideoCalling ? "Your Camera" : "Your Screen"}
+                {isSharing && "(Sharing)"}
+                {isVideoCalling && !isCameraOn && (
+                  <div className="text-center">{selectedChat._id}</div>
+                )}
+              </h4>
+              <video
+                ref={localVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full bg-gray-100 rounded"
+                style={{ maxHeight: "40vh" }}
+              />
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium">
+                {isVideoCalling ? "Remote Camera" : "Remote Screen"}
+                {isReceiving && "(Receiving)"}
+              </h4>
 
-            <video
-              ref={remoteVideoRef}
-              autoPlay
-              playsInline
-              className="w-full bg-gray-100 rounded"
-              style={{ maxHeight: "40vh" }}
-            />
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="w-full bg-gray-100 rounded"
+                style={{ maxHeight: "40vh" }}
+              />
+            </div>
           </div>
-        </div>
         )}
 
         {/*========== Message Input ==========*/}
