@@ -11,7 +11,7 @@ const {
 } = require("../controller/messageController");
 const upload = require("../helper/upload");
 const uploadController = require("../controller/uploadController");
-const { createGroup, updateGroup, deleteGroup, getAllGroups, getGroupById } = require("../controller/groupController");
+const { createGroup, updateGroup, deleteGroup, getAllGroups, getGroupById, leaveGroup } = require("../controller/groupController");
 
 const indexRoutes = express.Router();
 
@@ -33,8 +33,9 @@ indexRoutes.get("/allMessageUsers", auth, getAllMessageUsers);
 indexRoutes.post("/createGroup", auth, createGroup);
 indexRoutes.put("/updateGroup/:groupId", auth, updateGroup);
 indexRoutes.delete("/deleteGroup/:groupId", auth, deleteGroup);
-indexRoutes.get("/allGroups", auth, getAllGroups);
+indexRoutes.get("/allGroups",  getAllGroups);
 indexRoutes.get("/getGroupById/:groupId", auth, getGroupById);
+indexRoutes.post("/leaveGroup", auth, leaveGroup);
 
 // Message Routes
 indexRoutes.get("/messages/:userId", auth, getMessageHistory);

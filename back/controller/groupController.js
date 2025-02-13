@@ -2,8 +2,8 @@ const Group = require("../models/groupModel"); // Assuming you have a Group mode
 
 async function createGroup(req, res) {
   try {
-    const { userName, members } = req.body; // Assuming you're using body-parser middleware
-    const group = new Group({ userName, members });
+    const { userName, members, createdBy } = req.body; // Assuming you're using body-parser middleware
+    const group = new Group({ userName, members, createdBy });
     await group.save();
     return res.status(200).json({ groupId: group._id });
   } catch (error) {
@@ -78,6 +78,26 @@ async function getAllGroups(req, res) {
   }
 }
 
+  async function leaveGroup(req, res) {
+    try {
+      const { userId, groupId } = req.body;
+      const group = await Group.findByIdAndUpdate(
+        groupId,
+        { $pull: { members: userId } }, // Remove the user from the group's members
+        { new: true, runValidators: true } // Return the updated group and run validators
+      );
+      if (!group) {
+        return res.status(404).json({ error: "Group not found", code: 404 });
+      }
+      return res.status(200).json({ message: "User left the group successfully", group });
+    } catch (error) {
+      console.error("Error leaving group:", error);
+      return res
+        .status(500)
+        .json({ error: "Error leaving group", code: error.code || 500 });
+    }
+  }
+
 module.exports = {
   createGroup,
   updateGroup,
@@ -85,4 +105,5 @@ module.exports = {
   getGroupById,
   getAllGroups,
   findGroupById,
+  leaveGroup,
 };

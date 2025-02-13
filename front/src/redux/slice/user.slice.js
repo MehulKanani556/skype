@@ -324,6 +324,23 @@ export const updateMessage = createAsyncThunk(
     }
   );
 
+  export const leaveGroup = createAsyncThunk(
+    'user/leaveGroup',
+    async ({groupId, userId}, { rejectWithValue }) => {
+        const token = await sessionStorage.getItem("token");
+        try {
+            const response = await axios.post(`${BASE_URL}/leaveGroup`, { groupId, userId }, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }); 
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+  );
+
 
 const authSlice = createSlice({
     name: 'auth',
@@ -541,6 +558,26 @@ const authSlice = createSlice({
                 state.loading = false;
                 state.error = action.payload;
                 state.message = action.payload?.message || "Failed to retrieve groups";
+            })
+            .addCase(updateGroup.fulfilled, (state, action) => {
+                state.loading = false;
+                state.error = null;
+                state.message = "Group updated successfully";
+            })
+            .addCase(updateGroup.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+                state.message = action.payload?.message || "Failed to update group";
+            })
+            .addCase(leaveGroup.fulfilled, (state, action) => {
+                state.loading = false;
+                state.error = null;
+                state.message = "Group left successfully";
+            })
+            .addCase(leaveGroup.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+                state.message = action.payload?.message || "Failed to leave group";
             })
 
 
