@@ -57,6 +57,7 @@ import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
 import { RxCross2 } from "react-icons/rx";
 import { IoCheckmarkCircleOutline, IoCheckmarkDoneCircle, IoCheckmarkDoneCircleOutline, IoCheckmarkDoneCircleSharp, IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
+import { PiDotsThreeBold } from "react-icons/pi";
 import Front from '../component/Front';
 
 const Chat2 = () => {
@@ -96,16 +97,17 @@ const Chat2 = () => {
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const dropdownRef = useRef(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedUserName, setEditedUserName] = useState('');
   const [editedGroupName, setEditedGroupName] = useState('');
-
-
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [activeMessageId, setActiveMessageId] = useState(null);
   const dispatch = useDispatch();
+  const dropdownRef = useRef(null);
 
   const { onlineUser, isLoading, allUsers, messages, allMessageUsers, groups } =
     useSelector((state) => state.user);
@@ -621,14 +623,24 @@ const Chat2 = () => {
     return groups;
   };
 
-  const toggleDropdown = (messageId) => {
-    setActiveDropdown((prev) => (prev === messageId ? null : messageId));
+
+  const profileDropdown = () => {
+
+    setIsDropdownOpen((prev) => !prev);
+  };
+
+  useEffect(() => {
+    console.log("Dropdown state:", isDropdownOpen);
+  }, [isDropdownOpen]);
+
+  const handleDropdownToggle = (messageId) => {
+    setActiveMessageId((prev) => (prev === messageId ? null : messageId));
   };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setActiveDropdown(null);
+        setActiveMessageId(null);
       }
     };
 
@@ -653,12 +665,16 @@ const Chat2 = () => {
             className="flex items-center p-4 border-b cursor-pointer hover:bg-gray-100"
             onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
           >
-            <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden"></div>
+            {/* <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden"> */}
+            <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden mt-4">
+              <img src={require('../img/profile.jpg')} alt="Profile" className="" />
+            </div>
+            {/* </div> */}
             <div className="ml-3 flex-1">
-              <div className="flex items-center">
+              <div className="flex items-center justify-between">
                 <span className="font-medium">archit bhuva</span>
+                <PiDotsThreeBold />
               </div>
-              <div className="text-sm text-green-500">Set a status</div>
             </div>
           </div>
 
@@ -674,7 +690,7 @@ const Chat2 = () => {
                 </div>
               </div>
 
-              <div className="p-3 hover:bg-gray-100 border-t">
+              <div className="p-3 hover:bg-gray-100 border-t" onClick={() => setIsLogoutModalOpen(true)}>
                 <div className="flex items-center space-x-2 text-gray-600 cursor-pointer">
                   <RiShutDownLine className="w-5 h-5" />
                   <span>Logout</span>
@@ -735,7 +751,7 @@ const Chat2 = () => {
           <button
             className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
               }`}
-            onClick={() => setSelectedTab("Unreacd")}
+            onClick={() => setSelectedTab("Unread")}
           >
             Unread
           </button>
@@ -763,7 +779,6 @@ const Chat2 = () => {
                 [...item.messages] // Create a shallow copy of the array
                   .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
                 : null;
-              console.log(item, lastMessage)
               return (
                 <div
                   key={item._id}
@@ -1565,31 +1580,73 @@ const Chat2 = () => {
               </button>
             </div>
             <div className="flex flex-col items-center" >
-              <div className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4">
+              <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4 group">
                 <img src={require('../img/profile.jpg')} alt="Profile" className="" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <MdOutlineModeEdit
+                    className="text-white text-3xl cursor-pointer"
+                    onClick={profileDropdown} // Ensure this function toggles isDropdownOpen
+                  />
+                </div>
+                {isDropdownOpen && ( // This should be true when the icon is clicked
+                  <div className="absolute top-full mt-2 bg-white border rounded shadow-lg z-50">
+                    <ul>
+                      <li className="p-2 hover:bg-gray-100 cursor-pointer">Edit Profile</li>
+                      <li className="p-2 hover:bg-gray-100 cursor-pointer">Change Picture</li>
+                      <li className="p-2 hover:bg-gray-100 cursor-pointer">Settings</li>
+                    </ul>
+                  </div>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <h3 className="mt-2 text-xl font-semibold">archit bhuva</h3><MdOutlineModeEdit className="cursor-pointer" />
               </div>
-              <div className="text-green-500">Online</div>
+
             </div>
             <div className="mt-4 p-4">
-              <div className="flex items-center justify-between p-2 border-b">
+              <div className="flex items-center justify-between p-2 border-b mb-2">
                 <span className="text-gray-600 font-bold">Skype Name</span>
                 <span className="text-gray-800 ">archit bhuva</span>
               </div>
-              <div className="flex items-center justify-between p-2 border-b">
+              <div className="flex items-center justify-between p-2 border-b mb-2">
                 <span className="text-gray-600 font-bold">Birthday</span>
                 <span className="text-gray-800 ">Add birthday</span>
               </div>
-              <div className="flex items-center justify-between p-2 border-b">
+              <div className="flex items-center justify-between p-2 mb-2">
                 <span className="text-gray-600 font-bold">Phone Number</span>
                 <span className="text-gray-800">+91 9664985679</span>
               </div>
-              <div className="flex items-center justify-between p-2">
+              {/* <div className="flex items-center justify-between p-2">
                 <span className="text-gray-600 font-bold">Other ways people can find you</span>
                 <span className="text-gray-800">Details</span>
-              </div>
+              </div> */}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Logout Modal */}
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-4">Are you sure you want to logout?</h3>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setIsLogoutModalOpen(false)}
+                className="px-4 py-2 bg-gray-500 text-white rounded"
+                style={{ backgroundColor: "#3B82F6" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  // Add your logout logic here
+                  setIsLogoutModalOpen(false);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </div>
@@ -1720,6 +1777,8 @@ const Chat2 = () => {
             Delete Message
           </button>
         </div>
+
+
       )}
     </div>
   );
