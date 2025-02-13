@@ -265,7 +265,7 @@ const Login = () => {
 
               onSubmit={(values) => {
                 dispatch(register(values)).then((response) => {
-                  if (response.payload) navigate('/');
+                  if (response.payload) navigate('/chat');
                 });
               }}
             >

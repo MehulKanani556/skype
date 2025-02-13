@@ -540,7 +540,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
       if (peerRef.current) {
         peerRef.current.signal(signal);
         setIsVideoCalling(true);
-      }
+      } 
     });
 
     // Handle incoming video signals
