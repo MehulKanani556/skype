@@ -23,6 +23,7 @@ import {
   FaFileWord,
   FaFilePowerpoint,
   FaFileArchive,
+  FaArrowDown,
 } from "react-icons/fa";
 import { LuScreenShare } from "react-icons/lu";
 import { IoMdSearch } from "react-icons/io";
@@ -81,6 +82,7 @@ const Chat2 = () => {
   const messagesContainerRef = useRef(null);
   const [searchInput, setSearchInput] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -493,8 +495,31 @@ const Chat2 = () => {
     if (messagesContainerRef.current) {
       const element = messagesContainerRef.current;
       element.scrollTop = element.scrollHeight;
+      setShowScrollToBottom(false);
     }
   };
+
+  // Scroll event listener to show/hide the button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (messagesContainerRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = messagesContainerRef.current;
+        // Show button if user is not at the bottom
+        setShowScrollToBottom(scrollTop + clientHeight < scrollHeight);
+      }
+    };
+
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.addEventListener("scroll", handleScroll);
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, [messages]);
 
   // Scroll when messages change
   useEffect(() => {
@@ -801,7 +826,7 @@ const Chat2 = () => {
         </div>
         {/*========== Messages ==========*/}
         {selectedChat ? (
-          <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef}  style={{ height: 'calc(100vh - 280px)' }}>
+          <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef} style={{ height: 'calc(100vh - 280px)' }}>
             {messages && messages.length > 0 ? (
               Object.entries(groupMessagesByDate(messages)).map(
                 ([date, dateMessages]) => (
@@ -1122,7 +1147,7 @@ const Chat2 = () => {
           </div>
         )}
 
-        {/* <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <h4 className="font-medium">
               {isVideoCalling ? "Your Camera" : "Your Screen"}
@@ -1154,7 +1179,7 @@ const Chat2 = () => {
               style={{ maxHeight: "40vh" }}
             />
           </div>
-        </div> */}
+        </div>
 
         {/*========== Message Input ==========*/}
         {selectedChat && (
@@ -1270,6 +1295,18 @@ const Chat2 = () => {
               </div>
             </form>
           </div>
+        )}
+
+        {/* Show Send to Bottom button only if user has scrolled up */}
+        {showScrollToBottom && (
+          <button
+            type="button"
+            className="fixed bottom-4 right-4 p-2 bg-blue-500/50 text-white rounded-full shadow-lg"
+            onClick={scrollToBottom}
+            aria-label="Send to Bottom"
+          >
+            <FaArrowDown className="w-5 h-5" />
+          </button>
         )}
       </div>
 
