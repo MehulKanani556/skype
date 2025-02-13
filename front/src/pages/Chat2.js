@@ -812,7 +812,7 @@ const Chat2 = () => {
                   <div key={date} className="flex flex-col">
                     <div className="flex justify-center my-4 text-gray-500">
                       ------------------------------
-                      <span className="bg-gray-200 text-gray-600 text-xs px-7 py-1 rounded-full">
+                      <span className=" text-gray-600 text-sm px-5 py-1 rounded-full">
                         {date === new Date().toLocaleDateString("en-GB")
                           ? "Today"
                           : date}
@@ -821,31 +821,25 @@ const Chat2 = () => {
                     </div>
 
                     {dateMessages.map((message, index) => {
-                      const currentTime = new Date(
-                        message.createdAt
-                      ).toLocaleTimeString([], {
+                      const currentTime = new Date(message.createdAt).toLocaleTimeString([], {
                         hour: "numeric",
                         minute: "2-digit",
                         hour12: true,
                       });
 
+                      
+
                       // Check if previous message exists and was sent within same minute
-                      const prevMessage =
-                        index > 0 ? dateMessages[index - 1] : null;
-                      const showTime =
-                        !prevMessage ||
-                        new Date(message.createdAt).getTime() -
-                          new Date(prevMessage.createdAt).getTime() >
-                          60000;
+                      const prevMessage = index > 0 ? dateMessages[index - 1] : null;
+                      const showTime = !prevMessage || new Date(message?.createdAt).getMinutes() - new Date(prevMessage?.createdAt).getMinutes() > 0;
+
+                      console.log(new Date(message?.createdAt).getMinutes() - new Date(prevMessage?.createdAt).getMinutes());
+                      
 
                       // Check if next message is from same sender to adjust spacing
-                      const nextMessage =
-                        index < dateMessages.length - 1
-                          ? dateMessages[index + 1]
-                          : null;
-                      const isConsecutive =
-                        nextMessage && nextMessage.sender === message.sender;
-
+                      const nextMessage =  index < dateMessages.length - 1  ? dateMessages[index + 1] : null;
+                      const isConsecutive = nextMessage && nextMessage.sender === message.sender;
+                      console.log("fghfgh",currentTime, prevMessage , nextMessage, showTime,);
                       return (
                         <div
                           key={message._id}
@@ -853,12 +847,17 @@ const Chat2 = () => {
                             message.sender === userId
                               ? "justify-end items-end"
                               : "justify-start items-start"
-                          } ${isConsecutive ? "mb-2" : "mb-4"}`}
+                          } ${isConsecutive ? "mb-1" : "mb-4"}`}
                         >
+                          {showTime && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              {currentTime}
+                            </div>
+                          )}
                           {message.content?.type === "file" ? (
                             message.content?.fileType.includes("image/") ? (
                               <div
-                                className={`rounded-lg p-2 max-w-sm max-h-[500px]  overflow-hidden${
+                                className={`rounded-lg p-2 max-w-sm max-h-[500px]  overflow-hidden ${
                                   message.sender === userId ? "" : ""
                                 }`}
                                 style={{
@@ -925,10 +924,10 @@ const Chat2 = () => {
                             )
                           ) : (
                             <div
-                              className={`rounded-lg py-2 px-4 ${
+                              className={`py-2 px-4 ${
                                 message.sender === userId
-                                  ? "bg-[#CCF7FF]"
-                                  : "bg-[#F1F1F1]"
+                                  ? `bg-[#CCF7FF]  ${showTime ? "rounded-lg" : "rounded-s-lg"}`
+                                  : `bg-[#F1F1F1] rounded-lg `
                               }`}
                               onContextMenu={(e) =>
                                 handleContextMenu(e, message)
@@ -956,11 +955,7 @@ const Chat2 = () => {
                               )}
                             </div>
                           )}
-                          {showTime && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {currentTime}
-                            </div>
-                          )}
+                          
                         </div>
                       );
                     })}
@@ -1123,7 +1118,7 @@ const Chat2 = () => {
             </button>
           </div>
         )}
-
+        {(isSharing || isReceiving || isVideoCalling) && (
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <h4 className="font-medium">
@@ -1157,6 +1152,7 @@ const Chat2 = () => {
             />
           </div>
         </div>
+        )}
 
         {/*========== Message Input ==========*/}
         {selectedChat && (
