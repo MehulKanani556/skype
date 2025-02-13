@@ -25,6 +25,14 @@ import {
   FaFileArchive,
   FaArrowDown,
 } from "react-icons/fa";
+import { HiOutlineReply } from "react-icons/hi";
+import { PiDotsThreeVerticalBold } from "react-icons/pi";
+import { VscCopy } from "react-icons/vsc";
+import { MdOutlineModeEdit } from "react-icons/md";
+import { CgMailForward } from "react-icons/cg";
+import { CiSquareRemove } from "react-icons/ci";
+import { FaRegUser } from "react-icons/fa";
+import { RiShutDownLine } from "react-icons/ri";
 import { LuScreenShare } from "react-icons/lu";
 import { IoMdSearch } from "react-icons/io";
 import { MdPhoneEnabled, MdGroupAdd } from "react-icons/md";
@@ -47,9 +55,10 @@ import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
 import { RxCross2 } from "react-icons/rx";
 import { IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
+import Front from '../component/Front';
 
 const Chat2 = () => {
-  const [selectedTab, setSelectedTab] = useState("Chats");
+  const [selectedTab, setSelectedTab] = useState("All");
   const [recentChats, setRecentChats] = useState([]);
   const [messagesA, setMessages] = useState([]);
   const [showDialpad, setShowDialpad] = useState(false);
@@ -83,6 +92,11 @@ const Chat2 = () => {
   const [searchInput, setSearchInput] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const dropdownRef = useRef(null);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [hoveredMessageId, setHoveredMessageId] = useState(null);
 
   const dispatch = useDispatch();
 
@@ -574,6 +588,23 @@ const Chat2 = () => {
     return groups;
   };
 
+  const toggleDropdown = (messageId) => {
+    setActiveDropdown((prev) => (prev === messageId ? null : messageId));
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setActiveDropdown(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
   return (
     <div className="flex h-screen bg-white">
       <div className="w-80 border-r flex flex-col">
@@ -592,71 +623,22 @@ const Chat2 = () => {
           </div>
 
           {isProfileDropdownOpen && (
-            <div className="absolute top-full left-0 w-full bg-white border shadow-lg z-50 ml-5 rounded-[10px]">
+            <div className="absolute top-full left-0 w-[85%] bg-white border shadow-lg z-50 ml-5 rounded-[10px]">
+              <div
+                className="p-3 hover:bg-gray-100 border-t"
+                onClick={() => setIsProfileModalOpen(true)}
+              >
+                <div className="flex items-center space-x-2 text-gray-600 cursor-pointer">
+                  <FaRegUser className="w-5 h-5" />
+                  <span>Profile</span>
+                </div>
+              </div>
+
               <div className="p-3 hover:bg-gray-100 border-t">
                 <div className="flex items-center space-x-2 text-gray-600 cursor-pointer">
-                  <FaShareAlt className="w-5 h-5" />
-                  <span>Share what you're up to</span>
+                  <RiShutDownLine className="w-5 h-5" />
+                  <span>Logout</span>
                 </div>
-              </div>
-
-              <div className="p-3 hover:bg-gray-100 border-t">
-                <div className="flex items-center space-x-2 text-gray-600 cursor-pointer">
-                  <FaUserPlus className="w-5 h-5" />
-                  <span>Invite Friends</span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t">
-                <div className="px-3 py-2 text-xs text-gray-500 font-semibold">
-                  SKYPE PHONE
-                </div>
-                <div className="px-3 py-2 hover:bg-gray-100 cursor-pointer">
-                  <div className="flex items-center">
-                    <FaPhone className="w-5 h-5 text-gray-600" />
-                    <div className="ml-3">
-                      <div className="text-gray-700">Skype to Phone</div>
-                      <div className="text-xs text-gray-500">
-                        Reach people anywhere at low rates
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="px-3 py-2 hover:bg-gray-100 cursor-pointer">
-                  <div className="flex items-center">
-                    <FaPhone className="w-5 h-5 text-gray-600" />
-                    <div className="ml-3">
-                      <div className="text-gray-700">Skype Number</div>
-                      <div className="text-xs text-gray-500">
-                        Keep your personal number private
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t">
-                <div className="px-3 py-2 text-xs text-gray-500 font-semibold">
-                  MANAGE
-                </div>
-                {[
-                  { icon: FaUsers, text: "Skype profile" },
-                  { icon: FaBookmark, text: "Bookmarks" },
-                  { icon: FaCog, text: "Settings" },
-                  { icon: FaQrcode, text: "Sign in with QR code" },
-                  { icon: FaStar, text: "Skype Insider programme" },
-                  { icon: FaBell, text: "What's new" },
-                ].map((item, index) => (
-                  <div
-                    key={index}
-                    className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
-                  >
-                    <div className="flex items-center">
-                      <item.icon className="w-5 h-5 text-gray-600" />
-                      <span className="ml-3 text-gray-700">{item.text}</span>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -697,28 +679,25 @@ const Chat2 = () => {
 
         <div className="flex px-4 space-x-4 border-b">
           <button
-            className={`py-2 ${
-              selectedTab === "All" ? "border-b-2 border-blue-500" : ""
-            }`}
+            className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
+              }`}
             onClick={() => setSelectedTab("All")}
           >
             All
           </button>
           <button
-            className={`py-2 ${
-              selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
-            }`}
+            className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
+              }`}
             onClick={() => setSelectedTab("Chats")}
           >
             Chats
           </button>
           <button
-            className={`py-2 ${
-              selectedTab === "Channels" ? "border-b-2 border-blue-500" : ""
-            }`}
-            onClick={() => setSelectedTab("Channels")}
+            className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
+              }`}
+            onClick={() => setSelectedTab("Unreacd")}
           >
-            Channels
+            Unread
           </button>
         </div>
 
@@ -791,11 +770,10 @@ const Chat2 = () => {
                 {selectedChat?.userName || "Select a chat"}
               </div>
               <div
-                className={`text-sm ${
-                  onlineUsers.includes(selectedChat?._id)
-                    ? "text-green-500"
-                    : "text-gray-500"
-                }`}
+                className={`text-sm ${onlineUsers.includes(selectedChat?._id)
+                  ? "text-green-500"
+                  : "text-gray-500"
+                  }`}
               >
                 {onlineUsers.includes(selectedChat?._id)
                   ? "Active now"
@@ -824,6 +802,7 @@ const Chat2 = () => {
             {/* <FaEllipsisH className="" /> */}
           </div>
         </div>
+
         {/*========== Messages ==========*/}
         {selectedChat ? (
           <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef} style={{ height: 'calc(100vh - 280px)' }}>
@@ -1014,9 +993,7 @@ const Chat2 = () => {
             </div>
         
         ) : (
-          <div className="flex-1 flex items-center justify-center text-gray-500">
-            Select a chat to start messaging
-          </div>
+          <Front />
         )}
         {selectedFiles && selectedFiles.length > 0 && (
           <div className="flex w-full max-w-4xl mx-auto p-4 rounded-lg bg-[#e5e7eb]">
@@ -1237,14 +1214,14 @@ const Chat2 = () => {
                   accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
                   className="hidden"
                   onChange={handleInputChange}
-                  // onChange={(e) => {
-                  // e.preventDefault();
-                  // const files = e.target.files;
-                  // console.log(files);
-                  // if (files) {
-                  //     handleSubmit(e,files);
-                  // }
-                  // }}
+                // onChange={(e) => {
+                // e.preventDefault();
+                // const files = e.target.files;
+                // console.log(files);
+                // if (files) {
+                //     handleSubmit(e,files);
+                // }
+                // }}
                 />
                 <button
                   type="button"
@@ -1384,6 +1361,130 @@ const Chat2 = () => {
               >
                 Done
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Call Modal */}
+      {/* Call Modal */}
+      {showCallModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 max-w-2xl w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">
+                {currentCall?.status === "calling" ? "Calling..." : "In Call"}
+              </h3>
+              <button
+                onClick={() => {
+                  endCall();
+                  setShowCallModal(false);
+                }}
+                className="text-red-500"
+              >
+                End Call
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="relative">
+                <video
+                  ref={localVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full rounded-lg"
+                />
+                <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+                  You
+                </span>
+              </div>
+              <div className="relative">
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full rounded-lg"
+                />
+                <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
+                  {selectedChat?.userName}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Incoming Call Modal */}
+      {currentCall?.status === "incoming" && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4">
+            <h3 className="text-lg font-semibold mb-4">
+              Incoming {currentCall.type} call from{" "}
+              {allUsers.find((u) => u._id === currentCall.from)?.userName}
+            </h3>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  endCall();
+                  setShowCallModal(false);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded"
+              >
+                Decline
+              </button>
+              <button
+                onClick={() => {
+                  handleAnswerCall();
+                  setShowCallModal(true);
+                }}
+                className="px-4 py-2 bg-green-500 text-white rounded"
+              >
+                Answer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Modal */}
+      {isProfileModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-96 " style={{ background: "#CCF7FF", background: "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)" }}>
+            <div className="flex justify-between items-center pb-2 p-4">
+              <h2 className="text-lg font-bold">Profile</h2>
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <ImCross />
+              </button>
+            </div>
+            <div className="flex flex-col items-center" >
+              <div className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4">
+                <img src={require('../img/profile.jpg')} alt="Profile" className="" />
+              </div>
+              <div className="flex items-center justify-between">
+                <h3 className="mt-2 text-xl font-semibold">archit bhuva</h3><MdOutlineModeEdit className="cursor-pointer" />
+              </div>
+              <div className="text-green-500">Online</div>
+            </div>
+            <div className="mt-4 p-4">
+              <div className="flex items-center justify-between p-2 border-b">
+                <span className="text-gray-600 font-bold">Skype Name</span>
+                <span className="text-gray-800 ">archit bhuva</span>
+              </div>
+              <div className="flex items-center justify-between p-2 border-b">
+                <span className="text-gray-600 font-bold">Birthday</span>
+                <span className="text-gray-800 ">Add birthday</span>
+              </div>
+              <div className="flex items-center justify-between p-2 border-b">
+                <span className="text-gray-600 font-bold">Phone Number</span>
+                <span className="text-gray-800">+91 9664985679</span>
+              </div>
+              <div className="flex items-center justify-between p-2">
+                <span className="text-gray-600 font-bold">Other ways people can find you</span>
+                <span className="text-gray-800">Details</span>
+              </div>
             </div>
           </div>
         </div>
