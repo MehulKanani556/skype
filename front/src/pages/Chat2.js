@@ -1367,8 +1367,7 @@ const Chat2 = () => {
       )}
 
       {/* Call Modal */}
-      {/* Call Modal */}
-      {showCallModal && (
+      {/* {showCallModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-4 max-w-2xl w-full">
             <div className="flex justify-between items-center mb-4">
@@ -1412,10 +1411,10 @@ const Chat2 = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Incoming Call Modal */}
-      {currentCall?.status === "incoming" && (
+      {/* {currentCall?.status === "incoming" && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-4">
             <h3 className="text-lg font-semibold mb-4">
@@ -1444,7 +1443,7 @@ const Chat2 = () => {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Profile Modal */}
       {isProfileModalOpen && (
