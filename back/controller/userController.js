@@ -86,11 +86,8 @@ exports.getAllMessageUsers = async (req, res) => {
       // Match messages where user is either sender or receiver
       {
         $match: {
-          $or: [
-            { sender: req.user._id },
-            { receiver: req.user._id }
-          ]
-        }
+          $or: [{ sender: req.user._id }, { receiver: req.user._id }],
+        },
       },
 
       // Project to get the other user in the conversation
@@ -100,17 +97,17 @@ exports.getAllMessageUsers = async (req, res) => {
             $cond: {
               if: { $eq: ["$sender", req.user._id] },
               then: "$receiver",
-              else: "$sender"
-            }
-          }
-        }
+              else: "$sender",
+            },
+          },
+        },
       },
 
       // Group by user to remove duplicates
       {
         $group: {
-          _id: "$user"
-        }
+          _id: "$user",
+        },
       },
 
       // Lookup user details
@@ -119,13 +116,13 @@ exports.getAllMessageUsers = async (req, res) => {
           from: "users",
           localField: "_id",
           foreignField: "_id",
-          as: "userData"
-        }
+          as: "userData",
+        },
       },
 
       // Unwind user data
       {
-        $unwind: "$userData"
+        $unwind: "$userData",
       },
 
       // Project required user fields
@@ -134,8 +131,8 @@ exports.getAllMessageUsers = async (req, res) => {
           _id: 1,
           userName: "$userData.userName",
           email: "$userData.email",
-          createdAt: "$userData.createdAt"
-        }
+          createdAt: "$userData.createdAt",
+        },
       },
 
       // Union with current user's data
@@ -145,19 +142,19 @@ exports.getAllMessageUsers = async (req, res) => {
           pipeline: [
             {
               $match: {
-                _id: req.user._id
-              }
+                _id: req.user._id,
+              },
             },
             {
               $project: {
                 _id: 1,
                 userName: 1,
                 email: 1,
-                createdAt: 1
-              }
-            }
-          ]
-        }
+                createdAt: 1,
+              },
+            },
+          ],
+        },
       },
 
       // Group again to remove potential duplicates
@@ -166,8 +163,8 @@ exports.getAllMessageUsers = async (req, res) => {
           _id: "$_id",
           userName: { $first: "$userName" },
           email: { $first: "$email" },
-          createdAt: { $first: "$createdAt" }
-        }
+          createdAt: { $first: "$createdAt" },
+        },
       },
 
       // Lookup group information
@@ -176,16 +173,16 @@ exports.getAllMessageUsers = async (req, res) => {
           from: "groups",
           localField: "_id",
           foreignField: "members",
-          as: "groupData"
-        }
+          as: "groupData",
+        },
       },
 
       // Unwind group data (preserve users without groups)
       {
         $unwind: {
           path: "$groupData",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
 
       // Lookup messages for each user (both sent and received) with specific statuses
@@ -201,22 +198,22 @@ exports.getAllMessageUsers = async (req, res) => {
                     {
                       $or: [
                         { $eq: ["$sender", "$$userId"] },
-                        { $eq: ["$receiver", req.user._id] }
-                      ]
+                        { $eq: ["$receiver", req.user._id] },
+                      ],
                     },
                     {
                       $or: [
                         { $eq: ["$status", "sent"] },
-                        { $eq: ["$status", "delivered"] }
-                      ]
-                    }
-                  ]
-                }
-              }
-            }
+                        { $eq: ["$status", "delivered"] },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
           ],
-          as: "userMessages"
-        }
+          as: "userMessages",
+        },
       },
 
       // Final projection with user messages
@@ -229,46 +226,58 @@ exports.getAllMessageUsers = async (req, res) => {
           group: {
             groupId: { $ifNull: ["$groupData._id", null] },
             groupName: { $ifNull: ["$groupData.userName", null] },
-            groupCreatedAt: { $ifNull: ["$groupData.createdAt", null] }
+            groupCreatedAt: { $ifNull: ["$groupData.createdAt", null] },
+            members: { $ifNull: ["$groupData.members", null] },
+            admin: { $ifNull: ["$groupData.admin", null] },
+            description: { $ifNull: ["$groupData.description", null] },
+            createdBy: { $ifNull: ["$groupData.createdBy", null] },
           },
-          messages: "$userMessages" // Include messages in the response
-        }
-      }
+          messages: "$userMessages",
+        },
+      },
     ];
 
     const results = await message.aggregate(pipeline);
 
     // Format the response
-    const formattedUsers = results.map(user => ({
+    const formattedUsers = results.map((user) => ({
       _id: user._id,
       userName: user.userName,
       email: user.email,
       createdAt: user.createdAt,
       group: user.group.groupId ? user.group : null,
-      messages: user.messages // Include messages in the response
+      messages: user.messages,
     }));
 
-    // Extract unique groups
-    const uniqueGroups = Array.from(new Set(results
-      .filter(user => user.group.groupId)
-      .map(user => JSON.stringify({
-        _id: user.group.groupId,
-        userName: user.group.groupName,
-        createdAt: user.group.groupCreatedAt
-      }))
-    )).map(group => JSON.parse(group));
+    // Extract unique groups with additional details
+    const uniqueGroups = Array.from(
+      new Set(
+        results
+          .filter((user) => user.group.groupId)
+          .map((user) =>
+            JSON.stringify({
+              _id: user.group.groupId,
+              userName: user.group.groupName,
+              createdAt: user.group.groupCreatedAt,
+              members: user.group.members,
+              admin: user.group.admin,
+              description: user.group.description,
+              createdBy: user.group.createdBy,
+            })
+          )
+      )
+    ).map((group) => JSON.parse(group));
 
     return res.status(200).json({
       status: 200,
       message: "All Message Users and Groups Found Successfully...",
-      users: [...formattedUsers, ...uniqueGroups]
+      users: [...formattedUsers, ...uniqueGroups],
     });
-
   } catch (error) {
     console.log(error);
     return res.status(500).json({
       status: 500,
-      message: error.message
+      message: error.message,
     });
   }
 };
