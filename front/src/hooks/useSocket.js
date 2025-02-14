@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Peer from "simple-peer";
+import {
+  getAllMessageUsers,
+  getAllGroups,
+  setOnlineUsers,
+  setOnlineuser,
+} from "../redux/slice/user.slice";
+import { useDispatch } from "react-redux";
 
 const SOCKET_SERVER_URL = "http://localhost:4000"; // Move to environment variable in production
 
@@ -23,6 +30,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicrophoneOn, setIsMicrophoneOn] = useState(false);
   const streamRef = useRef(null);
+
+  const dispatch = useDispatch();
 
   useEffect(() => {
     // Check for available media devices when component mounts
@@ -75,32 +84,63 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
   // ===========================socket connection=============================
 
   useEffect(() => {
-    socketRef.current = io(SOCKET_SERVER_URL);
-
-    // console.log(socketRef.current);
-
-    socketRef.current.on("connect", () => {
-      setIsConnected(true);
-      console.log("Socket connected");
-
-      if (userId) {
-        socketRef.current.emit("user-login", userId);
-      }
-    });
-
-    socketRef.current.on("disconnect", () => {
-      setIsConnected(false);
-      console.log("Socket disconnected");
-    });
-
-    socketRef.current.on("user-status-changed", (onlineUserIds) => {
-      setOnlineUsers(onlineUserIds);
-    });
-
-    return () => {
+    // Clear any existing connection
+    if (socketRef.current) {
       socketRef.current.disconnect();
-    };
-  }, [userId]);
+    }
+
+    // Only create socket connection if we have a userId
+    if (userId) {
+      socketRef.current = io(SOCKET_SERVER_URL);
+
+      socketRef.current.on("connect", () => {
+        setIsConnected(true);
+        console.log("Socket connected with userId:", userId);
+
+        // Emit user-login after connection
+        socketRef.current.emit("user-login", userId);
+      });
+
+      socketRef.current.on("disconnect", () => {
+        setIsConnected(false);
+        setOnlineUsers([]); // Clear online users on disconnect
+        console.log("Socket disconnected");
+      });
+
+      socketRef.current.on("user-status-changed", (onlineUserIds) => {
+        console.log("Online users updated:", onlineUserIds);
+        setOnlineUsers(onlineUserIds);
+        if (onlineUserIds.length > 0) {
+          dispatch(setOnlineuser(onlineUserIds));
+        }
+      });
+
+      // Handle reconnection
+      socketRef.current.on("reconnect", () => {
+        console.log("Socket reconnected, re-emitting user-login");
+        socketRef.current.emit("user-login", userId);
+      });
+
+      socketRef.current.on("connect_error", (error) => {
+        console.error("Socket connection error:", error);
+        setIsConnected(false);
+        setOnlineUsers([]);
+      });
+
+      socketRef.current.on("connect_timeout", () => {
+        console.error("Socket connection timeout");
+        setIsConnected(false);
+        setOnlineUsers([]);
+      });
+
+      return () => {
+        if (socketRef.current) {
+          socketRef.current.disconnect();
+          socketRef.current = null;
+        }
+      };
+    }
+  }, [userId]); // Only depend on userId
 
   // ===========================private message=============================
 
@@ -145,14 +185,15 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
 
   const markMessageAsRead = (messageIds) => {
     if (!socketRef.current?.connected || !messageIds?.length) return;
-  
+
     // Mark each message as read
-    messageIds.forEach(messageId => {
+    messageIds.forEach((messageId) => {
       socketRef.current.emit("message-read", {
         messageId,
-        readerId: userId
+        readerId: userId,
       });
     });
+    dispatch(getAllMessageUsers());
   };
 
   const subscribeToMessages = (callback) => {
@@ -540,7 +581,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
       if (peerRef.current) {
         peerRef.current.signal(signal);
         setIsVideoCalling(true);
-      } 
+      }
     });
 
     // Handle incoming video signals
@@ -1034,6 +1075,38 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     setPeerEmail("");
     setError("");
   };
+
+  useEffect(() => {
+    if (!socketRef.current) return;
+
+    // Handle group updates
+    const handleGroupUpdate = (data) => {
+      console.log("Group update received:", data);
+      // Dispatch action to refresh groups in the Redux store
+      // dispatch(getAllGroups());
+      dispatch(getAllMessageUsers());
+    };
+    socketRef.current.on("group-updated", handleGroupUpdate);
+    return () => {
+      socketRef.current.off("group-updated", handleGroupUpdate);
+    };
+  }, [socketRef.current]);
+
+  // useEffect(() => {
+  //   if (!socketRef.current?.connected) return;
+
+  //   socketRef.current.on("user-status-changed", (onlineUserIds) => {
+  //     console.log("Online users updated:", onlineUserIds);
+  //     setOnlineUsers(onlineUserIds); // Local state update
+  //     if (onlineUserIds.length > 0) {
+  //       dispatch(setOnlineuser(onlineUserIds)); // Redux state update
+  //     }
+  //   });
+
+  //   return () => {
+  //     socketRef.current?.off("user-status-changed");
+  //   };
+  // }, [dispatch]);
 
   return {
     socket: socketRef.current,

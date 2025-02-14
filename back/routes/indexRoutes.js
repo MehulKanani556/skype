@@ -39,7 +39,7 @@ indexRoutes.post("/leaveGroup", auth, leaveGroup);
 
 // Message Routes
 indexRoutes.get("/messages/:userId", auth, getMessageHistory);
-indexRoutes.get("/online-users", auth, getOnlineUsers);
+indexRoutes.get("/online-users", getOnlineUsers);
 indexRoutes.post("/allMessages", auth, getAllMessages);
 indexRoutes.get("/deleteMessage/:messageId", auth, deleteMessage);
 indexRoutes.put("/updateMessage/:messageId", auth, updateMessage);

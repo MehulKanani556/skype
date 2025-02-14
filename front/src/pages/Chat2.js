@@ -106,6 +106,9 @@ const Chat2 = () => {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeMessageId, setActiveMessageId] = useState(null);
+  const [isGroupCreateModalOpen, setIsGroupCreateModalOpen] = useState(false);
+  const [groupName, setGroupName] = useState('');
+  const [groupMembers, setGroupMembers] = useState([]);
   const dispatch = useDispatch();
   const dropdownRef = useRef(null);
 
@@ -144,12 +147,12 @@ const Chat2 = () => {
     markMessageAsRead,
   } = useSocket(currentUser, localVideoRef, remoteVideoRef);
 
-  //   console.log(onlineUsers);
+    console.log(onlineUsers);
 
   //===========get all users===========
   useEffect(() => {
     dispatch(getAllUsers());
-    dispatch(getOnlineUsers());
+    // dispatch(getOnlineUsers());
     dispatch(getAllMessageUsers());
     dispatch(getAllGroups());
   }, [dispatch]);
@@ -189,6 +192,7 @@ const Chat2 = () => {
       // Mark these messages as read
       if (unreadMessages.length > 0) {
         markMessageAsRead(unreadMessages);
+        // dispatch(getAllMessageUsers());
       }
     }
   }, [selectedChat, messages]);
@@ -493,16 +497,18 @@ const Chat2 = () => {
       members: groupUsers,
       createdBy: userId,
     };
-
     // console.log(data);
     dispatch(createGroup(data));
+    socket.emit("create-group", data);
     setGroupUsers([]);
     setIsModalOpen(false);
+    dispatch(getAllMessageUsers())
   };
 
   const handleAddParticipants = () => {
     const data = { groupId: selectedChat._id, members: groupUsers, userName: selectedChat?.userName, createdBy: selectedChat?.createdBy }
     dispatch(updateGroup(data))
+    socket.emit("update-group", data);
     setGroupUsers([]);
     setIsModalOpen(false);
     dispatch(getAllMessageUsers())
@@ -652,11 +658,11 @@ const Chat2 = () => {
 
 
 
-  console.log("isReceiving", isReceiving);
-  console.log("isVideoCalling", isVideoCalling);
-  console.log("incomingCall", incomingCall);
-  console.log("isSharing", isSharing);
-  console.log("isCameraOn", (!isReceiving || !isVideoCalling));
+  // console.log("isReceiving", isReceiving);
+  // console.log("isVideoCalling", isVideoCalling);
+  // console.log("incomingCall", incomingCall);
+  // console.log("isSharing", isSharing);
+  // console.log("isCameraOn", (!isReceiving || !isVideoCalling));
 
 
   return (
@@ -725,9 +731,9 @@ const Chat2 = () => {
             <FaPhone className="w-6 h-6" />
             <span className="text-xs mt-1">Calls</span>
           </div>
-          <div className="flex flex-col items-center text-gray-500">
+          <div className="flex flex-col items-center text-gray-500 cursor-pointer" onClick={() => setIsGroupCreateModalOpen(true)}>
             <FaUsers className="w-6 h-6" />
-            <span className="text-xs mt-1">Contacts</span>
+            <span className="text-xs mt-1">+ Group</span>
           </div>
           <div className="flex flex-col items-center text-gray-500">
             <FaBell className="w-6 h-6" />
@@ -842,7 +848,7 @@ const Chat2 = () => {
             <>
               <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-gray-300"></div>
+                  <div className="w-10 h-10 rounded-full bg-gray-300 text-center flex items-center justify-center font-bold">{selectedChat?.userName?.charAt(0).toUpperCase()}</div>
                   <div className="ml-3 cursor-pointer"
                     onClick={() => {
                       console.log("selectedChat", selectedChat);
@@ -857,6 +863,11 @@ const Chat2 = () => {
                     <div className="font-medium">
                       {selectedChat?.userName || "Select a chat"}
                     </div>
+                    {selectedChat?.members ? (
+                       <div className="text-sm text-gray-500">
+                       {selectedChat?.members?.length} participants
+                     </div>
+                    ) : (
                     <div
                       className={`text-sm ${onlineUsers.includes(selectedChat?._id)
                         ? "text-green-500"
@@ -867,6 +878,7 @@ const Chat2 = () => {
                         ? "Active now"
                         : "Offline"}
                     </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
@@ -924,7 +936,7 @@ const Chat2 = () => {
 
                           // Check if previous message exists and was sent within same minute
                           const prevMessage = index > 0 ? dateMessages[index - 1] : null;
-                          const showTime = !prevMessage || new Date(message?.createdAt).getMinutes() - new Date(prevMessage?.createdAt).getMinutes() > 0;
+                         
 
                           // console.log(new Date(message?.createdAt).getMinutes() - new Date(prevMessage?.createdAt).getMinutes());
 
@@ -932,40 +944,39 @@ const Chat2 = () => {
                           // Check if next message is from same sender to adjust spacing
                           const nextMessage = index < dateMessages.length - 1 ? dateMessages[index + 1] : null;
                           const isConsecutive = nextMessage && nextMessage.sender === message.sender;
+                          const isSameMinute = new Date(message?.createdAt).getMinutes() === new Date(prevMessage?.createdAt).getMinutes();
+                          const issameUser = message.sender === prevMessage?.sender;
+
+                          const showTime = !prevMessage || new Date(message?.createdAt).getMinutes() - new Date(prevMessage?.createdAt).getMinutes() > 0 || !issameUser;
+                          
                           // console.log("fghfgh",currentTime, prevMessage , nextMessage, showTime,);
                           return (
                             <div
                               key={message._id}
-                              className={`flex flex-col relative ${message.sender === userId
+                              className={`flex relative ${message.sender === userId
                                 ? "justify-end items-end"
                                 : "justify-start items-start"
                                 } ${isConsecutive ? "mb-1" : "mb-4"}`}
                             >
-                              {(showTime || isConsecutive) && (
-                                <div className="text-xs text-gray-500 mt-1">
+                              <div className="flex flex-col relative group">
+                              {(showTime) && (
+                                <div className="text-xs text-gray-500 mt-3 text-right">
                                   {currentTime}
                                 </div>
                               )}
                               {message.content?.type === "file" ? (
                                 message.content?.fileType.includes("image/") ? (
                                   <div
-                                    className={`rounded-lg p-2 max-w-sm max-h-[500px]  overflow-hidden ${message.sender === userId ? "" : ""
-                                      }`}
-                                    style={{
-                                      maxWidth: "500px",
-                                      wordWrap: "break-word",
-                                    }}
+                                    className={` max-w-[300px] max-h-[300px]  overflow-hidden`}
+                                    style={{ wordWrap: "break-word"}}
                                     onContextMenu={(e) =>
                                       handleContextMenu(e, message)
                                     }
                                   >
                                     <img
-                                      src={`${IMG_URL}${message.content.fileUrl.replace(
-                                        /\\/g,
-                                        "/"
-                                      )}`}
+                                      src={`${IMG_URL}${message.content.fileUrl.replace( /\\/g,"/")}`}
                                       alt={message.content.content}
-                                      className={`w-full object-contain ${message.sender === userId && isConsecutive
+                                      className={`w-full object-contain ${message.sender === userId
                                         ? "rounded-s-lg rounded-tr-lg"
                                         : "rounded-e-lg rounded-tl-lg"
                                         } `}
@@ -973,20 +984,22 @@ const Chat2 = () => {
                                   </div>
                                 ) : (
                                   <div
-                                    className={`rounded-lg p-4 max-w-sm ${message.sender === userId
-                                      ? "bg-[#CCF7FF]"
-                                      : "bg-[#F1F1F1]"
+                                    className={`p-4 max-w-[300px] ${message.sender === userId
+                                      ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
+                                      : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
                                       }`}
-                                    style={{
-                                      maxWidth: "500px",
-                                      wordWrap: "break-word",
-                                    }}
+                                    style={{ wordWrap: "break-word"}}
                                     onContextMenu={(e) =>
                                       handleContextMenu(e, message)
                                     }
                                   >
                                     <div className="flex items-center">
+                                    <a href={`${IMG_URL}${message.content.fileUrl.replace(/\\/g,"/")}`}
+                                        download={message.content.content}
+                                        className="ml-2 text-blue-500 hover:underline"
+                                    >
                                       <FaDownload className="w-6 h-6" />
+                                     </a>
                                       <div className="ml-3">
                                         <div className="font-medium">
                                           {message.content?.content}
@@ -996,39 +1009,53 @@ const Chat2 = () => {
                                         </div>
                                       </div>
                                     </div>
-                                    <div className="flex items-center text-sm text-gray-500 mt-1">
-                                      <span>{message.content?.size || "0 KB"}</span>
-                                      <a
-                                        href={`${IMG_URL}${message.content.fileUrl.replace(
-                                          /\\/g,
-                                          "/"
-                                        )}`}
-                                        download={message.content.content}
-                                        className="ml-2 text-blue-500 hover:underline"
-                                      >
-                                        <FaDownload className="w-4 h-4" />
-                                      </a>
-                                    </div>
+                                   
                                   </div>
                                 )
                               ) : (
                                 <div className="flex gap-1">
                                   <div
-                                    className={`group rounded-lg py-2 px-2 flex justify-between items-center relative ${message.sender === userId
-                                      ? "bg-[#CCF7FF]"
-                                      : "bg-[#F1F1F1]"
+                                    className={`group flex-1 p-2  flex justify-between items-center relative ${message.sender === userId
+                                      ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""} `
+                                      : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""}`
                                       }`}
                                     onContextMenu={(e) =>
                                       handleContextMenu(e, message)
                                     }
                                   >
-                                    <p className="flex-1">{message.content?.content}</p>
-                                    <PiDotsThreeVerticalBold
-                                      className="absolute top-1 -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
-                                      onClick={() => handleDropdownToggle(message._id)}
-                                    />
+                                    <p className="flex-1 text-center">{message.content?.content}</p>
+                                   
                                   </div>
-                                  {activeMessageId === message._id && (
+                                  
+                                </div>
+                              )}
+                               <PiDotsThreeVerticalBold
+                                      className={`absolute  ${showTime ? "top-6" : "top-0"} -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity`}
+                                      onClick={() => handleDropdownToggle(message._id)}
+                              />
+                              </div>
+                             
+                               {message.sender === userId && (
+                                    <div
+                                      className={`flex items-end mt-1  ${showTime ? "bottom-3" : "-bottom-2"}  right-0`}
+                                    >
+                                      {message.status === "sent" && (
+                                        <IoCheckmarkCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
+                                      )}
+                                      {message.status === "delivered" && (
+                                        <>
+                                          <IoCheckmarkDoneCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
+                                        </>
+                                      )}
+                                      {message.status === "read" && (
+                                        <>
+                                          <IoCheckmarkDoneCircle className="text-xl mr-1 text-blue-500 font-bold" />
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+
+                              {activeMessageId === message._id && (
                                     <div className="text-xs text-gray-500 mt-1" ref={dropdownRef}>
                                       <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-50">
                                         <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
@@ -1048,28 +1075,6 @@ const Chat2 = () => {
                                         </button>
                                       </div>
                                     </div>
-                                  )}
-
-                                  {message.sender === userId && (
-                                    <div
-                                      className={`flex items-center mt-1  ${showTime ? "bottom-3" : "-bottom-2"}  right-0`}
-                                    >
-                                      {message.status === "sent" && (
-                                        <IoCheckmarkCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
-                                      )}
-                                      {message.status === "delivered" && (
-                                        <>
-                                          <IoCheckmarkDoneCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
-                                        </>
-                                      )}
-                                      {message.status === "read" && (
-                                        <>
-                                          <IoCheckmarkDoneCircle className="text-xl mr-1 text-blue-500 font-bold" />
-                                        </>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
                               )}
                             </div>
                           );
@@ -1679,7 +1684,7 @@ const Chat2 = () => {
         </div>
       )}
 
-      {/* Profile Modal */}
+      {/* group Profile Modal */}
       {isGroupModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-96 " style={{ background: "#CCF7FF", background: "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)" }}>
@@ -1708,6 +1713,7 @@ const Chat2 = () => {
                     onBlur={() => {
                       // Dispatch action to update the username
                       dispatch(updateGroup({ groupId: selectedChat._id, userName: editedUserName }));
+                      socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
                       dispatch(getAllMessageUsers())
                       setIsEditing(false);
                     }}
@@ -1715,6 +1721,7 @@ const Chat2 = () => {
                       if (e.key === 'Enter') {
                         // Dispatch action to update the username
                         dispatch(updateGroup({ groupId: selectedChat._id, userName: editedUserName }));
+                        socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
                         dispatch(getAllMessageUsers())
                         setIsEditing(false);
                       }
@@ -1762,6 +1769,7 @@ const Chat2 = () => {
                       <button className="ml-auto text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs border border-red-500 rounded-full px-2 py-1"
                         onClick={() => {
                           dispatch(leaveGroup({ groupId: selectedChat._id, userId: user._id }))
+                          socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== user._id) })
                           dispatch(getAllMessageUsers())
                         }}>
                         Remove
@@ -1774,12 +1782,136 @@ const Chat2 = () => {
                 <span className="text-red-600 font-bold cursor-pointer"
                   onClick={() => {
                     dispatch(leaveGroup({ groupId: selectedChat._id, userId: userId }))
+                    socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
                     dispatch(getAllMessageUsers())
                     setIsGroupModalOpen(false)
                   }}>
                   Leave Group
                 </span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* group create Modal */}
+      {isGroupCreateModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-96 " style={{ background: "#CCF7FF", background: "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)" }}>
+            <div className="flex justify-between items-center pb-2 p-4">
+              <h2 className="text-lg font-bold">Create Group</h2>
+              <button
+                onClick={() => setIsGroupCreateModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <ImCross />
+              </button>
+            </div>
+            <div className="flex flex-col items-center" >
+              <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4 group">
+                <img src={require('../img/profile.jpg')} alt="Profile" className="cursor-pointer" onClick={() => document.getElementById('fileInput').click()} />
+                <input type="file" id="fileInput" className="hidden" accept="image/*"  />
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <MdOutlineModeEdit className="text-white text-4xl cursor-pointer" onClick={() => document.getElementById('fileInput').click()} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                  <input
+                    type="text"
+                    placeholder="Group Name"
+                    value={editedUserName}
+                    onChange={(e) => setEditedUserName(e.target.value)}
+                    className="mt-2 text-xl font-semibold bg-transparent border-none outline-none text-center"
+                    autoFocus // This will focus the input when isEditing is true
+                  />
+              </div>
+            </div>
+            <div className="mt-4 p-4">
+              <div className="flex items-center justify-between p-2 border-b border-gray-400">
+                <span className="text-gray-600 font-bold">Participants</span>
+                <span className="text-gray-800 ">{groupUsers.length || 0}</span>
+              </div>
+              <div className="flex flex-col max-h-48 overflow-y-auto">
+              {allUsers.map((user, index) => {
+                  const isChecked = groupUsers.includes(user._id); // Check if user is already selected
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
+                      onClick={() => {
+                        if (!isChecked) {
+                          setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
+                        } else {
+                          setGroupUsers((prev) =>
+                            prev.filter((id) => id !== user._id)
+                          ); // Remove user ID from groupUsers state
+                        }
+                      }}
+                    >
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-2 font-bold">
+                          {user.userName
+                            .split(" ")
+                            .map((n) => n[0].toUpperCase())
+                            .join("")}
+                        </div>
+                        <span>{user.userName}</span>
+                      </div>
+                      <input
+                        id={`checkbox-${user._id}`}
+                        type="checkbox"
+                        checked={isChecked} // Set checkbox state based on selection
+                        readOnly // Make checkbox read-only to prevent direct interaction
+                        className="form-checkbox rounded-full"
+                        style={{
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "50%",
+                          border: "2px solid #ccc",
+                          backgroundColor: "#fff",
+                          cursor: "pointer",
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+                {/* <div className="flex items-center p-2 cursor-pointer" onClick={() => {
+                  setGroupUsers(selectedChat?.members)
+                  setIsGroupModalOpen(false)
+                  setIsModalOpen(true)
+                }}>
+                  <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2 font-bold">
+                    +
+                  </div>
+                  <span className="text-gray-800 font-bold">Add participants</span>
+                </div> */}
+                {/* {selectedChat?.members.map((member, index) => {
+                  const user = allUsers.find((user) => user._id === member);
+                  return (
+                    <div key={index} className="flex items-center p-2 group">
+                      <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
+                        {user.userName.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-gray-800">{user.userName}</span>
+                      <button className="ml-auto text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs border border-red-500 rounded-full px-2 py-1"
+                        onClick={() => {
+                          dispatch(leaveGroup({ groupId: selectedChat._id, userId: user._id }))
+                          socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== user._id) })
+                          dispatch(getAllMessageUsers())
+                        }}>
+                        Remove
+                      </button>
+                    </div>
+                  )
+                })} */}
+              </div>
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={() => handleCreateGroup()}
+                  className="bg-blue-500 text-white px-4 py-1 rounded-full hover:bg-blue-600"
+                >
+                  Create Group
+                </button>
+            </div>
             </div>
           </div>
         </div>

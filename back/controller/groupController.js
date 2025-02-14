@@ -3,8 +3,7 @@ const Group = require("../models/groupModel"); // Assuming you have a Group mode
 async function createGroup(req, res) {
   try {
     const { userName, members, createdBy } = req.body; // Assuming you're using body-parser middleware
-    const group = new Group({ userName, members, createdBy });
-    await group.save();
+    const group = await Group.create({ userName, members, createdBy });
     return res.status(200).json({ groupId: group._id });
   } catch (error) {
     console.error("Error creating group:", error);
