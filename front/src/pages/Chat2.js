@@ -34,7 +34,7 @@ import { CiSquareRemove } from "react-icons/ci";
 import { FaRegUser } from "react-icons/fa";
 import { RiShutDownLine } from "react-icons/ri";
 import { LuScreenShare } from "react-icons/lu";
-import { IoMdSearch } from "react-icons/io";
+import { IoIosArrowDown, IoIosArrowUp, IoMdSearch } from "react-icons/io";
 import { MdPhoneEnabled, MdGroupAdd } from "react-icons/md";
 import { GoDeviceCameraVideo } from "react-icons/go";
 import { LuSendHorizontal } from "react-icons/lu";
@@ -95,19 +95,23 @@ const Chat2 = () => {
   const [searchInput, setSearchInput] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const [dropdownVisible, setDropdownVisible] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
-  const [hoveredMessageId, setHoveredMessageId] = useState(null);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedUserName, setEditedUserName] = useState('');
-  const [editedGroupName, setEditedGroupName] = useState('');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeMessageId, setActiveMessageId] = useState(null);
   const dispatch = useDispatch();
   const dropdownRef = useRef(null);
+  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [isSearchBoxOpen, setIsSearchBoxOpen] = useState(false);
+  const [searchInputbox, setSearchInputbox] = useState('');
+  const [searchIndex, setSearchIndex] = useState(0);
+  const [totalMatches, setTotalMatches] = useState(0);
+  const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+
 
   const { onlineUser, isLoading, allUsers, messages, allMessageUsers, groups } =
     useSelector((state) => state.user);
@@ -650,14 +654,82 @@ const Chat2 = () => {
     };
   }, []);
 
+  // ================== reply message ==================
+  const handleReplyMessage = (message) => {
+    console.log("Replying to message:", message);
+    // Add your reply logic here
+  };
 
+  const handleImageClick = (imageUrl) => {
+    setSelectedImage(imageUrl);
+    setIsImageModalOpen(true);
+  };
 
-  console.log("isReceiving", isReceiving);
-  console.log("isVideoCalling", isVideoCalling);
-  console.log("incomingCall", incomingCall);
-  console.log("isSharing", isSharing);
-  console.log("isCameraOn", (!isReceiving || !isVideoCalling));
+  // ================== highlight word ==================
 
+  const highlightText = (text, highlight) => {
+    if (!highlight.trim()) {
+      return text;
+    }
+    const regex = new RegExp(`(${highlight})`, 'gi');
+    const parts = text.split(regex);
+
+    return parts.map((part, index) =>
+      regex.test(part) ? (
+        <span key={index} style={{ backgroundColor: 'yellow' }}>
+          {part}
+        </span>
+      ) : (
+        part
+      )
+    );
+  };
+
+  // Function to count occurrences of a word in a message
+  const countOccurrences = (text, word) => {
+    const regex = new RegExp(`(${word})`, 'gi');
+    return (text.match(regex) || []).length;
+  };
+
+  useEffect(() => {
+    if (!searchInputbox.trim()) {
+      setTotalMatches(0);
+      return;
+    }
+
+    const matches = messages.reduce((count, message) => {
+      const content = typeof message?.content?.content === 'string' ? message?.content?.content : '';
+
+      return count + countOccurrences(content, searchInputbox);
+    }, 0);
+
+    setTotalMatches(matches);
+  }, [searchInputbox, messages]);
+  console.log("totalMatches", totalMatches);
+
+  useEffect(() => {
+    if (selectedChat) {
+      setIsSearchBoxOpen(false); // Close the search box
+      setSearchInputbox(''); // Clear the search input
+    }
+  }, [selectedChat]);
+
+  // Function to scroll to the current search result
+  const scrollToSearchResult = (index) => {
+    const messageElements = document.querySelectorAll('.message-content');
+    if (messageElements[index]) {
+      messageElements[index].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  // Function to handle search navigation
+  const handleSearchNavigation = (direction) => {
+    setCurrentSearchIndex((prevIndex) => {
+      const newIndex = direction === 'up' ? Math.max(prevIndex - 1, 0) : Math.min(prevIndex + 1, totalMatches - 1);
+      scrollToSearchResult(newIndex);
+      return newIndex;
+    });
+  };
 
   return (
     <div className="flex h-screen bg-white">
@@ -870,7 +942,50 @@ const Chat2 = () => {
                   </div>
                 </div>
                 <div className="flex items-center space-x-4">
-                  <IoMdSearch className="w-6 h-6 cursor-pointer" />
+                  <IoMdSearch
+                    className="w-6 h-6 cursor-pointer"
+                    onClick={() => setIsSearchBoxOpen((prev) => !prev)}
+                  />
+                  {isSearchBoxOpen && (
+                    <div className="absolute top-12 right-72 bg-white shadow-lg p-4 z-10 flex items-center border-rounded" style={{ padding: "5px 25px", borderRadius: "30px" }}>
+                      <FaSearch className="text-gray-500 mr-2" />
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        className="flex-1 p-2 outline-none"
+                        value={searchInputbox}
+                        onChange={(e) => {
+                          setSearchInputbox(e.target.value);
+                          setSearchIndex(0); // Reset index on new search
+                          setCurrentSearchIndex(0); // Reset current search index
+                        }}
+                      />
+                      <span className="mx-2 text-gray-500">
+                        {totalMatches > 0 ? `${currentSearchIndex + 1} / ${totalMatches}` : "0 / 0"}
+                      </span>
+                      <button
+                        className="text-black hover:text-gray-700 ms-5"
+                        onClick={() => handleSearchNavigation('up')}
+                      >
+                        <IoIosArrowUp />
+                      </button>
+                      <button
+                        className="text-black hover:text-gray-700"
+                        onClick={() => handleSearchNavigation('down')}
+                      >
+                        <IoIosArrowDown />
+                      </button>
+                      <button
+                        className="text-black hover:text-gray-700 ms-5"
+                        onClick={() => {
+                          setIsSearchBoxOpen(false);
+                          setSearchInputbox(''); // Clear the input box
+                        }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
                   <LuScreenShare
                     className="w-6 h-6 cursor-pointer"
                     onClick={() => handleStartScreenShare()}
@@ -897,7 +1012,6 @@ const Chat2 = () => {
                   {/* <FaEllipsisH className="" /> */}
                 </div>
               </div>
-
               {/*========== Messages ==========*/}
 
               <div className="flex-1 overflow-y-auto p-4" ref={messagesContainerRef} style={{ height: 'calc(100vh - 280px)' }}>
@@ -933,13 +1047,14 @@ const Chat2 = () => {
                           const nextMessage = index < dateMessages.length - 1 ? dateMessages[index + 1] : null;
                           const isConsecutive = nextMessage && nextMessage.sender === message.sender;
                           // console.log("fghfgh",currentTime, prevMessage , nextMessage, showTime,);
+                          const isHighlighted = index === currentSearchIndex;
                           return (
                             <div
                               key={message._id}
                               className={`flex flex-col relative ${message.sender === userId
                                 ? "justify-end items-end"
                                 : "justify-start items-start"
-                                } ${isConsecutive ? "mb-1" : "mb-4"}`}
+                                } ${isConsecutive ? "mb-1" : "mb-4"} message-content ${isHighlighted ? 'highlighted' : ''}`}
                             >
                               {(showTime || isConsecutive) && (
                                 <div className="text-xs text-gray-500 mt-1">
@@ -969,6 +1084,7 @@ const Chat2 = () => {
                                         ? "rounded-s-lg rounded-tr-lg"
                                         : "rounded-e-lg rounded-tl-lg"
                                         } `}
+                                      onClick={() => handleImageClick(`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`)}
                                     />
                                   </div>
                                 ) : (
@@ -1022,33 +1138,35 @@ const Chat2 = () => {
                                       handleContextMenu(e, message)
                                     }
                                   >
-                                    <p className="flex-1">{message.content?.content}</p>
+                                    <p className="flex-1">{highlightText(message.content?.content, searchInputbox)}</p>
                                     <PiDotsThreeVerticalBold
                                       className="absolute top-1 -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity"
                                       onClick={() => handleDropdownToggle(message._id)}
                                     />
                                   </div>
                                   {activeMessageId === message._id && (
-                                    <div className="text-xs text-gray-500 mt-1" ref={dropdownRef}>
-                                      <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-50">
-                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
+                                    <div className="text-gray-500 mt-1" ref={dropdownRef}>
+                                      <div className="z-10 absolute bg-white border rounded shadow-lg  py-2 px-4 right-0 mt-2">
+                                        <button
+                                          onClick={() => handleEditMessage(contextMenu.message)}
+                                          className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        >
                                           <MdOutlineModeEdit className="mr-2" /> Edit
                                         </button>
-                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
+                                        <button
+                                          className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        >
                                           <VscCopy className="mr-2" /> Copy
                                         </button>
-                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
-                                          <HiOutlineReply className="mr-2" /> Reply
-                                        </button>
-                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
-                                          <CgMailForward className="mr-2" /> Forward
-                                        </button>
-                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100">
+                                        <button
+                                          className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        >
                                           <CiSquareRemove className="mr-2" /> Remove
                                         </button>
                                       </div>
                                     </div>
                                   )}
+
 
                                   {message.sender === userId && (
                                     <div
@@ -1514,85 +1632,6 @@ const Chat2 = () => {
         </div>
       )}
 
-      {/* Call Modal */}
-      {/* {showCallModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 max-w-2xl w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">
-                {currentCall?.status === "calling" ? "Calling..." : "In Call"}
-              </h3>
-              <button
-                onClick={() => {
-                  endCall();
-                  setShowCallModal(false);
-                }}
-                className="text-red-500"
-              >
-                End Call
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="relative">
-                <video
-                  ref={localVideoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full rounded-lg"
-                />
-                <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  You
-                </span>
-              </div>
-              <div className="relative">
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full rounded-lg"
-                />
-                <span className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  {selectedChat?.userName}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )} */}
-
-      {/* Incoming Call Modal */}
-      {/* {currentCall?.status === "incoming" && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4">
-            <h3 className="text-lg font-semibold mb-4">
-              Incoming {currentCall.type} call from{" "}
-              {allUsers.find((u) => u._id === currentCall.from)?.userName}
-            </h3>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => {
-                  endCall();
-                  setShowCallModal(false);
-                }}
-                className="px-4 py-2 bg-red-500 text-white rounded"
-              >
-                Decline
-              </button>
-              <button
-                onClick={() => {
-                  handleAnswerCall();
-                  setShowCallModal(true);
-                }}
-                className="px-4 py-2 bg-green-500 text-white rounded"
-              >
-                Answer
-              </button>
-            </div>
-          </div>
-        </div>
-      )} */}
-
       {/* Profile Modal */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1788,27 +1827,48 @@ const Chat2 = () => {
       {/* Add the context menu */}
       {contextMenu.visible && (
         <div
-          className="fixed bg-white shadow-lg rounded-lg py-2 px-4 z-50"
+          className="absolute bg-white border rounded shadow-lg z-50 py-2 px-4"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <button
             onClick={() => handleEditMessage(contextMenu.message)}
-            className="text-blue-500 hover:bg-gray-100 py-1 px-2 rounded w-full text-left"
+            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
           >
-            Edit Message
+            <MdOutlineModeEdit className="mr-2" /> Edit
           </button>
           <button
             onClick={() => handleDeleteMessage(contextMenu.messageId)}
-            className="text-red-500 hover:bg-gray-100 py-1 px-2 rounded w-full text-left"
+            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
           >
-            Delete Message
+            <CiSquareRemove className="mr-2" /> Remove
+          </button>
+          <button
+            onClick={() => handleReplyMessage(contextMenu.message)}
+            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+          >
+            <HiOutlineReply className="mr-2" /> Reply
           </button>
         </div>
+      )
+      }
 
-
+      {/* Image Modal */}
+      {isImageModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="relative w-full h-full flex items-center justify-center p-8">
+            <img src={selectedImage} alt="Full Size" className="w-full h-full object-contain " />
+            <button
+              onClick={() => setIsImageModalOpen(false)}
+              className="absolute top-4 right-4 text-white text-2xl"
+            >
+              <ImCross />
+            </button>
+          </div>
+        </div>
       )}
-    </div>
-  );
+    </div >
+
+);
 };
 
 export default Chat2;
