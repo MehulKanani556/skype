@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
+
 import EmojiPicker from "emoji-picker-react";
 import {
   FaSearch,
@@ -50,17 +52,21 @@ import {
   getAllUsers,
   getOnlineUsers,
   leaveGroup,
+  getUser,
   updateGroup,
+  updateUser,
   updateMessage,
 } from "../redux/slice/user.slice";
 import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
 import { RxCross2 } from "react-icons/rx";
-import { IoCheckmarkCircleOutline, IoCheckmarkDoneCircle, IoCheckmarkDoneCircleOutline, IoCheckmarkDoneCircleSharp, IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
+import { IoCameraOutline, IoCheckmarkCircleOutline, IoCheckmarkDoneCircle, IoCheckmarkDoneCircleOutline, IoCheckmarkDoneCircleSharp, IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
 import { PiDotsThreeBold } from "react-icons/pi";
 import Front from '../component/Front';
 
 const Chat2 = () => {
+  const { onlineUser, isLoading, allUsers, messages, allMessageUsers, groups, user } =
+    useSelector((state) => state.user);
   const [selectedTab, setSelectedTab] = useState("All");
   const [recentChats, setRecentChats] = useState([]);
   const [messagesA, setMessages] = useState([]);
@@ -78,6 +84,7 @@ const Chat2 = () => {
   const [showCallModal, setShowCallModal] = useState(false);
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+  const navigate = useNavigate();
   const [contextMenu, setContextMenu] = useState({
     visible: false,
     x: 0,
@@ -101,7 +108,7 @@ const Chat2 = () => {
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedUserName, setEditedUserName] = useState('');
+  const [editedUserName, setEditedUserName] = useState(user?.userName || '');
   const [editedGroupName, setEditedGroupName] = useState('');
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -109,9 +116,13 @@ const Chat2 = () => {
   const dispatch = useDispatch();
   const dropdownRef = useRef(null);
 
-  const { onlineUser, isLoading, allUsers, messages, allMessageUsers, groups } =
-    useSelector((state) => state.user);
 
+
+  const [isEditingUserName, setIsEditingUserName] = useState(false);
+  const [isEditingDob, setIsEditingDob] = useState(false);
+  const [editedDob, setEditedDob] = useState(user?.dob || "");
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [editedPhone, setEditedPhone] = useState(user?.phone || "");
   //===========Use the custom socket hook===========
   const {
     socket,
@@ -152,6 +163,7 @@ const Chat2 = () => {
     dispatch(getOnlineUsers());
     dispatch(getAllMessageUsers());
     dispatch(getAllGroups());
+    dispatch(getUser(currentUser))
   }, [dispatch]);
 
   // Add this effect to filter users based on search input
@@ -625,8 +637,7 @@ const Chat2 = () => {
 
 
   const profileDropdown = () => {
-
-    setIsDropdownOpen((prev) => !prev);
+    setIsDropdownOpen(prevState => !prevState);
   };
 
   useEffect(() => {
@@ -640,7 +651,8 @@ const Chat2 = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setActiveMessageId(null);
+        console.log("Clicked outside, closing dropdown");
+        setIsDropdownOpen(false);
       }
     };
 
@@ -648,33 +660,65 @@ const Chat2 = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [isDropdownOpen]);
 
 
 
-  console.log("isReceiving", isReceiving);
-  console.log("isVideoCalling", isVideoCalling);
-  console.log("incomingCall", incomingCall);
-  console.log("isSharing", isSharing);
-  console.log("isCameraOn", (!isReceiving || !isVideoCalling));
+  // console.log("isReceiving", isReceiving);
+  // console.log("isVideoCalling", isVideoCalling);
+  // console.log("incomingCall", incomingCall);
+  // console.log("isSharing", isSharing);
+  // console.log("isCameraOn", (!isReceiving || !isVideoCalling));
+  // ============================Log out ============================
 
+  const handleLogout = () => {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("userId");
+    navigate("/");
+  }
+
+  const handleEditClick = () => {
+    setIsEditingUserName(true);
+  };
+
+  const handleUserNameChange = (e) => {
+    setEditedUserName(e.target.value);
+  };
+
+  const handleUserNameBlur = () => {
+    setIsEditingUserName(false);
+    // Optionally, dispatch an action to update the username in the store
+    // dispatch(updateUserName(editedUserName));
+    dispatch(updateUser({ id: currentUser, values: { userName: editedUserName } }));
+
+  };
 
   return (
     <div className="flex h-screen bg-white">
       <div className="w-80 border-r flex flex-col">
         <div className="relative profile-dropdown">
           <div
-            className="flex items-center p-4 border-b cursor-pointer hover:bg-gray-100"
+            className="flex items-center p-4 border-b cursor-pointer hover:bg-gray-100  mt-4"
             onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
           >
             {/* <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden"> */}
-            <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden mt-4">
-              <img src={require('../img/profile.jpg')} alt="Profile" className="" />
+            <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
+              {user?.photo && user.photo !== "null" ? (
+                <img src={`${IMG_URL}${user.photo.replace(
+                  /\\/g,
+                  "/"
+                )}`} alt="Profile" className="object-contain" />
+              ) : (
+                <span className="text-white text-2xl font-bold">{user?.userName && user?.userName.includes(' ') ? user?.userName.split(' ')[0][0] + user?.userName.split(' ')[1][0] : user?.userName[0]}</span>
+              )}
             </div>
             {/* </div> */}
             <div className="ml-3 flex-1">
               <div className="flex items-center justify-between">
-                <span className="font-medium">archit bhuva</span>
+                <div>
+                  <span className="font-medium">{user?.userName}</span>
+                  <p className="mb-0 text-xs">{user?.email}</p>
+                </div>
                 <PiDotsThreeBold />
               </div>
             </div>
@@ -693,7 +737,7 @@ const Chat2 = () => {
               </div>
 
               <div className="p-3 hover:bg-gray-100 border-t" onClick={() => setIsLogoutModalOpen(true)}>
-                <div className="flex items-center space-x-2 text-gray-600 cursor-pointer">
+                <div className="flex items-center space-x-2 text-gray-600 cursor-pointer" >
                   <RiShutDownLine className="w-5 h-5" />
                   <span>Logout</span>
                 </div>
@@ -789,7 +833,16 @@ const Chat2 = () => {
                   onClick={() => setSelectedChat(item)}
                 >
                   <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                    {item.avatar || (item.userName ? item.userName.charAt(0).toUpperCase() : '')}
+                    <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
+                      {item?.photo && item.photo !== "null" ? (
+                        <img src={`${IMG_URL}${item.photo.replace(
+                          /\\/g,
+                          "/"
+                        )}`} alt="Profile" className="object-cover" />
+                      ) : (
+                        <span className="text-white text-xl font-bold">{item?.userName && item?.userName.includes(' ') ? item?.userName.split(' ')[0][0] + item?.userName.split(' ')[1][0] : item?.userName[0]}</span>
+                      )}
+                    </div>
                     {onlineUsers.includes(item._id) && (
                       <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
                     )}
@@ -842,7 +895,18 @@ const Chat2 = () => {
             <>
               <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-gray-300"></div>
+                  <div className="w-10 h-10 rounded-full bg-gray-300">
+                    <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
+                      {selectedChat?.photo && selectedChat.photo !== "null" ? (
+                        <img src={`${IMG_URL}${selectedChat.photo.replace(
+                          /\\/g,
+                          "/"
+                        )}`} alt="Profile" className="object-cover" />
+                      ) : (
+                        <span className="text-white text-xl font-bold">{selectedChat?.userName && selectedChat?.userName.includes(' ') ? selectedChat?.userName.split(' ')[0][0] + selectedChat?.userName.split(' ')[1][0] : selectedChat?.userName[0]}</span>
+                      )}
+                    </div>
+                  </div>
                   <div className="ml-3 cursor-pointer"
                     onClick={() => {
                       console.log("selectedChat", selectedChat);
@@ -1319,7 +1383,7 @@ const Chat2 = () => {
             </>
           ) : (
 
-            <Front />
+            <Front  data={user}/>
           )}
         </div>
       )}
@@ -1598,7 +1662,7 @@ const Chat2 = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-96 " style={{ background: "#CCF7FF", background: "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)" }}>
             <div className="flex justify-between items-center pb-2 p-4">
-              <h2 className="text-lg font-bold">Profile</h2>
+              <h2 className="text-lg font-bold">Profilez</h2>
               <button
                 onClick={() => setIsProfileModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -1606,47 +1670,140 @@ const Chat2 = () => {
                 <ImCross />
               </button>
             </div>
-            <div className="flex flex-col items-center" >
-              <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4 group">
-                <img src={require('../img/profile.jpg')} alt="Profile" className="" />
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+
+            <div className="flex flex-col items-center">
+              <div className="relative w-24 h-24  rounded-full bg-gray-300 mt-4 group">
+                {user?.photo && user.photo !== "null" ? (
+                  <img src={`${IMG_URL}${user.photo.replace(
+                    /\\/g,
+                    "/"
+                  )}`} alt="Profile" className="object-cover w-24 h-24  rounded-full" />
+                ) :
+                  <div className="w-24 h-24 text-center rounded-full text-gray-600 grid place-content-center" style={{ background: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(189,214,230,1) 48%, rgba(34,129,195,1) 100%)" }}><IoCameraOutline className="text-3xl cursor-pointer" /></div>
+
+                }
+                <div className="absolute inset-0 flex items-center justify-center rounded-full  bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <MdOutlineModeEdit
                     className="text-white text-3xl cursor-pointer"
                     onClick={profileDropdown} // Ensure this function toggles isDropdownOpen
                   />
                 </div>
-                {isDropdownOpen && ( // This should be true when the icon is clicked
-                  <div className="absolute top-full mt-2 bg-white border rounded shadow-lg z-50">
+
+                {isDropdownOpen && (
+                  <div
+                    ref={dropdownRef}
+                    className="absolute top-full mt-2 bg-white border rounded shadow-lg z-50"
+                  >
                     <ul>
-                      <li className="p-2 hover:bg-gray-100 cursor-pointer">Edit Profile</li>
-                      <li className="p-2 hover:bg-gray-100 cursor-pointer">Change Picture</li>
-                      <li className="p-2 hover:bg-gray-100 cursor-pointer">Settings</li>
+                      <li
+                        className="p-2 px-3 text-nowrap hover:bg-gray-100 cursor-pointer"
+                        onClick={() => document.getElementById('file-input').click()} // Trigger file input click
+                      >
+                        Upload Photo
+                      </li>
+                      <li
+                        className="p-2 px-3 text-nowrap hover:bg-gray-100 cursor-pointer"
+                        onClick={() => {
+                          dispatch(updateUser({ id: currentUser, values: { photo: null } }));
+                        }}
+                      >
+                        Remove Photo
+                      </li>
                     </ul>
                   </div>
                 )}
               </div>
-              <div className="flex items-center justify-between">
-                <h3 className="mt-2 text-xl font-semibold">archit bhuva</h3><MdOutlineModeEdit className="cursor-pointer" />
+              <div className="flex mt-2 items-center justify-between gap-4">
+                {isEditingUserName ? (
+                  <input
+                    type="text"
+                    value={!editedUserName ? user?.userName : editedUserName}
+                    onChange={handleUserNameChange}
+                    onBlur={handleUserNameBlur}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        handleUserNameBlur();
+                      }
+                    }}
+                    className="text-xl font-semibold bg-transparent focus:ring-0 focus-visible:outline-none"
+                    autoFocus
+                  />
+                ) : (
+                  <h3 className="text-xl font-semibold">{user?.userName}</h3>
+                )}
+                <MdOutlineModeEdit className="cursor-pointer" onClick={handleEditClick} />
               </div>
-
             </div>
             <div className="mt-4 p-4">
               <div className="flex items-center justify-between p-2 border-b mb-2">
                 <span className="text-gray-600 font-bold">Skype Name</span>
-                <span className="text-gray-800 ">archit bhuva</span>
+                <span className="text-gray-800">{user?.userName}</span>
               </div>
               <div className="flex items-center justify-between p-2 border-b mb-2">
                 <span className="text-gray-600 font-bold">Birthday</span>
-                <span className="text-gray-800 ">Add birthday</span>
+                {isEditingDob ? (
+                  <input
+                    type="date"
+                    value={!editedDob ? user.dob : editedDob}
+                    onChange={(e) => setEditedDob(e.target.value)}
+                    onBlur={() => {
+                      setIsEditingDob(false);
+                      // Optionally, dispatch an action to update the dob in the store
+                      dispatch(updateUser({ id: currentUser, values: { dob: editedDob } }));
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        setIsEditingDob(false);
+                        // Optionally, dispatch an action to update the dob in the store
+                        dispatch(updateUser({ id: currentUser, values: { dob: editedDob } }));
+                      }
+                    }}
+                    className="text-base text-gray-800 font-semibold bg-transparent focus:ring-0 focus-visible:outline-none"
+                    autoFocus
+                  />
+                ) : (
+                  <span
+                    className={`text-gray-800 cursor-pointer ${!user.dob ? 'text-sm' : ''} `}
+                    onClick={() => setIsEditingDob(true)}
+                  >
+                    {new Date(user?.dob).toLocaleDateString() || "Add dob"}
+                  </span>
+                )}
               </div>
               <div className="flex items-center justify-between p-2 mb-2">
                 <span className="text-gray-600 font-bold">Phone Number</span>
-                <span className="text-gray-800">+91 9664985679</span>
+                {isEditingPhone ? (
+                  <span>
+                    <input
+                      type="text"
+                      value={!editedPhone ? user.phone : editedPhone}
+                      onChange={(e) => setEditedPhone(e.target.value)}
+                      max={12}
+                      onBlur={() => {
+                        setIsEditingPhone(false);
+                        // Optionally, dispatch an action to update the phone number in the store
+                        dispatch(updateUser({ id: currentUser, values: { phone: editedPhone } }));
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          setIsEditingPhone(false);
+                          // Optionally, dispatch an action to update the phone number in the store
+                          dispatch(updateUser({ id: currentUser, values: { phone: editedPhone } }));
+                        }
+                      }}
+                      className="text-base text-gray-800 font-semibold bg-transparent focus:ring-0 focus-visible:outline-none"
+                      autoFocus
+                    />
+                  </span>
+                ) : (
+                  <span
+                    className={`text-gray-800 cursor-pointer ${!user.phone ? 'text-sm' : ''} `}
+                    onClick={() => setIsEditingPhone(true)}
+                  >
+                    {user?.phone || "Add phone number"}
+                  </span>
+                )}
               </div>
-              {/* <div className="flex items-center justify-between p-2">
-                <span className="text-gray-600 font-bold">Other ways people can find you</span>
-                <span className="text-gray-800">Details</span>
-              </div> */}
             </div>
           </div>
         </div>
@@ -1669,6 +1826,7 @@ const Chat2 = () => {
                 onClick={() => {
                   // Add your logout logic here
                   setIsLogoutModalOpen(false);
+                  handleLogout();
                 }}
                 className="px-4 py-2 bg-red-500 text-white rounded"
               >
@@ -1804,9 +1962,26 @@ const Chat2 = () => {
             Delete Message
           </button>
         </div>
-
-
       )}
+
+      {/* Add a hidden file input for photo upload */}
+      <input
+        type="file"
+        id="file-input"
+        style={{ display: 'none' }}
+        accept="image/*"
+        onChange={(e) => {
+          console.log("aaaa")
+
+          const file = e.target.files[0];
+          if (file) {
+            // Handle the file upload logic here
+            dispatch(updateUser({ id: currentUser, values: { photo: file } }));
+            console.log('Selected file:', file);
+            // You can update the profile picture state here
+          }
+        }}
+      />
     </div>
   );
 };

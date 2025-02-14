@@ -16,6 +16,15 @@ const userSchema = mongoose.Schema({
     },
     otp: {
         type: Number,
+    },
+    photo:{
+        type: String,
+    },
+    phone:{
+        type: String,
+    },
+    dob:{
+        type: Date,
     }
 }, {
     timestamps: true,

@@ -51,7 +51,7 @@ export const register = createAsyncThunk(
 
 export const forgotPassword = createAsyncThunk(
     'auth/forgotPassword',
-    async (email , { rejectWithValue }) => {
+    async (email, { rejectWithValue }) => {
         try {
             console.log(email);
             const response = await axios.post(`${BASE_URL}/forgotPassword`, { email });
@@ -80,7 +80,7 @@ export const verifyOtp = createAsyncThunk(
 
 export const resetPassword = createAsyncThunk(
     'auth/resetPassword',
-    async ({  email, newPassword }, { rejectWithValue }) => {
+    async ({ email, newPassword }, { rejectWithValue }) => {
         try {
             const response = await axios.post(`${BASE_URL}/changePassword`, { email, newPassword });
             if (response.status === 200) {
@@ -94,9 +94,9 @@ export const resetPassword = createAsyncThunk(
 
 export const googleLogin = createAsyncThunk(
     'auth/google-login',
-    async ({ uid, userName, email }, { rejectWithValue }) => {
+    async ({ uid, userName, email,photo }, { rejectWithValue }) => {
         try {
-            const response = await axios.post(`${BASE_URL}/google-login`, { uid, userName, email });
+            const response = await axios.post(`${BASE_URL}/google-login`, { uid, userName, email ,photo});
             sessionStorage.setItem('token', response.data.token);
             sessionStorage.setItem('userId', response.data.user._id);
             return response.data;
@@ -107,30 +107,29 @@ export const googleLogin = createAsyncThunk(
     }
 );
 
-export const getUser = createAsyncThunk(
-    'auth/getUser',
-    async (userId, { rejectWithValue }) => {
-        try {
-            const response = await axios.get(`${BASE_URL}/user/${userId}`);
-            return response.data; // Assuming the API returns the user data
-        } catch (error) {
-            return handleErrors(error, null, rejectWithValue);
-        }
-    }
-);
 
-export const updateUser = createAsyncThunk(
-    'auth/updateUser',
-    async ({ id, values }, { rejectWithValue }) => {
-        console.log(values);
-        try {
-            const response = await axios.post(`${BASE_URL}/user/${id}`, values);
-            return response.data; // Assuming the API returns the updated user data
-        } catch (error) {
-            return handleErrors(error, null, rejectWithValue);
-        }
-    }
-);
+
+// export const updateUser = createAsyncThunk(
+//     'auth/updateUser',
+//     async ({ id, values }, { rejectWithValue }) => {
+//         const token = await sessionStorage.getItem("token");
+//         const formData = new FormData();
+//         Object.keys(values).forEach(key => {
+//             formData.append(key, values[key]);
+//         });
+//         try {
+//             const response = await axios.put(`${BASE_URL}/editUser/${id}`, formData, {
+//                 headers: {
+//                     Authorization: `Bearer ${token}`,
+//                     'Content-Type': 'multipart/form-data'
+//                 }
+//             });
+//             return response.data; // Assuming the API returns the updated user data
+//         } catch (error) {
+//             return handleErrors(error, null, rejectWithValue);
+//         }
+//     }
+// );
 
 export const createPlan = createAsyncThunk(
     'auth/createPlan',
@@ -243,32 +242,20 @@ const authSlice = createSlice({
                 state.message = action.payload?.message || "Google Login Failed";
                 // enqueueSnackbar(state.message, { variant: 'error' });
             })
-            .addCase(getUser.fulfilled, (state, action) => {
-                state.user = action.payload.data; // Assuming the API returns the user data
-                state.loading = false;
-                state.error = null;
-                state.message = "User retrieved successfully";
-                // enqueueSnackbar(state.message, { variant: 'success' });
-            })
-            .addCase(getUser.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload.message;
-                state.message = action.payload?.message || "Failed to retrieve user";
-                // enqueueSnackbar(state.message, { variant: 'error' });
-            })
-            .addCase(updateUser.fulfilled, (state, action) => {
-                state.user = action.payload.data; // Assuming the API returns the updated user data
-                state.loading = false;
-                state.error = null;
-                state.message = "User updated successfully";
-                // enqueueSnackbar(state.message, { variant: 'success' });
-            })
-            .addCase(updateUser.rejected, (state, action) => {
-                state.loading = false;
-                state.error = action.payload.message;
-                state.message = action.payload?.message || "Failed to update user";
-                // enqueueSnackbar(state.message, { variant: 'error' });
-            })
+          
+            // .addCase(updateUser.fulfilled, (state, action) => {
+            //     state.user = action.payload.users; // Assuming the API returns the updated user data
+            //     state.loading = false;
+            //     state.error = null;
+            //     state.message = "User updated successfully";
+            //     // enqueueSnackbar(state.message, { variant: 'success' });
+            // })
+            // .addCase(updateUser.rejected, (state, action) => {
+            //     state.loading = false;
+            //     state.error = action.payload.message;
+            //     state.message = action.payload?.message || "Failed to update user";
+            //     // enqueueSnackbar(state.message, { variant: 'error' });
+            // })
             .addCase(createPlan.fulfilled, (state, action) => {
                 state.loading = false;
                 state.error = null;

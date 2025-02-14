@@ -1,5 +1,5 @@
 const express = require("express");
-const { createUser, getAllUsers, getAllMessageUsers } = require("../controller/userController");
+const { createUser, getAllUsers, getAllMessageUsers, updateUser, getSingleUser } = require("../controller/userController");
 const { userLogin, googleLogin,forgotPassword,verifyOtp,changePassword } = require("../auth/auth");
 const { auth } = require("../helper/auth");
 const { getOnlineUsers } = require("../socketManager/SocketManager");
@@ -28,6 +28,8 @@ indexRoutes.post('/changePassword', changePassword)
 indexRoutes.post("/createUser", createUser);
 indexRoutes.get("/allUsers", auth, getAllUsers);
 indexRoutes.get("/allMessageUsers", auth, getAllMessageUsers);
+indexRoutes.put("/editUser/:id", auth, upload.single("photo"), updateUser);
+indexRoutes.get("/singleUser/:id", auth, getSingleUser)
 
 // Group Routes
 indexRoutes.post("/createGroup", auth, createGroup);

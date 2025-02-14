@@ -110,12 +110,18 @@ export const googleLogin = createAsyncThunk(
         }
     }
 );
-
 export const getUser = createAsyncThunk(
     'auth/getUser',
     async (userId, { rejectWithValue }) => {
         try {
-            const response = await axios.get(`${BASE_URL}/user/${userId}`);
+            const token = await sessionStorage.getItem("token");
+            const response = await axios.get(`${BASE_URL}/singleUser/${userId}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
             return response.data; // Assuming the API returns the user data
         } catch (error) {
             return handleErrors(error, null, rejectWithValue);
@@ -123,18 +129,18 @@ export const getUser = createAsyncThunk(
     }
 );
 
-export const updateUser = createAsyncThunk(
-    'auth/updateUser',
-    async ({ id, values }, { rejectWithValue }) => {
-        console.log(values);
-        try {
-            const response = await axios.post(`${BASE_URL}/user/${id}`, values);
-            return response.data; // Assuming the API returns the updated user data
-        } catch (error) {
-            return handleErrors(error, null, rejectWithValue);
-        }
-    }
-);
+// export const updateUser = createAsyncThunk(
+//     'auth/updateUser',
+//     async ({ id, values }, { rejectWithValue }) => {
+//         console.log(values);
+//         try {
+//             const response = await axios.post(`${BASE_URL}/user/${id}`, values);
+//             return response.data; // Assuming the API returns the updated user data
+//         } catch (error) {
+//             return handleErrors(error, null, rejectWithValue);
+//         }
+//     }
+// );
 
 export const createPlan = createAsyncThunk(
     'auth/createPlan',
@@ -341,7 +347,27 @@ export const updateMessage = createAsyncThunk(
     }
   );
 
-
+  export const updateUser = createAsyncThunk(
+    'auth/updateUser',
+    async ({ id, values }, { rejectWithValue }) => {
+        const token = await sessionStorage.getItem("token");
+        const formData = new FormData();
+        Object.keys(values).forEach(key => {
+            formData.append(key, values[key]);
+        });
+        try {
+            const response = await axios.put(`${BASE_URL}/editUser/${id}`, formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                }
+            });
+            return response.data; // Assuming the API returns the updated user data
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
 const authSlice = createSlice({
     name: 'auth',
     initialState,
@@ -442,7 +468,8 @@ const authSlice = createSlice({
                 // enqueueSnackbar(state.message, { variant: 'error' });
             })
             .addCase(getUser.fulfilled, (state, action) => {
-                state.user = action.payload.data; // Assuming the API returns the user data
+              
+                state.user = action.payload.users; // Assuming the API returns the user data
                 state.loading = false;
                 state.error = null;
                 state.message = "User retrieved successfully";
@@ -455,7 +482,7 @@ const authSlice = createSlice({
                 // enqueueSnackbar(state.message, { variant: 'error' });
             })
             .addCase(updateUser.fulfilled, (state, action) => {
-                state.user = action.payload.data; // Assuming the API returns the updated user data
+                state.user = action.payload.users; // Assuming the API returns the updated user data
                 state.loading = false;
                 state.error = null;
                 state.message = "User updated successfully";

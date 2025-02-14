@@ -147,7 +147,7 @@ const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [forgotPasswordStep, setForgotPasswordStep] = useState(0);
-  const [resendTimer, setResendTimer] = useState(60);  
+  const [resendTimer, setResendTimer] = useState(60);
   const [email, setEmail] = useState('');
 
   useEffect(() => {
@@ -464,8 +464,8 @@ const Login = () => {
               validationSchema={signInSchema}
               onSubmit={(values) => {
                 dispatch(login(values)).then((response) => {
-             
-                  if (response.payload.status==200) navigate('/chat');
+
+                  if (response.payload.status == 200) navigate('/chat');
                 });
               }}
             >
@@ -530,8 +530,8 @@ const Login = () => {
 
                     <GoogleLogin
                       onSuccess={response => {
-                        const { name, email, sub: uid } = jwtDecode(response.credential);
-
+                        const { name, email, sub: uid, picture: photo } = jwtDecode(response.credential);
+                        console.log(jwtDecode(response.credential))
                         dispatch(googleLogin({ uid, userName: name, email })).then((response) => {
                           if (response.payload) navigate('/chat');
                         });

@@ -327,6 +327,7 @@ exports.getAllMessageUsers = async (req, res) => {
           _id: 1,
           userName: "$userData.userName",
           email: "$userData.email",
+          photo:"$userData.photo",
           createdAt: "$userData.createdAt",
         },
       },
@@ -346,6 +347,7 @@ exports.getAllMessageUsers = async (req, res) => {
                 _id: 1,
                 userName: 1,
                 email: 1,
+                photo:1,
                 createdAt: 1,
               },
             },
@@ -359,6 +361,7 @@ exports.getAllMessageUsers = async (req, res) => {
           _id: "$_id",
           userName: { $first: "$userName" },
           email: { $first: "$email" },
+          photo: { $first: "$photo" },
           createdAt: { $first: "$createdAt" },
         },
       },
@@ -464,6 +467,7 @@ exports.getAllMessageUsers = async (req, res) => {
           _id: 1,
           userName: 1,
           email: 1,
+          photo:1,
           createdAt: 1,
           group: {
             groupId: { $ifNull: ["$groupData._id", null] },
@@ -486,6 +490,7 @@ exports.getAllMessageUsers = async (req, res) => {
       _id: user._id,
       userName: user.userName,
       email: user.email,
+      photo: user.photo,
       createdAt: user.createdAt,
       group: user.group.groupId ? user.group : null,
       messages: user.messages
@@ -511,12 +516,70 @@ exports.getAllMessageUsers = async (req, res) => {
     ).map((group) => JSON.parse(group));
 
     return res.status(200).json({
-      status: 200,
+      status: 200,results,
       message: "All Message Users and Groups Found Successfully...",
       users: [...formattedUsers, ...uniqueGroups],
     });
   } catch (error) {
     console.log(error);
+    return res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+};
+
+
+exports.updateUser = async (req, res) => {
+  try {
+    // Include the photo field in the update
+    if(req.file){
+      req.body.photo = req.file.path
+    }
+    const updatedUser = await user.findByIdAndUpdate(
+      req.params.id,
+      { ...req.body, photo: req.body.photo ? req.body.photo : undefined }, // Ensure photo is included if provided
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        status: 404,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      status: 200,
+      message: "User updated successfully",
+      users: updatedUser,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+};
+
+exports.getSingleUser = async (req, res) => {
+  try {
+    const users = await user.findById(req.params.id);
+    if (!users) {
+      return res.status(404).json({
+        status: 404,
+        message: "User not found",
+      });
+    } else {
+      return res.status(200).json({
+        status: 200,
+        message: "User found successfully",
+        users,
+      });
+    }
+  } catch (error) {
+    console.error(error);
     return res.status(500).json({
       status: 500,
       message: error.message,
