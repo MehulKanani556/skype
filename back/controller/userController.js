@@ -485,16 +485,50 @@ exports.getAllMessageUsers = async (req, res) => {
 
     const results = await message.aggregate(pipeline);
 
+    const userMap = new Map();
+
+    results.forEach((user) => {
+      if (!user.group.groupId) {
+        // Handle non-group users
+        if (!userMap.has(user._id.toString())) {
+          userMap.set(user._id.toString(), {
+            _id: user._id,
+            userName: user.userName,
+            email: user.email,
+            photo: user.photo,
+            createdAt: user.createdAt,
+            messages: user.messages,
+            groups: []
+          });
+        }
+      } else {
+        // Handle users with groups
+        if (!userMap.has(user._id.toString())) {
+          userMap.set(user._id.toString(), {
+            _id: user._id,
+            userName: user.userName,
+            email: user.email,
+            photo: user.photo,
+            createdAt: user.createdAt,
+            messages: user.messages,
+            groups: [user.group]
+          });
+        } else {
+          const existingUser = userMap.get(user._id.toString());
+          existingUser.groups.push(user.group);
+        }
+      }
+    });
+
     // Format the response
-    const formattedUsers = results.map((user) => ({
-      _id: user._id,
-      userName: user.userName,
-      email: user.email,
-      photo: user.photo,
-      createdAt: user.createdAt,
-      group: user.group.groupId ? user.group : null,
-      messages: user.messages
-    }));
+    // const formattedUsers = results.map((user) => ({
+    //   _id: user._id,
+    //   userName: user.userName,
+    //   email: user.email,
+    //   createdAt: user.createdAt,
+    //   group: user.group.groupId ? user.group : null,
+    //   messages: user.messages
+    // }));
 
     // Extract unique groups with additional details
     const uniqueGroups = Array.from(
@@ -518,7 +552,7 @@ exports.getAllMessageUsers = async (req, res) => {
     return res.status(200).json({
       status: 200,results,
       message: "All Message Users and Groups Found Successfully...",
-      users: [...formattedUsers, ...uniqueGroups],
+      users: [...Array.from(userMap.values()), ...uniqueGroups],
     });
   } catch (error) {
     console.log(error);
