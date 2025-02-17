@@ -744,7 +744,7 @@ const userSlice = createSlice({
         // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(getUser.fulfilled, (state, action) => {
-        state.user = action.payload.data; // Assuming the API returns the user data
+        state.user = action.payload.users; // Assuming the API returns the user data
         state.loading = false;
         state.error = null;
         state.message = "User retrieved successfully";
