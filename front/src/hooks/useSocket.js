@@ -962,10 +962,10 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
 
     return () => {
       if (socketRef.current) {
-        socketRef.current?.off("callOffer");
-        socketRef.current?.off("callAnswer");
-        socketRef.current?.off("iceCandidate");
-        socketRef.current?.off("callEnded");
+        socketRef.current.off("callOffer");
+        socketRef.current.off("callAnswer");
+        socketRef.current.off("iceCandidate");
+        socketRef.current.off("callEnded");
       }
     };
   }, []);

@@ -13,12 +13,22 @@ const messageSchema = mongoose.Schema(
       required: true,
     },
     content: {
-      type: Object,
-      required: false,
+      type: {
+        type: String,
+        enum: ["text", "file", "system"],
+        required: true,
+      },
+      content: {
+        type: String,
+        required: true,
+      },
+      fileUrl: String,
+      fileType: String,
+      size: String,
     },
     status: {
       type: String,
-      enum: ["sent", "delivered", "read"],
+      enum: ["sent", "delivered", "read", "deleted"],
       default: "sent",
     },
     deletedAt: {

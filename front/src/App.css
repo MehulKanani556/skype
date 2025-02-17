@@ -90,3 +90,13 @@
   border-radius: 5px;
   transition: width 0.1s; /* Smooth transition for progress */
 }
+.active-search-result {
+  background-color: rgba(255, 255, 0, 0.3);
+  transition: background-color 0.3s ease;
+}
+
+.highlight-text {
+  background-color: yellow;
+  padding: 2px;
+  border-radius: 2px;
+}
