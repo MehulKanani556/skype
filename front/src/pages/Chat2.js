@@ -94,7 +94,7 @@ const Chat2 = () => {
   const [typingUsers, setTypingUsers] = useState({});
   const [showCallModal, setShowCallModal] = useState(false);
   const localVideoRef = useRef(null);
-  
+
   const remoteVideoRef = useRef(null);
   const navigate = useNavigate();
   const [contextMenu, setContextMenu] = useState({
@@ -141,7 +141,7 @@ const Chat2 = () => {
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [editedPhone, setEditedPhone] = useState(user?.phone || "");
   const [visibleDate, setVisibleDate] = useState(null);
-  
+
   //===========Use the custom socket hook===========
   const {
     socket,
@@ -830,15 +830,15 @@ const Chat2 = () => {
   // };
   const scrollToSearchResult = (index) => {
     if (!searchInputbox.trim()) return;
-  
+
     let currentMatchIndex = 0;
     let targetElement = null;
     let targetSpan = null;
-  
+
     // Find all highlighted spans containing the search text
     const highlightedSpans = document.querySelectorAll('.highlight-text');
     // console.log("highlightedSpans", highlightedSpans);
-    
+
     if (highlightedSpans.length > 0) {
       highlightedSpans.forEach((span) => {
         if (currentMatchIndex === index) {
@@ -848,21 +848,21 @@ const Chat2 = () => {
         currentMatchIndex++;
       });
     }
-    console.log("targetElement", targetElement,targetSpan);
-  
+    console.log("targetElement", targetElement, targetSpan);
+
     // Scroll to the target element if found
     if (targetElement && targetSpan) {
       // Remove previous active highlights
       document.querySelectorAll('.active-search-result').forEach(el => {
         el.classList.remove('active-search-result');
       });
-  
+
       // Scroll the message into view
-      targetElement.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
       });
-  
+
       // Highlight the specific occurrence
       targetElement.classList.add('active-search-result');
       setTimeout(() => {
@@ -973,41 +973,41 @@ const Chat2 = () => {
 
 
   // Add intersection observer to track date headers
-useEffect(() => {
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          const date = entry.target.getAttribute('data-date');
-          setVisibleDate(date);
-        }
-      });
-    },
-    {
-      threshold: 0.5, // Trigger when date header is 50% visible
-      root: messagesContainerRef.current
-    }
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const date = entry.target.getAttribute('data-date');
+            setVisibleDate(date);
+          }
+        });
+      },
+      {
+        threshold: 0.5, // Trigger when date header is 50% visible
+        root: messagesContainerRef.current
+      }
+    );
+
+    // Observe all date headers
+    const dateHeaders = document.querySelectorAll('.date-header');
+    dateHeaders.forEach((header) => observer.observe(header));
+
+    return () => {
+      dateHeaders.forEach((header) => observer.unobserve(header));
+    };
+  }, [messages]);
+
+  // Add floating date indicator
+  const FloatingDateIndicator = () => (
+    <div className="sticky top-0 z-10 flex justify-center my-2 pointer-events-none">
+      <span className="bg-white/80 text-gray-600 text-sm px-5 py-1 rounded-full shadow">
+        {visibleDate === new Date().toLocaleDateString("en-GB")
+          ? "Today"
+          : visibleDate}
+      </span>
+    </div>
   );
-
-  // Observe all date headers
-  const dateHeaders = document.querySelectorAll('.date-header');
-  dateHeaders.forEach((header) => observer.observe(header));
-
-  return () => {
-    dateHeaders.forEach((header) => observer.unobserve(header));
-  };
-}, [messages]);
-
-// Add floating date indicator
-const FloatingDateIndicator = () => (
-  <div className="sticky top-0 z-10 flex justify-center my-2 pointer-events-none">
-    <span className="bg-white/80 text-gray-600 text-sm px-5 py-1 rounded-full shadow">
-      {visibleDate === new Date().toLocaleDateString("en-GB") 
-        ? "Today" 
-        : visibleDate}
-    </span>
-  </div>
-);
 
   const renderMessage = (message) => {
     // Add system message handling
@@ -1049,7 +1049,7 @@ const FloatingDateIndicator = () => (
                 <span className="text-white text-2xl font-bold">
                   {user?.userName && user?.userName.includes(" ")
                     ? user?.userName.split(" ")[0][0] +
-                      user?.userName.split(" ")[1][0]
+                    user?.userName.split(" ")[1][0]
                     : user?.userName[0]}
                 </span>
               )}
@@ -1128,25 +1128,22 @@ const FloatingDateIndicator = () => (
 
         <div className="flex px-4 space-x-4 border-b">
           <button
-            className={`py-2 ${
-              selectedTab === "All" ? "border-b-2 border-blue-500" : ""
-            }`}
+            className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
+              }`}
             onClick={() => setSelectedTab("All")}
           >
             All
           </button>
           <button
-            className={`py-2 ${
-              selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
-            }`}
+            className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
+              }`}
             onClick={() => setSelectedTab("Chats")}
           >
             Chats
           </button>
           <button
-            className={`py-2 ${
-              selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
-            }`}
+            className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
+              }`}
             onClick={() => setSelectedTab("Unread")}
           >
             Unread
@@ -1163,13 +1160,13 @@ const FloatingDateIndicator = () => (
 
               const lastMessageA = Array.isArray(a.messages)
                 ? [...a.messages].sort(
-                    (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
-                  )[0]
+                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                )[0]
                 : null;
               const lastMessageB = Array.isArray(b.messages)
                 ? [...b.messages].sort(
-                    (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
-                  )[0]
+                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                )[0]
                 : null;
 
               if (!lastMessageA && !lastMessageB) return 0;
@@ -1184,16 +1181,15 @@ const FloatingDateIndicator = () => (
             .map((item) => {
               const lastMessage = Array.isArray(item.messages)
                 ? [...item.messages] // Create a shallow copy of the array
-                    .sort(
-                      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                    )[0]
+                  .sort(
+                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                  )[0]
                 : null;
               return (
                 <div
                   key={item._id}
-                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${
-                    selectedChat?._id === item._id ? "bg-gray-100" : ""
-                  }`}
+                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""
+                    }`}
                   onClick={() => setSelectedChat(item)}
                 >
                   <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
@@ -1208,7 +1204,7 @@ const FloatingDateIndicator = () => (
                         <span className="text-gray-900 text-lg font-bold">
                           {item?.userName && item?.userName.includes(" ")
                             ? item?.userName.split(" ")[0][0].toUpperCase() +
-                              item?.userName.split(" ")[1][0].toUpperCase()
+                            item?.userName.split(" ")[1][0].toUpperCase()
                             : item?.userName[0].toUpperCase()}
                         </span>
                       )}
@@ -1227,13 +1223,13 @@ const FloatingDateIndicator = () => (
                       <span className="text-xs text-gray-500">
                         {lastMessage
                           ? new Date(lastMessage.createdAt).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "numeric",
-                                minute: "2-digit",
-                                hour12: true,
-                              }
-                            )
+                            [],
+                            {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            }
+                          )
                           : ""}
                       </span>
                     </div>
@@ -1252,22 +1248,22 @@ const FloatingDateIndicator = () => (
                             message.receiver === currentUser &&
                             message.status !== "read"
                         ).length > 0 && (
-                          <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
-                            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                              {item.messages?.filter(
-                                (message) =>
-                                  message.receiver === currentUser &&
-                                  message.status !== "read"
-                              ).length > 99
-                                ? "99+"
-                                : item.messages?.filter(
+                            <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
+                              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                                {item.messages?.filter(
+                                  (message) =>
+                                    message.receiver === currentUser &&
+                                    message.status !== "read"
+                                ).length > 99
+                                  ? "99+"
+                                  : item.messages?.filter(
                                     (message) =>
                                       message.receiver === currentUser &&
                                       message.status !== "read"
                                   ).length}
-                            </span>
-                          </div>
-                        )}
+                              </span>
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -1296,9 +1292,9 @@ const FloatingDateIndicator = () => (
                       ) : (
                         <span className="text-white text-xl font-bold">
                           {selectedChat?.userName &&
-                          selectedChat?.userName.includes(" ")
+                            selectedChat?.userName.includes(" ")
                             ? selectedChat?.userName.split(" ")[0][0] +
-                              selectedChat?.userName.split(" ")[1][0]
+                            selectedChat?.userName.split(" ")[1][0]
                             : selectedChat?.userName[0]}
                         </span>
                       )}
@@ -1325,11 +1321,10 @@ const FloatingDateIndicator = () => (
                       </div>
                     ) : (
                       <div
-                        className={`text-sm ${
-                          onlineUsers.includes(selectedChat?._id)
+                        className={`text-sm ${onlineUsers.includes(selectedChat?._id)
                             ? "text-green-500"
                             : "text-gray-500"
-                        }`}
+                          }`}
                       >
                         {onlineUsers.includes(selectedChat?._id)
                           ? "Active now"
@@ -1446,9 +1441,9 @@ const FloatingDateIndicator = () => (
                   Object.entries(groupMessagesByDate(messages)).map(
                     ([date, dateMessages]) => (
                       <div key={date} className="flex flex-col">
-                        <div 
-                      className="flex justify-center my-4 text-gray-500 date-header"
-                      data-date={date}
+                        <div
+                          className="flex justify-center my-4 text-gray-500 date-header"
+                          data-date={date}
                         >
                           ------------------------------
                           <span className=" text-gray-600 text-sm px-5 py-1 rounded-full">
@@ -1489,37 +1484,35 @@ const FloatingDateIndicator = () => (
                           const showTime =
                             !prevMessage ||
                             new Date(message?.createdAt).getMinutes() -
-                              new Date(prevMessage?.createdAt).getMinutes() >
-                              0 ||
+                            new Date(prevMessage?.createdAt).getMinutes() >
+                            0 ||
                             !issameUser;
 
-                            const name = allUsers.find(user => user._id === message.sender)?.userName
+                          const name = allUsers.find(user => user._id === message.sender)?.userName
                           // console.log("fghfgh",currentTime, prevMessage , nextMessage, showTime,);
-                         
+
                           return (
-                            message.content?.type === "system") ?(
-                              
-                                <div className="flex justify-center my-2">
-                                  <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
-                                    {message.content.content}
-                                  </span>
-                                </div>
-                              
-                            ):(
+                            message.content?.type === "system") ? (
+
+                            <div className="flex justify-center my-2">
+                              <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
+                                {message.content.content}
+                              </span>
+                            </div>
+
+                          ) : (
                             <div
                               key={message._id}
-                              className={`flex relative ${
-                                message.sender === userId
+                              className={`flex relative ${message.sender === userId
                                   ? "justify-end items-end"
                                   : "justify-start items-start"
-                              } ${
-                                isConsecutive ? "mb-1" : "mb-4"
-                              } message-content`}
+                                } ${isConsecutive ? "mb-1" : "mb-4"
+                                } message-content`}
                             >
                               <div className="flex flex-col relative group">
                                 {showTime && (
                                   <div className="text-xs text-gray-500 mt-3 text-right">
-                                    {(selectedChat?.members && message.sender != userId)? `${name},` : ''} {currentTime}
+                                    {(selectedChat?.members && message.sender != userId) ? `${name},` : ''} {currentTime}
                                   </div>
                                 )}
                                 {message.content?.type === "file" ? (
@@ -1539,11 +1532,10 @@ const FloatingDateIndicator = () => (
                                           "/"
                                         )}`}
                                         alt={message.content.content}
-                                        className={`w-full object-contain ${
-                                          message.sender === userId
+                                        className={`w-full object-contain ${message.sender === userId
                                             ? "rounded-s-lg rounded-tr-lg"
                                             : "rounded-e-lg rounded-tl-lg"
-                                        } `}
+                                          } `}
                                         onClick={() =>
                                           handleImageClick(
                                             `${IMG_URL}${message.content.fileUrl.replace(
@@ -1556,17 +1548,16 @@ const FloatingDateIndicator = () => (
                                     </div>
                                   ) : message.content?.fileType.includes("audio/") ? (
                                     <div
-                                      className={`p-4 max-w-[300px] ${
-                                        message.sender === userId
+                                      className={`p-4 max-w-[300px] ${message.sender === userId
                                           ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
                                           : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
-                                      }`}
+                                        }`}
                                       style={{ wordWrap: "break-word" }}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
                                       }
                                     >
-                                       <AudioPlayer audioUrl={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} />
+                                      <AudioPlayer audioUrl={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} />
                                       {/* <audio controls>
                                         <source src={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} type={message.content.fileType} />
                                         Your browser does not support the audio element.
@@ -1615,15 +1606,12 @@ const FloatingDateIndicator = () => (
                                 ) : (
                                   <div className="flex gap-1">
                                     <div
-                                      className={`group flex-1 p-2  flex justify-between items-center relative ${
-                                        message.sender === userId
-                                          ? `bg-[#CCF7FF] rounded-s-lg ${
-                                              showTime ? "rounded-tr-lg" : ""
-                                            } `
-                                          : `bg-[#F1F1F1] rounded-e-lg ${
-                                              showTime ? "rounded-tl-lg" : ""
-                                            }`
-                                      }`}
+                                      className={`group flex-1 p-2  flex justify-between items-center relative ${message.sender === userId
+                                          ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""
+                                          } `
+                                          : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""
+                                          }`
+                                        }`}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
                                       }
@@ -1638,9 +1626,8 @@ const FloatingDateIndicator = () => (
                                   </div>
                                 )}
                                 <PiDotsThreeVerticalBold
-                                  className={`absolute  ${
-                                    showTime ? "top-6" : "top-0"
-                                  } -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity`}
+                                  className={`absolute  ${showTime ? "top-6" : "top-0"
+                                    } -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity`}
                                   onClick={() =>
                                     handleDropdownToggle(message._id)
                                   }
@@ -1649,9 +1636,8 @@ const FloatingDateIndicator = () => (
 
                               {message.sender === userId && (
                                 <div
-                                  className={`flex items-end mt-1  ${
-                                    showTime ? "bottom-3" : "-bottom-2"
-                                  }  right-0`}
+                                  className={`flex items-end mt-1  ${showTime ? "bottom-3" : "-bottom-2"
+                                    }  right-0`}
                                 >
                                   {message.status === "sent" && (
                                     <IoCheckmarkCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
@@ -1756,7 +1742,7 @@ const FloatingDateIndicator = () => (
                     } else if (
                       file.type === "application/vnd.ms-excel" ||
                       file.type ===
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     ) {
                       fileIcon = (
                         <FaFileExcel className="w-20 h-20 text-gray-500" />
@@ -1764,7 +1750,7 @@ const FloatingDateIndicator = () => (
                     } else if (
                       file.type === "application/msword" ||
                       file.type ===
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     ) {
                       fileIcon = (
                         <FaFileWord className="w-20 h-20 text-gray-500" />
@@ -1772,7 +1758,7 @@ const FloatingDateIndicator = () => (
                     } else if (
                       file.type === "application/vnd.ms-powerpoint" ||
                       file.type ===
-                        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
                     ) {
                       fileIcon = (
                         <FaFilePowerpoint className="w-20 h-20 text-gray-500" />
@@ -1871,14 +1857,14 @@ const FloatingDateIndicator = () => (
                         accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
                         className="hidden"
                         onChange={handleInputChange}
-                        // onChange={(e) => {
-                        // e.preventDefault();
-                        // const files = e.target.files;
-                        // console.log(files);
-                        // if (files) {
-                        //     handleSubmit(e,files);
-                        // }
-                        // }}
+                      // onChange={(e) => {
+                      // e.preventDefault();
+                      // const files = e.target.files;
+                      // console.log(files);
+                      // if (files) {
+                      //     handleSubmit(e,files);
+                      // }
+                      // }}
                       />
                       <button
                         type="button"
@@ -1958,58 +1944,20 @@ const FloatingDateIndicator = () => (
 
           {/*========== screen share ==========*/}
 
+
+
+
+
+
+          {/* {console.log(isVideoCalling)} */}
           {(isSharing || isReceiving || isVideoCalling) && (
-            <div className="h-10 flex gap-3 mb-4">
-              <button
-                onClick={cleanupConnection}
-                className="bg-red-500 h-10   text-white px-4 py-2 rounded hover:bg-red-600 transition-colors "
-              >
-                <MdCallEnd className="text-xl " />
-                {/* {isSharing ? "Sharing" : isReceiving ? "Receiving" : "Video Call"} */}
-              </button>
+            <div className="grid grid-row-2 gap-4 relative">
               {isVideoCalling && (
-                <div className="flex gap-2 ">
-                  <button
-                    onClick={toggleCamera}
-                    className={`px-4 py-2 rounded h-10 ${
-                      isCameraOn ? "bg-green-500" : "bg-red-500"
-                    } text-white`}
-                  >
-                    {isCameraOn ? (
-                      <FiCamera className="text-xl " />
-                    ) : (
-                      <FiCameraOff className="text-xl " />
-                    )}
-                  </button>
-                  <button
-                    onClick={toggleMicrophone}
-                    className={`px-4 py-2 rounded h-10 ${
-                      isMicrophoneOn ? "bg-green-500" : "bg-red-500"
-                    } text-white`}
-                  >
-                    {isMicrophoneOn ? (
-                      <BsFillMicFill className="text-xl " />
-                    ) : (
-                      <BsFillMicMuteFill className="text-xl " />
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-
-
-
-{console.log(isVideoCalling)}
-            {(isSharing || isReceiving || isVideoCalling) && (
-              <div className="grid grid-row-2 gap-4 relative">
-                {isVideoCalling && (
-                  <div className="space-y-2 max-w-30 absolute top-1 right-0" >
-                    <h4 className="font-medium">
-                      {/* {isVideoCalling ? "Your Camera" : "Your Screen"} */}
-                      {/* {isSharing && "(Sharing)"} */}
-                      {/* {isVideoCalling && !isCameraOn && (
+                <div className="space-y-2 max-w-30 absolute top-1 right-0" >
+                  <h4 className="font-medium">
+                    {/* {isVideoCalling ? "Your Camera" : "Your Screen"} */}
+                    {/* {isSharing && "(Sharing)"} */}
+                    {/* {isVideoCalling && !isCameraOn && (
                         <div className="text-center">{selectedChat?._id}</div>
                       )} */}
                   </h4>
@@ -2029,48 +1977,48 @@ const FloatingDateIndicator = () => (
                     {isReceiving && "(Receiving)"}
                   </h4> */}
 
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full bg-gray-100 rounded"
-                    style={{ maxHeight: "90vh", }}
-                  />
-                </div>
-                {(isSharing || isReceiving || isVideoCalling) && (
-                  <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
-
-                    <button
-                      onClick={cleanupConnection}
-                      className="bg-red-500 h-10 w-10  text-white  grid place-content-center rounded-full hover:bg-red-600 transition-colors "
-                    >
-                      <MdCallEnd className="text-xl " />
-                      {/* {isSharing ? "Sharing" : isReceiving ? "Receiving" : "Video Call"} */}
-                    </button>
-                    {isVideoCalling && (
-                      <>
-                        <button
-                          onClick={toggleCamera}
-                          className={`w-10 grid place-content-center  rounded-full h-10 ${isCameraOn ? "bg-blue-500" : "bg-gray-400"
-                            } text-white`}
-                        >
-                          {isCameraOn ? <FiCamera className="text-xl " /> : <FiCameraOff className="text-xl " />}
-                        </button>
-                        <button
-                          onClick={toggleMicrophone}
-                          className={`w-10 grid place-content-center  rounded-full h-10 ${isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
-                            } text-white`}
-                        >
-                          {isMicrophoneOn ? <BsFillMicFill className="text-xl " /> : <BsFillMicMuteFill className="text-xl " />}
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full bg-gray-100 rounded"
+                  style={{ maxHeight: "90vh", }}
+                />
               </div>
-            )}
-          </div>
-        )
+              {(isSharing || isReceiving || isVideoCalling) && (
+                <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
+
+                  <button
+                    onClick={cleanupConnection}
+                    className="bg-red-500 h-10 w-10  text-white  grid place-content-center rounded-full hover:bg-red-600 transition-colors "
+                  >
+                    <MdCallEnd className="text-xl " />
+                    {/* {isSharing ? "Sharing" : isReceiving ? "Receiving" : "Video Call"} */}
+                  </button>
+                  {isVideoCalling && (
+                    <>
+                      <button
+                        onClick={toggleCamera}
+                        className={`w-10 grid place-content-center  rounded-full h-10 ${isCameraOn ? "bg-blue-500" : "bg-gray-400"
+                          } text-white`}
+                      >
+                        {isCameraOn ? <FiCamera className="text-xl " /> : <FiCameraOff className="text-xl " />}
+                      </button>
+                      <button
+                        onClick={toggleMicrophone}
+                        className={`w-10 grid place-content-center  rounded-full h-10 ${isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
+                          } text-white`}
+                      >
+                        {isMicrophoneOn ? <BsFillMicFill className="text-xl " /> : <BsFillMicMuteFill className="text-xl " />}
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )
       }
 
       {/* ========= incoming call ========= */}
@@ -2327,9 +2275,8 @@ const FloatingDateIndicator = () => (
                   />
                 ) : (
                   <span
-                    className={`text-gray-800 cursor-pointer ${
-                      !user?.dob ? "text-sm" : ""
-                    } `}
+                    className={`text-gray-800 cursor-pointer ${!user?.dob ? "text-sm" : ""
+                      } `}
                     onClick={() => setIsEditingDob(true)}
                   >
                     {new Date(user?.dob).toLocaleDateString() || "Add dob"}
@@ -2373,9 +2320,8 @@ const FloatingDateIndicator = () => (
                   </span>
                 ) : (
                   <span
-                    className={`text-gray-800 cursor-pointer ${
-                      !user?.phone ? "text-sm" : ""
-                    } `}
+                    className={`text-gray-800 cursor-pointer ${!user?.phone ? "text-sm" : ""
+                      } `}
                     onClick={() => setIsEditingPhone(true)}
                   >
                     {user?.phone || "Add phone number"}
