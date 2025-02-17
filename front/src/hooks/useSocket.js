@@ -238,12 +238,14 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     socketRef.current.on("receive-group", groupMessageHandler);
 
     return () => {
-      socketRef.current.off("receive-message", messageHandler);
-      socketRef.current.off("message-sent-status", messageStatusHandler);
-      socketRef.current.off("message-read", messageReadHandler);
-      socketRef.current.off("message-deleted", messageDeletedHandler);
-      socketRef.current.off("message-updated", messageUpdatedHandler);
-      socketRef.current.off("receive-group", groupMessageHandler);
+      if (socketRef.current) {
+        socketRef.current.off("receive-message", messageHandler);
+        socketRef.current.off("message-sent-status", messageStatusHandler);
+        socketRef.current.off("message-read", messageReadHandler);
+        socketRef.current.off("message-deleted", messageDeletedHandler);
+        socketRef.current.off("message-updated", messageUpdatedHandler);
+        socketRef.current.off("receive-group", groupMessageHandler);
+      }
     };
   };
 
@@ -594,12 +596,14 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
 
     return () => {
       cleanupConnection();
-      socketRef.current.off("video-call-request");
-      socketRef.current.off("video-call-accepted");
-      socketRef.current.off("video-call-signal");
-      socketRef.current.off("screen-share-request");
-      socketRef.current.off("share-accepted");
-      socketRef.current.off("share-signal");
+      if (socketRef.current) {
+        socketRef.current.off("video-call-request");
+        socketRef.current.off("video-call-accepted"); 
+        socketRef.current.off("video-call-signal");
+        socketRef.current.off("screen-share-request");
+        socketRef.current.off("share-accepted");
+        socketRef.current.off("share-signal");
+      }
     };
   }, [userId]);
 
@@ -955,10 +959,12 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     });
 
     return () => {
-      socketRef.current?.off("callOffer");
-      socketRef.current?.off("callAnswer");
-      socketRef.current?.off("iceCandidate");
-      socketRef.current?.off("callEnded");
+      if (socketRef.current) {
+        socketRef.current.off("callOffer");
+        socketRef.current.off("callAnswer");
+        socketRef.current.off("iceCandidate");
+        socketRef.current.off("callEnded");
+      }
     };
   }, []);
 
@@ -1088,7 +1094,9 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     };
     socketRef.current.on("group-updated", handleGroupUpdate);
     return () => {
-      socketRef.current.off("group-updated", handleGroupUpdate);
+      if (socketRef.current) {
+        socketRef.current.off("group-updated", handleGroupUpdate);
+      }
     };
   }, [socketRef.current]);
 

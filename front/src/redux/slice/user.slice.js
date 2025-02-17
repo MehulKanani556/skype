@@ -326,8 +326,8 @@ export const createGroup = createAsyncThunk(
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log("response", response.data);
-      // useSocket.socket.emit("create-group", {members: response.data.group.members });
+      console.log("response", response.data.group);
+      useSocket.socket.emit("create-group", response.data.group);
       return response.data;
     } catch (error) {
       return handleErrors(error, null, rejectWithValue);
