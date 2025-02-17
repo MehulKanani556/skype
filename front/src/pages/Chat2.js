@@ -135,12 +135,19 @@ const Chat2 = () => {
   const [searchIndex, setSearchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
+  const [isProfileImageModalOpen, setIsProfileImageModalOpen] = useState(false);
+  const [selectedProfileImage, setSelectedProfileImage] = useState(null);
+
+
+
   const [isEditingUserName, setIsEditingUserName] = useState(false);
   const [isEditingDob, setIsEditingDob] = useState(false);
   const [editedDob, setEditedDob] = useState(user?.dob || "");
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [editedPhone, setEditedPhone] = useState(user?.phone || "");
   const [visibleDate, setVisibleDate] = useState(null);
+
+  const searchRef = useRef(null); // Define searchRef
 
   //===========Use the custom socket hook===========
   const {
@@ -693,8 +700,7 @@ const Chat2 = () => {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        console.log("Clicked outside, closing dropdown");
-        setIsDropdownOpen(false);
+        setActiveMessageId(null); // Close the dropdown by setting activeMessageId to null
       }
     };
 
@@ -702,7 +708,7 @@ const Chat2 = () => {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [isDropdownOpen]);
+  }, [dropdownRef]);
 
   // ================== reply message ==================
   const handleReplyMessage = (message) => {
@@ -1029,6 +1035,15 @@ const Chat2 = () => {
     );
   };
 
+  const handleProfileImageClick = (imageUrl) => {
+    setSelectedImage(imageUrl);
+    setIsProfileImageModalOpen(true);
+  };
+
+  const handleCopyMessage = (messageContent, callback) => {
+    navigator.clipboard.writeText(messageContent).then(callback);
+  };
+
   return (
     <div className="flex h-screen bg-white">
       <div className="w-80 border-r flex flex-col">
@@ -1091,7 +1106,7 @@ const Chat2 = () => {
           )}
         </div>
 
-        <div className="p-4 border-b">
+        <div className="p-4 border-b relative" ref={searchRef}>
           <div className="flex items-center bg-gray-100 rounded-md p-2">
             <FaSearch className="w-5 h-5 text-gray-500" />
             <input
@@ -1278,30 +1293,27 @@ const Chat2 = () => {
             <>
               <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-gray-300">
-                    <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
-                      {selectedChat?.photo && selectedChat.photo !== "null" ? (
-                        <img
-                          src={`${IMG_URL}${selectedChat.photo.replace(
-                            /\\/g,
-                            "/"
-                          )}`}
-                          alt="Profile"
-                          className="object-cover"
-                        />
-                      ) : (
-                        <span className="text-white text-xl font-bold">
-                          {selectedChat?.userName &&
-                            selectedChat?.userName.includes(" ")
-                            ? selectedChat?.userName.split(" ")[0][0] +
-                            selectedChat?.userName.split(" ")[1][0]
-                            : selectedChat?.userName[0]}
-                        </span>
-                      )}
-                    </div>
+                  <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center cursor-pointer"
+                    onClick={() => {
+                      if (selectedChat?.photo && selectedChat.photo !== "null") {
+                        handleProfileImageClick(`${IMG_URL}${selectedChat.photo.replace(/\\/g, "/")}`);
+                      }
+                    }}>
+                    {selectedChat?.photo && selectedChat.photo !== "null" ? (
+                      <img
+                        src={`${IMG_URL}${selectedChat.photo.replace(/\\/g, "/")}`}
+                        alt="Profile"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="text-white text-xl font-bold">
+                        {selectedChat?.userName && selectedChat?.userName.includes(' ')
+                          ? selectedChat?.userName.split(' ')[0][0] + selectedChat?.userName.split(' ')[1][0]
+                          : selectedChat?.userName[0]}
+                      </span>
+                    )}
                   </div>
-                  <div
-                    className="ml-3 cursor-pointer"
+                  <div className="ml-3 cursor-pointer"
                     onClick={() => {
                       console.log("selectedChat", selectedChat);
                       if (selectedChat?.members) {
@@ -1339,10 +1351,7 @@ const Chat2 = () => {
                     onClick={() => setIsSearchBoxOpen((prev) => !prev)}
                   />
                   {isSearchBoxOpen && (
-                    <div
-                      className="absolute top-12 right-72 bg-white shadow-lg p-4 z-10 flex items-center border-rounded"
-                      style={{ padding: "5px 25px", borderRadius: "30px" }}
-                    >
+                    <div className="absolute top-12 right-[31%] bg-white shadow-lg p-4 z-10 flex items-center border-rounded" style={{ padding: "5px 25px", borderRadius: "30px" }}>
                       <FaSearch className="text-gray-500 mr-2" />
                       <input
                         type="text"
@@ -1616,12 +1625,73 @@ const Chat2 = () => {
                                         handleContextMenu(e, message)
                                       }
                                     >
-                                      <p className="flex-1">
-                                        {highlightText(
-                                          message.content?.content,
-                                          searchInputbox
+                                      <p className="flex-1">{highlightText(message.content?.content, searchInputbox)}</p>
+
+                                      {/* Add three dots icon */}
+                                      <PiDotsThreeVerticalBold
+                                        className={`absolute  ${showTime ? "top-0" : "top-0"} -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDropdownToggle(message._id);
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                )}
+
+
+                                {/* Context Menu (Right Click) */}
+                                {contextMenu.visible && contextMenu.messageId === message._id && (
+                                  <div
+                                    className="bg-white border rounded shadow-lg z-50"
+                                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                                  >
+                                    <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                      onClick={() => handleEditMessage(contextMenu.message)}
+                                    >
+                                      <MdOutlineModeEdit className="mr-2" /> Edit
+                                    </button>
+                                    <button
+                                      className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                      onClick={() => handleCopyMessage(
+                                        contextMenu.message.content.content,
+                                        () => setContextMenu({ visible: false, x: 0, y: 0, messageId: null })
+                                      )}
+                                    >
+                                      <VscCopy className="mr-2" /> Copy
+                                    </button>
+                                    <button
+                                      className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                      onClick={() => handleDeleteMessage(contextMenu.messageId)}
+                                    >
+                                      <CiSquareRemove className="mr-2" /> Remove
+                                    </button>
+                                  </div>
+                                )}
+                                {/* Three Dots Dropdown */}
+                                {activeMessageId === message._id && (
+                                  <div className=" text-gray-500 mt-1" ref={dropdownRef}>
+                                    <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-50">
+                                      <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        onClick={() => handleEditMessage(contextMenu.message)}
+                                      >
+                                        <MdOutlineModeEdit className="mr-2" /> Edit
+                                      </button>
+                                      <button
+                                        className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        onClick={() => handleCopyMessage(
+                                          message.content.content,
+                                          () => setActiveMessageId(null)
                                         )}
-                                      </p>
+                                      >
+                                        <VscCopy className="mr-2" /> Copy
+                                      </button>
+                                      <button
+                                        className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        onClick={() => handleDeleteMessage(message._id)}
+                                      >
+                                        <CiSquareRemove className="mr-2" /> Remove
+                                      </button>
                                     </div>
                                   </div>
                                 )}
@@ -1636,8 +1706,7 @@ const Chat2 = () => {
 
                               {message.sender === userId && (
                                 <div
-                                  className={`flex items-end mt-1  ${showTime ? "bottom-3" : "-bottom-2"
-                                    }  right-0`}
+                                  className={`flex items-end mt-1  ${showTime ? "bottom-3" : "-bottom-2"}  right-0`}
                                 >
                                   {message.status === "sent" && (
                                     <IoCheckmarkCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
@@ -1736,25 +1805,19 @@ const Chat2 = () => {
                         />
                       );
                     } else if (file.type === "application/pdf") {
-                      fileIcon = (
-                        <FaFilePdf className="w-20 h-20 text-gray-500" />
-                      ); // PDF file icon
+                      fileIcon = <FaFilePdf className="w-20 h-20 text-gray-500" />; // PDF file icon
                     } else if (
                       file.type === "application/vnd.ms-excel" ||
                       file.type ===
                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     ) {
-                      fileIcon = (
-                        <FaFileExcel className="w-20 h-20 text-gray-500" />
-                      ); // Excel file icon
+                      fileIcon = <FaFileExcel className="w-20 h-20 text-gray-500" />; // Excel file icon
                     } else if (
                       file.type === "application/msword" ||
                       file.type ===
                       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     ) {
-                      fileIcon = (
-                        <FaFileWord className="w-20 h-20 text-gray-500" />
-                      ); // Word file icon
+                      fileIcon = <FaFileWord className="w-20 h-20 text-gray-500" />; // Word file icon
                     } else if (
                       file.type === "application/vnd.ms-powerpoint" ||
                       file.type ===
@@ -1768,9 +1831,7 @@ const Chat2 = () => {
                         <FaFileArchive className="w-20 h-20 text-gray-500" />
                       ); // ZIP file icon
                     } else {
-                      fileIcon = (
-                        <FaPaperclip className="w-20 h-20 text-gray-500" />
-                      ); // Generic file icon
+                      fileIcon = <FaPaperclip className="w-20 h-20 text-gray-500" />; // Generic file icon
                     }
                     return (
                       <div
@@ -1870,9 +1931,7 @@ const Chat2 = () => {
                         type="button"
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                         aria-label="Attach file"
-                        onClick={() =>
-                          document.getElementById("file-upload").click()
-                        }
+                        onClick={() => document.getElementById("file-upload").click()}
                       >
                         {selectedFiles && selectedFiles.length > 0 ? (
                           <FaPlusCircle className="w-5 h-5 text-gray-500" />
@@ -2706,7 +2765,7 @@ const Chat2 = () => {
                   </div>
                   <span className="text-gray-800 font-bold">Add participants</span>
                 </div> */}
-                {/* {selectedChat?.members.map((member, index) => {
+                  {/* {selectedChat?.members.map((member, index) => {
                   const user = allUsers.find((user) => user._id === member);
                   return (
                     <div key={index} className="flex items-center p-2 group">
@@ -2785,26 +2844,44 @@ const Chat2 = () => {
         }}
       />
 
-      {/* Image Modal */}
-      {isImageModalOpen && (
+
+      {isProfileImageModalOpen && selectedProfileImage && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="relative w-full h-full flex items-center justify-center p-8">
             <img
-              src={selectedImage}
-              alt="Full Size"
-              className="w-full h-full object-contain "
+              src={selectedProfileImage}
+              alt="Profile"
+              className="max-w-full max-h-full object-contain"
             />
             <button
-              onClick={() => setIsImageModalOpen(false)}
-              className="absolute top-4 right-4 text-white text-2xl"
+              onClick={() => setIsProfileImageModalOpen(false)}
+              className="absolute top-4 right-4 text-white hover:text-gray-300"
             >
-              <ImCross />
+              <ImCross className="w-6 h-6" />
             </button>
           </div>
         </div>
       )}
-    </div>
+
+      {/* Image Modal */}
+      {
+        isImageModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+            <div className="relative w-full h-full flex items-center justify-center p-8">
+              <img src={selectedImage} alt="Full Size" className="w-full h-full object-contain " />
+              <button
+                onClick={() => setIsImageModalOpen(false)}
+                className="absolute top-4 right-4 text-white text-2xl"
+              >
+                <ImCross />
+              </button>
+            </div>
+          </div>
+        )
+      }
+    </div >
   );
 };
+
 
 export default Chat2;
