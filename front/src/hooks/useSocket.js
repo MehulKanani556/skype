@@ -238,12 +238,14 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     socketRef.current.on("receive-group", groupMessageHandler);
 
     return () => {
-      socketRef.current.off("receive-message", messageHandler);
-      socketRef.current.off("message-sent-status", messageStatusHandler);
-      socketRef.current.off("message-read", messageReadHandler);
-      socketRef.current.off("message-deleted", messageDeletedHandler);
-      socketRef.current.off("message-updated", messageUpdatedHandler);
-      socketRef.current.off("receive-group", groupMessageHandler);
+      if (socketRef.current) {
+        socketRef.current.off("receive-message", messageHandler);
+        socketRef.current.off("message-sent-status", messageStatusHandler);
+        socketRef.current.off("message-read", messageReadHandler);
+        socketRef.current.off("message-deleted", messageDeletedHandler);
+        socketRef.current.off("message-updated", messageUpdatedHandler);
+        socketRef.current.off("receive-group", groupMessageHandler);
+      }
     };
   };
 
@@ -463,22 +465,22 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     });
 
     socketRef.current.on("screen-share-request", async (data) => {
-      console.log("Received share request from:", data.fromEmail,document.visibilityState);
+      console.log("Received share request from:", data.fromEmail, document.visibilityState);
       const accept =
         document.visibilityState === "visible"
           ? new Promise((resolve) => {
-              const confirmDialog = document.createElement("div");
-              confirmDialog.style.position = "fixed";
-              confirmDialog.style.top = "50%";
-              confirmDialog.style.left = "50%";
-              confirmDialog.style.transform = "translate(-50%, -50%)";
-              confirmDialog.style.backgroundColor = "white";
-              confirmDialog.style.padding = "20px";
-              confirmDialog.style.borderRadius = "8px";
-              confirmDialog.style.boxShadow = "0 2px 10px rgba(0,0,0,0.1)";
-              confirmDialog.style.zIndex = "1000";
+            const confirmDialog = document.createElement("div");
+            confirmDialog.style.position = "fixed";
+            confirmDialog.style.top = "50%";
+            confirmDialog.style.left = "50%";
+            confirmDialog.style.transform = "translate(-50%, -50%)";
+            confirmDialog.style.backgroundColor = "white";
+            confirmDialog.style.padding = "20px";
+            confirmDialog.style.borderRadius = "8px";
+            confirmDialog.style.boxShadow = "0 2px 10px rgba(0,0,0,0.1)";
+            confirmDialog.style.zIndex = "1000";
 
-              confirmDialog.innerHTML = `
+            confirmDialog.innerHTML = `
                     <div style="margin-bottom: 20px;">
                         ${data.fromEmail} wants to share their screen. Accept?
                     </div>
@@ -488,29 +490,29 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
                     </div>
                 `;
 
-              const overlay = document.createElement("div");
-              overlay.style.position = "fixed";
-              overlay.style.top = "0";
-              overlay.style.left = "0";
-              overlay.style.right = "0";
-              overlay.style.bottom = "0";
-              overlay.style.backgroundColor = "rgba(0,0,0,0.5)";
-              overlay.style.zIndex = "999";
+            const overlay = document.createElement("div");
+            overlay.style.position = "fixed";
+            overlay.style.top = "0";
+            overlay.style.left = "0";
+            overlay.style.right = "0";
+            overlay.style.bottom = "0";
+            overlay.style.backgroundColor = "rgba(0,0,0,0.5)";
+            overlay.style.zIndex = "999";
 
-              document.body.appendChild(overlay);
-              document.body.appendChild(confirmDialog);
+            document.body.appendChild(overlay);
+            document.body.appendChild(confirmDialog);
 
-              document.getElementById("confirm-accept").onclick = () => {
-                document.body.removeChild(confirmDialog);
-                document.body.removeChild(overlay);
-                resolve(true);
-              };
-              document.getElementById("confirm-decline").onclick = () => {
-                document.body.removeChild(confirmDialog);
-                document.body.removeChild(overlay);
-                resolve(false);
-              };
-            })
+            document.getElementById("confirm-accept").onclick = () => {
+              document.body.removeChild(confirmDialog);
+              document.body.removeChild(overlay);
+              resolve(true);
+            };
+            document.getElementById("confirm-decline").onclick = () => {
+              document.body.removeChild(confirmDialog);
+              document.body.removeChild(overlay);
+              resolve(false);
+            };
+          })
           : false;
 
       console.log(accept);
@@ -594,12 +596,14 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
 
     return () => {
       cleanupConnection();
-      socketRef.current.off("video-call-request");
-      socketRef.current.off("video-call-accepted");
-      socketRef.current.off("video-call-signal");
-      socketRef.current.off("screen-share-request");
-      socketRef.current.off("share-accepted");
-      socketRef.current.off("share-signal");
+      if (socketRef.current) {
+        socketRef.current.off("video-call-request");
+        socketRef.current.off("video-call-accepted");
+        socketRef.current.off("video-call-signal");
+        socketRef.current.off("screen-share-request");
+        socketRef.current.off("share-accepted");
+        socketRef.current.off("share-signal");
+      }
     };
   }, [userId]);
 
@@ -623,15 +627,17 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
         console.warn("Could not get media devices:", err);
         // Continue without media stream
       }
-
       if (stream) {
         setIsCameraOn(true);
         setIsMicrophoneOn(true);
         streamRef.current = stream;
+        // console.log(stream,localStreamRef);
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
+
           try {
             await localVideoRef.current.play();
+            // console.log(localVideoRef.current)
           } catch (err) {
             console.error("Error playing local video:", err);
           }
@@ -805,11 +811,11 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
         video:
           type === "video"
             ? {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
-                facingMode: "user",
-                echoCancellation: true,
-              }
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: "user",
+              echoCancellation: true,
+            }
             : false,
       };
 
@@ -955,10 +961,12 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     });
 
     return () => {
-      socketRef.current?.off("callOffer");
-      socketRef.current?.off("callAnswer");
-      socketRef.current?.off("iceCandidate");
-      socketRef.current?.off("callEnded");
+      if (socketRef.current) {
+        socketRef.current?.off("callOffer");
+        socketRef.current?.off("callAnswer");
+        socketRef.current?.off("iceCandidate");
+        socketRef.current?.off("callEnded");
+      }
     };
   }, []);
 
@@ -1003,7 +1011,9 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     });
 
     return () => {
-      socketRef.current?.off("ice-candidate");
+      if (socketRef.current) {
+        socketRef.current?.off("ice-candidate");
+      }
     };
   }, []);
 
@@ -1064,7 +1074,9 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     socketRef.current.on("receive-group", groupMessageHandler);
 
     return () => {
-      socketRef.current.off("receive-group", groupMessageHandler);
+      if (socketRef.current) {
+        socketRef.current.off("receive-group", groupMessageHandler);
+      }
     };
   };
 
@@ -1088,7 +1100,9 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     };
     socketRef.current.on("group-updated", handleGroupUpdate);
     return () => {
-      socketRef.current.off("group-updated", handleGroupUpdate);
+      if (socketRef.current) {
+        socketRef.current.off("group-updated", handleGroupUpdate);
+      }
     };
   }, [socketRef.current]);
 

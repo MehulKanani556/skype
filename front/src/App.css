@@ -50,3 +50,43 @@
 .animate-bounce {
   animation: bounce 1s infinite;
 }
+
+
+.audio-player {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #e0f7fa; /* Light background */
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.play-pause-btn,
+.playback-rate {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.current-time {
+  font-size: 14px;
+}
+
+.waveform {
+  flex-grow: 1; /* Allow the waveform to take available space */
+  height: 10px; /* Height of the progress bar */
+  background-color: #e0e0e0; /* Background color for the waveform */
+  border-radius: 5px;
+  position: relative; /* Positioning for inner elements */
+  overflow: hidden; /* Hide overflow */
+}
+
+.progress {
+  height: 100%;
+  background-color: #007bff; /* Color of the progress */
+  border-radius: 5px;
+  transition: width 0.1s; /* Smooth transition for progress */
+}

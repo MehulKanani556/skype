@@ -32,11 +32,13 @@ import {
   updateUser,
   updateMessage,
   clearChat,
+  sendAudioMessage,
 } from "../redux/slice/user.slice";
 import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
 import Front from '../component/Front';
 import { MdOutlineDeleteSweep } from "react-icons/md";
+import AudioPlayer from "../component/AudioPlayer";
 
 const Chat2 = () => {
   const { onlineUser, isLoading, allUsers, messages, allMessageUsers, groups, user } =
@@ -57,6 +59,7 @@ const Chat2 = () => {
   const [typingUsers, setTypingUsers] = useState({});
   const [showCallModal, setShowCallModal] = useState(false);
   const localVideoRef = useRef(null);
+  
   const remoteVideoRef = useRef(null);
   const navigate = useNavigate();
   const [contextMenu, setContextMenu] = useState({
@@ -134,7 +137,7 @@ const Chat2 = () => {
     markMessageAsRead,
   } = useSocket(currentUser, localVideoRef, remoteVideoRef);
 
-  console.log(onlineUsers);
+  // console.log(onlineUsers);
 
   //===========get all users===========
   useEffect(() => {
@@ -164,7 +167,7 @@ const Chat2 = () => {
   useEffect(() => {
     if (selectedChat && allMessageUsers) {
       const updatedChat = allMessageUsers.find(chat => chat._id === selectedChat._id);
-      console.log("updatedChat", updatedChat);
+      // console.log("updatedChat", updatedChat);
       if (updatedChat) {
         setSelectedChat(updatedChat);
       }
@@ -181,7 +184,7 @@ const Chat2 = () => {
             (msg.status === "sent" || msg.status === "delivered")
         )
         .map((msg) => msg._id);
-      console.log("unreadMessages", unreadMessages, messages);
+      // console.log("unreadMessages", unreadMessages, messages);
       // Mark these messages as read
       if (unreadMessages.length > 0) {
         markMessageAsRead(unreadMessages);
@@ -283,13 +286,13 @@ const Chat2 = () => {
     const files = e.target.files; // Get the files from the input
     if (files && files.length > 0) {
       const filesArray = Array.from(files); // Convert FileList to an array
-      console.log("setting selected", filesArray);
+      // console.log("setting selected", filesArray);
       setSelectedFiles((prev) => [...prev, ...filesArray]); // Add files to the existing selected files array
       return; // Exit the function early if files are being processed
     }
 
     setMessageInput(e.target.value);
-    console.log(e.target.value);
+    // console.log(e.target.value);
     if (selectedChat) {
       sendTypingStatus(selectedChat._id, true);
     }
@@ -381,7 +384,7 @@ const Chat2 = () => {
     for (const file of filesArray) {
       const formData = new FormData();
       formData.append("file", file);
-      console.log("multiple file upload", file);
+      // console.log("multiple file upload", file);
 
       try {
         const response = await axios.post(`${BASE_URL}/upload`, formData, {
@@ -429,7 +432,7 @@ const Chat2 = () => {
 
     if (type == "video") {
       const success = await startVideoCall(selectedChat._id);
-      console.log(success);
+      // console.log(success);
       if (!success) {
         console.error("Failed to start screen sharing");
       }
@@ -758,6 +761,91 @@ const Chat2 = () => {
     });
   };
 
+  // Add state to manage recording
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [audioChunks, setAudioChunks] = useState([]);
+
+  // Function to handle voice message recording
+  const handleVoiceMessage = async () => {
+    if (!isRecording) {
+      // Start recording
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            // Set audio constraints for better quality
+            noiseSuppression: true,
+            echoCancellation: true,
+            sampleRate: 44100, // Set sample rate for better quality
+          },
+        });
+        const recorder = new MediaRecorder(stream);
+        const chunks = [];
+
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+
+        recorder.onstop = async () => {
+          const audioBlob = new Blob(chunks, { type: 'audio/webm' }); // Change to 'audio/webm' for better quality
+          console.log("Audio Blob:", audioBlob);
+
+          // Dispatch the audio message
+          if (selectedChat) {
+            const data = {
+              type: "file", // Determine the type based on input
+              content: audioBlob, // The actual content of the message
+            };
+            console.log("add", audioBlob);
+
+            // Use the same upload logic as for other files
+            const formData = new FormData();
+            formData.append("file", audioBlob);
+
+            try {
+              const response = await axios.post(`${BASE_URL}/upload`, formData, {
+                headers: {
+                  "Content-Type": "multipart/form-data",
+                  Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+                },
+              });
+
+              if (response.status === 200) {
+                const { fileUrl, fileType } = response.data;
+
+                await handleSendMessage({
+                  type: "file",
+                  content: "Audio Message",
+                  fileUrl: fileUrl,
+                  fileType: fileType || "audio/webm", // Update file type accordingly
+                  size: `${(audioBlob.size / (1024 * 1024)).toFixed(2)} MB`,
+                });
+              }
+            } catch (error) {
+              console.error("Error uploading audio message:", error);
+            }
+          }
+          // Reset audio chunks
+          setAudioChunks([]);
+        };
+
+        recorder.start();
+        setMediaRecorder(recorder);
+        setIsRecording(true);
+      } catch (error) {
+        console.error("Error accessing microphone:", error);
+      }
+    } else {
+      // Stop recording
+      mediaRecorder.stop();
+      setIsRecording(false);
+    }
+  };
+
+
+
   return (
     <div className="flex h-screen bg-white">
       <div className="w-80 border-r flex flex-col">
@@ -811,150 +899,150 @@ const Chat2 = () => {
           )}
         </div>
 
-        
 
-          <div className="p-4 border-b">
-            <div className="flex items-center bg-gray-100 rounded-md p-2">
-              <FaSearch className="w-5 h-5 text-gray-500" />
-              <input
-                type="text"
-                placeholder="People, groups, messages"
-                className="bg-transparent ml-2 outline-none flex-1"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
 
-              />
-            </div>
+        <div className="p-4 border-b">
+          <div className="flex items-center bg-gray-100 rounded-md p-2">
+            <FaSearch className="w-5 h-5 text-gray-500" />
+            <input
+              type="text"
+              placeholder="People, groups, messages"
+              className="bg-transparent ml-2 outline-none flex-1"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+
+            />
           </div>
+        </div>
 
-          <div className="flex justify-around p-4 border-b">
-            <div className="flex flex-col items-center text-blue-500">
-              <FaCommentDots className="w-6 h-6" />
-              <span className="text-xs mt-1">Chat</span>
-            </div>
-            <div className="flex flex-col items-center text-gray-500">
-              <FaPhone className="w-6 h-6" />
-              <span className="text-xs mt-1">Calls</span>
-            </div>
-            <div className="flex flex-col items-center text-gray-500 cursor-pointer" onClick={() => setIsGroupCreateModalOpen(true)}>
-              <FaUsers className="w-6 h-6" />
-              <span className="text-xs mt-1">+Group</span>
-            </div>
-            <div className="flex flex-col items-center text-gray-500">
-              <FaBell className="w-6 h-6" />
-              <span className="text-xs mt-1">Notifications</span>
-            </div>
+        <div className="flex justify-around p-4 border-b">
+          <div className="flex flex-col items-center text-blue-500">
+            <FaCommentDots className="w-6 h-6" />
+            <span className="text-xs mt-1">Chat</span>
           </div>
-
-          <div className="flex px-4 space-x-4 border-b">
-            <button
-              className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
-                }`}
-              onClick={() => setSelectedTab("All")}
-            >
-              All
-            </button>
-            <button
-              className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
-                }`}
-              onClick={() => setSelectedTab("Chats")}
-            >
-              Chats
-            </button>
-            <button
-              className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
-                }`}
-              onClick={() => setSelectedTab("Unread")}
-            >
-              Unread
-            </button>
+          <div className="flex flex-col items-center text-gray-500">
+            <FaPhone className="w-6 h-6" />
+            <span className="text-xs mt-1">Calls</span>
           </div>
+          <div className="flex flex-col items-center text-gray-500 cursor-pointer" onClick={() => setIsGroupCreateModalOpen(true)}>
+            <FaUsers className="w-6 h-6" />
+            <span className="text-xs mt-1">+Group</span>
+          </div>
+          <div className="flex flex-col items-center text-gray-500">
+            <FaBell className="w-6 h-6" />
+            <span className="text-xs mt-1">Notifications</span>
+          </div>
+        </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {filteredUsers
-              .slice()
-              .sort((a, b) => {
-                // Prioritize the current user
-                if (a._id === currentUser) return -1;
-                if (b._id === currentUser) return 1;
+        <div className="flex px-4 space-x-4 border-b">
+          <button
+            className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
+              }`}
+            onClick={() => setSelectedTab("All")}
+          >
+            All
+          </button>
+          <button
+            className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
+              }`}
+            onClick={() => setSelectedTab("Chats")}
+          >
+            Chats
+          </button>
+          <button
+            className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
+              }`}
+            onClick={() => setSelectedTab("Unread")}
+          >
+            Unread
+          </button>
+        </div>
 
-                const lastMessageA = Array.isArray(a.messages) ? [...a.messages].sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt))[0] : null;
-                const lastMessageB = Array.isArray(b.messages) ? [...b.messages].sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt))[0] : null;
+        <div className="flex-1 overflow-y-auto">
+          {filteredUsers
+            .slice()
+            .sort((a, b) => {
+              // Prioritize the current user
+              if (a._id === currentUser) return -1;
+              if (b._id === currentUser) return 1;
 
-                if (!lastMessageA && !lastMessageB) return 0;
-                if (!lastMessageA) return 1;
-                if (!lastMessageB) return -1;
+              const lastMessageA = Array.isArray(a.messages) ? [...a.messages].sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt))[0] : null;
+              const lastMessageB = Array.isArray(b.messages) ? [...b.messages].sort((x, y) => new Date(y.createdAt) - new Date(x.createdAt))[0] : null;
 
-                return new Date(lastMessageB.createdAt) - new Date(lastMessageA.createdAt);
-              })
-              .map((item) => {
-                const lastMessage = Array.isArray(item.messages) ?
-                  [...item.messages] // Create a shallow copy of the array
-                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
-                  : null;
-                return (
-                  <div
-                    key={item._id}
-                    className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""
-                      }`}
-                    onClick={() => setSelectedChat(item)}
-                  >
-                    <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                      <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
-                        {item?.photo && item.photo !== "null" ? (
-                          <img src={`${IMG_URL}${item.photo.replace(
-                            /\\/g,
-                            "/"
-                          )}`} alt="Profile" className="object-cover h-full w-full" />
-                        ) : (
-                          <span className="text-gray-900 text-lg font-bold">{item?.userName && item?.userName.includes(' ') ? item?.userName.split(' ')[0][0].toUpperCase() + item?.userName.split(' ')[1][0].toUpperCase() : item?.userName[0].toUpperCase()}</span>
-                        )}
-                      </div>
-                      {onlineUsers.includes(item._id) && (
-                        <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
+              if (!lastMessageA && !lastMessageB) return 0;
+              if (!lastMessageA) return 1;
+              if (!lastMessageB) return -1;
+
+              return new Date(lastMessageB.createdAt) - new Date(lastMessageA.createdAt);
+            })
+            .map((item) => {
+              const lastMessage = Array.isArray(item.messages) ?
+                [...item.messages] // Create a shallow copy of the array
+                  .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
+                : null;
+              return (
+                <div
+                  key={item._id}
+                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""
+                    }`}
+                  onClick={() => setSelectedChat(item)}
+                >
+                  <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
+                    <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
+                      {item?.photo && item.photo !== "null" ? (
+                        <img src={`${IMG_URL}${item.photo.replace(
+                          /\\/g,
+                          "/"
+                        )}`} alt="Profile" className="object-cover h-full w-full" />
+                      ) : (
+                        <span className="text-gray-900 text-lg font-bold">{item?.userName && item?.userName.includes(' ') ? item?.userName.split(' ')[0][0].toUpperCase() + item?.userName.split(' ')[1][0].toUpperCase() : item?.userName[0].toUpperCase()}</span>
                       )}
                     </div>
-                    <div className="ml-3 flex-1">
-                      <div className="flex justify-between">
-                        <span className="font-medium">
-                          {item._id === currentUser
-                            ? `${item.userName} (You)`
-                            : item.userName}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {lastMessage ? new Date(lastMessage.createdAt).toLocaleTimeString([], {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }) : ""}
-                        </span>
+                    {onlineUsers.includes(item._id) && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
+                    )}
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between">
+                      <span className="font-medium">
+                        {item._id === currentUser
+                          ? `${item.userName} (You)`
+                          : item.userName}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {lastMessage ? new Date(lastMessage.createdAt).toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                          hour12: true,
+                        }) : ""}
+                      </span>
+                    </div>
+                    {/* {console.log("i", item, item?.messages?.[0]?.content.content)} */}
+                    {/* {item.email} */}
+
+                    <div className="flex justify-between">
+                      <div className="text-sm text-gray-500">
+                        {item?.messages?.[0]?.content.content}
+                        {item.hasPhoto && (
+                          <span className="text-xs ml-1">[photo]</span>
+                        )}
                       </div>
-                      {/* {console.log("i", item, item?.messages?.[0]?.content.content)} */}
-                      {/* {item.email} */}
+                      <div className="badge">
 
-                      <div className="flex justify-between">
-                        <div className="text-sm text-gray-500">
-                          {item?.messages?.[0]?.content.content}
-                          {item.hasPhoto && (
-                            <span className="text-xs ml-1">[photo]</span>
-                          )}
-                        </div>
-                        <div className="badge">
-
-                          {item.messages?.filter(message => message.receiver === currentUser && message.status !== 'read').length > 0 && (
-                            <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
-                              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                {item.messages?.filter(message => message.receiver === currentUser && message.status !== 'read').length > 99 ? '99+' : item.messages?.filter(message => message.receiver === currentUser && message.status !== 'read').length}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                        {item.messages?.filter(message => message.receiver === currentUser && message.status !== 'read').length > 0 && (
+                          <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
+                            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                              {item.messages?.filter(message => message.receiver === currentUser && message.status !== 'read').length > 99 ? '99+' : item.messages?.filter(message => message.receiver === currentUser && message.status !== 'read').length}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
-                );
-              })}
-          </div>
+                </div>
+              );
+            })}
+        </div>
       </div>
       {!(isReceiving || isVideoCalling) && (
         <div className="flex-1 flex flex-col">
@@ -1052,16 +1140,16 @@ const Chat2 = () => {
                     </div>
                   )}
                   <MdOutlineDeleteSweep
-                      className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 text-4xl"
-                      onClick={() => {
-                        if (window.confirm("Are you sure you want to clear this chat?")) {
-                          dispatch(clearChat({ selectedId: selectedChat._id }))
-                            .then(() => {
-                              dispatch(getAllMessages({ selectedId: selectedChat._id }));
-                            });
-                        }
-                      }}
-                   />
+                    className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 text-4xl"
+                    onClick={() => {
+                      if (window.confirm("Are you sure you want to clear this chat?")) {
+                        dispatch(clearChat({ selectedId: selectedChat._id }))
+                          .then(() => {
+                            dispatch(getAllMessages({ selectedId: selectedChat._id }));
+                          });
+                      }
+                    }}
+                  />
                   <LuScreenShare
                     className="w-6 h-6 cursor-pointer"
                     onClick={() => handleStartScreenShare()}
@@ -1069,15 +1157,15 @@ const Chat2 = () => {
                   {selectedChat?.members && (
                     <MdGroupAdd
                       className="w-6 h-6 cursor-pointer"
-                    onClick={() => {
-                      if (selectedChat?.members) {
-                        setGroupUsers(selectedChat?.members)
-                      } else {
-                        setGroupUsers([selectedChat?._id])
-                      }
-                      setIsModalOpen(true)
-                    }}
-                  />
+                      onClick={() => {
+                        if (selectedChat?.members) {
+                          setGroupUsers(selectedChat?.members)
+                        } else {
+                          setGroupUsers([selectedChat?._id])
+                        }
+                        setIsModalOpen(true)
+                      }}
+                    />
                   )}
                   <MdPhoneEnabled
                     className=" w-6 h-6 cursor-pointer"
@@ -1160,7 +1248,7 @@ const Chat2 = () => {
                                         onClick={() => handleImageClick(`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`)}
                                       />
                                     </div>
-                                  ) : (
+                                  ) : message.content?.fileType.includes("audio/") ? (
                                     <div
                                       className={`p-4 max-w-[300px] ${message.sender === userId
                                         ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
@@ -1171,25 +1259,52 @@ const Chat2 = () => {
                                         handleContextMenu(e, message)
                                       }
                                     >
-                                      <div className="flex items-center">
-                                        <a href={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`}
-                                          download={message.content.content}
-                                          className="ml-2 text-blue-500 hover:underline"
-                                        >
-                                          <FaDownload className="w-6 h-6" />
-                                        </a>
-                                        <div className="ml-3">
-                                          <div className="font-medium">
-                                            {message.content?.content}
-                                          </div>
-                                          <div className="text-sm text-gray-500">
-                                            {message.content?.size}
-                                          </div>
+                                       <AudioPlayer audioUrl={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} />
+                                      {/* <audio controls>
+                                        <source src={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} type={message.content.fileType} />
+                                        Your browser does not support the audio element.
+                                      </audio> */}
+                                      <div className="ml-3">
+                                        <div className="font-medium">
+                                          {message.content?.content}
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                          {message.content?.size}
                                         </div>
                                       </div>
-
                                     </div>
                                   )
+
+                                    : (
+                                      <div
+                                        className={`p-4 max-w-[300px] ${message.sender === userId
+                                          ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
+                                          : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
+                                          }`}
+                                        style={{ wordWrap: "break-word" }}
+                                        onContextMenu={(e) =>
+                                          handleContextMenu(e, message)
+                                        }
+                                      >
+                                        <div className="flex items-center">
+                                          <a href={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`}
+                                            download={message.content.content}
+                                            className="ml-2 text-blue-500 hover:underline"
+                                          >
+                                            <FaDownload className="w-6 h-6" />
+                                          </a>
+                                          <div className="ml-3">
+                                            <div className="font-medium">
+                                              {message.content?.content}
+                                            </div>
+                                            <div className="text-sm text-gray-500">
+                                              {message.content?.size}
+                                            </div>
+                                          </div>
+                                        </div>
+
+                                      </div>
+                                    )
                                 ) : (
                                   <div className="flex gap-1">
                                     <div
@@ -1452,8 +1567,9 @@ const Chat2 = () => {
                         type="button"
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                         aria-label="Voice message"
+                        onClick={handleVoiceMessage}
                       >
-                        <FaMicrophone className="w-5 h-5 text-gray-500" />
+                        <FaMicrophone className={`w-5 h-5 ${isRecording ? 'text-red-500' : 'text-gray-500'}`} />
                       </button>
                       {(messageInput != "" || selectedFiles.length > 0) && (
                         <button
@@ -1515,39 +1631,10 @@ const Chat2 = () => {
 
             {/*========== screen share ==========*/}
 
-            {(isSharing || isReceiving || isVideoCalling) && (
-              <div className="h-10 flex gap-3 mb-4">
-
-                <button
-                  onClick={cleanupConnection}
-                  className="bg-red-500 h-10   text-white px-4 py-2 rounded hover:bg-red-600 transition-colors "
-                >
-                  <MdCallEnd className="text-xl " />
-                  {/* {isSharing ? "Sharing" : isReceiving ? "Receiving" : "Video Call"} */}
-                </button>
-                {isVideoCalling && (
-                  <div className="flex gap-2 ">
-                    <button
-                      onClick={toggleCamera}
-                      className={`px-4 py-2 rounded h-10 ${isCameraOn ? "bg-green-500" : "bg-red-500"
-                        } text-white`}
-                    >
-                      {isCameraOn ? <FiCamera className="text-xl " /> : <FiCameraOff className="text-xl " />}
-                    </button>
-                    <button
-                      onClick={toggleMicrophone}
-                      className={`px-4 py-2 rounded h-10 ${isMicrophoneOn ? "bg-green-500" : "bg-red-500"
-                        } text-white`}
-                    >
-                      {isMicrophoneOn ? <BsFillMicFill className="text-xl " /> : <BsFillMicMuteFill className="text-xl " />}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
 
 
 
+{console.log(isVideoCalling)}
             {(isSharing || isReceiving || isVideoCalling) && (
               <div className="grid grid-row-2 gap-4 relative">
                 {isVideoCalling && (
@@ -1583,13 +1670,41 @@ const Chat2 = () => {
                     style={{ maxHeight: "90vh", }}
                   />
                 </div>
+                {(isSharing || isReceiving || isVideoCalling) && (
+                  <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
+
+                    <button
+                      onClick={cleanupConnection}
+                      className="bg-red-500 h-10 w-10  text-white  grid place-content-center rounded-full hover:bg-red-600 transition-colors "
+                    >
+                      <MdCallEnd className="text-xl " />
+                      {/* {isSharing ? "Sharing" : isReceiving ? "Receiving" : "Video Call"} */}
+                    </button>
+                    {isVideoCalling && (
+                      <>
+                        <button
+                          onClick={toggleCamera}
+                          className={`w-10 grid place-content-center  rounded-full h-10 ${isCameraOn ? "bg-blue-500" : "bg-gray-400"
+                            } text-white`}
+                        >
+                          {isCameraOn ? <FiCamera className="text-xl " /> : <FiCameraOff className="text-xl " />}
+                        </button>
+                        <button
+                          onClick={toggleMicrophone}
+                          className={`w-10 grid place-content-center  rounded-full h-10 ${isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
+                            } text-white`}
+                        >
+                          {isMicrophoneOn ? <BsFillMicFill className="text-xl " /> : <BsFillMicMuteFill className="text-xl " />}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
         )
       }
-
-
 
       {/* ========= incoming call ========= */}
       {
@@ -1892,239 +2007,239 @@ const Chat2 = () => {
         )
       }
 
-        {/* group Profile Modal */}
-        {
-          isGroupModalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg w-96 " style={{ background: "#CCF7FF", background: "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)" }}>
-                <div className="flex justify-between items-center pb-2 p-4">
-                  <h2 className="text-lg font-bold">Profile</h2>
-                  <button
-                    onClick={() => setIsGroupModalOpen(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <ImCross />
-                  </button>
-                </div>
-                <div className="flex flex-col items-center" >
+      {/* group Profile Modal */}
+      {
+        isGroupModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg w-96 " style={{ background: "#CCF7FF", background: "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)" }}>
+              <div className="flex justify-between items-center pb-2 p-4">
+                <h2 className="text-lg font-bold">Profile</h2>
+                <button
+                  onClick={() => setIsGroupModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <ImCross />
+                </button>
+              </div>
+              <div className="flex flex-col items-center" >
                 <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4">
-                    <img 
-                      src={selectedChat?.photo ? `${IMG_URL}${selectedChat?.photo}` : require('../img/group.png')} 
-                      alt="Profile" 
-                      className="cursor-pointer object-cover w-full h-full rounded-full" 
-                      onClick={() => document.getElementById('fileInput').click()} 
-                    />
-                    <input 
-                      type="file" 
-                      id="fileInput" 
-                      className="hidden" 
-                      accept="image/*" 
-                      onChange={async (e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const file = e.target.files[0];
-                          setGroupPhoto(file); 
-                          try {
-                            await dispatch(updateGroup({ groupId: selectedChat._id, photo: file })); // Dispatch the update action
-                            socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) });
-                            await dispatch(getAllMessageUsers());
-                          } catch (error) {
-                            console.error("Failed to update group photo:", error);
-                          }
+                  <img
+                    src={selectedChat?.photo ? `${IMG_URL}${selectedChat?.photo}` : require('../img/group.png')}
+                    alt="Profile"
+                    className="cursor-pointer object-cover w-full h-full rounded-full"
+                    onClick={() => document.getElementById('fileInput').click()}
+                  />
+                  <input
+                    type="file"
+                    id="fileInput"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        setGroupPhoto(file);
+                        try {
+                          await dispatch(updateGroup({ groupId: selectedChat._id, photo: file })); // Dispatch the update action
+                          socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) });
+                          await dispatch(getAllMessageUsers());
+                        } catch (error) {
+                          console.error("Failed to update group photo:", error);
                         }
-                      }} 
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity duration-200">
-                      <MdOutlineModeEdit className="text-white text-4xl cursor-pointer" onClick={() => document.getElementById('fileInput').click()} />
-                    </div>
+                      }
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                    <MdOutlineModeEdit className="text-white text-4xl cursor-pointer" onClick={() => document.getElementById('fileInput').click()} />
                   </div>
-                  <div className="flex items-center justify-between">
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editedUserName}
-                        onChange={(e) => setEditedUserName(e.target.value)}
-                        onBlur={() => {
-                        
+                </div>
+                <div className="flex items-center justify-between">
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedUserName}
+                      onChange={(e) => setEditedUserName(e.target.value)}
+                      onBlur={() => {
+
+                        dispatch(updateGroup({ groupId: selectedChat._id, userName: editedUserName, members: selectedChat?.members }));
+                        socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
+                        dispatch(getAllMessageUsers())
+                        setIsEditing(false);
+                      }}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+
                           dispatch(updateGroup({ groupId: selectedChat._id, userName: editedUserName, members: selectedChat?.members }));
                           socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
                           dispatch(getAllMessageUsers())
                           setIsEditing(false);
-                        }}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                         
-                            dispatch(updateGroup({ groupId: selectedChat._id, userName: editedUserName, members: selectedChat?.members }));
-                            socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
-                            dispatch(getAllMessageUsers())
-                            setIsEditing(false);
-                          }
-                        }}
-                        className="mt-2 text-xl font-semibold bg-transparent border-none outline-none text-center"
-                        autoFocus // This will focus the input when isEditing is true
-                      />
-                    ) : (
-                      <>
-                        <h3 className="mt-2 text-xl font-semibold cursor-pointer" onClick={() => { setIsEditing(true); setEditedUserName(selectedChat?.userName); }}>{selectedChat?.userName}</h3>
-                        <MdOutlineModeEdit className="cursor-pointer" onClick={() => { setIsEditing(true); setEditedUserName(selectedChat?.userName); }} />
-                      </>
-                    )}
-                  </div>
-                  <div className="text-gray-500">Created by {allUsers?.find((user) => user._id == selectedChat?.createdBy)?.userName || "Unknown User"}</div>
-                </div>
-                <div className="mt-4 p-4">
-                  <div className="flex items-center justify-between p-2 border-b border-gray-400">
-                    <span className="text-gray-600 font-bold">Participants</span>
-                    <span className="text-gray-800 ">{selectedChat?.members.length}</span>
-                  </div>
-                  <div className="flex flex-col max-h-48 overflow-y-auto">
-                    {/* <div className="flex items-center justify-between p-2 ">
-                  <span className="text-gray-600 font-bold">Add participants</span>
-                  <button className="text-blue-500 hover:underline">+</button>
-                </div> */}
-                    <div className="flex items-center p-2 cursor-pointer" onClick={() => {
-                      setGroupUsers(selectedChat?.members)
-                      setIsGroupModalOpen(false)
-                      setIsModalOpen(true)
-                    }}>
-                      <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2 font-bold">
-                        +
-                      </div>
-                      <span className="text-gray-800 font-bold">Add participants</span>
-                    </div>
-                    {selectedChat?.members.map((member, index) => {
-                      const user = allUsers.find((user) => user._id === member);
-                      return (
-                        <div key={index} className="flex items-center p-2 group">
-                          <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
-                            {user.userName.charAt(0).toUpperCase()}
-                          </div>
-                          <span className="text-gray-800">{user.userName}</span>
-                          <button className="ml-auto text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs border border-red-500 rounded-full px-2 py-1"
-                            onClick={() => {
-                              dispatch(leaveGroup({ groupId: selectedChat._id, userId: user._id }))
-                              socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== user._id) })
-                              dispatch(getAllMessageUsers())
-                            }}>
-                            Remove
-                          </button>
-                        </div>
-                      )
-                    })}
-                  </div>
-                  <div className="flex items-center justify-between p-2">
-                    <span className="text-red-600 font-bold cursor-pointer"
-                      onClick={() => {
-                        dispatch(leaveGroup({ groupId: selectedChat._id, userId: userId }))
-                        socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
-                        dispatch(getAllMessageUsers())
-                        setIsGroupModalOpen(false)
-                      }}>
-                      Leave Group
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )
-        }
-        {
-          isGroupCreateModalOpen && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg w-96 " style={{ background: "#CCF7FF", background: "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)" }}>
-                <div className="flex justify-between items-center pb-2 p-4">
-                  <h2 className="text-lg font-bold">Create Group</h2>
-                  <button
-                    onClick={() => setIsGroupCreateModalOpen(false)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <ImCross />
-                  </button>
-                </div>
-                <div className="flex flex-col items-center" >
-                  <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4 group">
-                    <img 
-                      src={groupPhoto ? URL.createObjectURL(groupPhoto) : require('../img/group.png')} 
-                      alt="Profile" 
-                      className="cursor-pointer object-cover w-full h-full rounded-full" 
-                      onClick={() => document.getElementById('fileInput').click()} 
-                    />
-                    <input 
-                      type="file" 
-                      id="fileInput" 
-                      className="hidden" 
-                      accept="image/*" 
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const file = e.target.files[0];
-                          setGroupPhoto(file); 
                         }
-                      }} 
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <MdOutlineModeEdit className="text-white text-4xl cursor-pointer" onClick={() => document.getElementById('fileInput').click()} />
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <input
-                      type="text"
-                      placeholder="Group Name"
-                      value={groupName}
-                      onChange={(e) => setGroupName(e.target.value)}
+                      }}
                       className="mt-2 text-xl font-semibold bg-transparent border-none outline-none text-center"
                       autoFocus // This will focus the input when isEditing is true
                     />
+                  ) : (
+                    <>
+                      <h3 className="mt-2 text-xl font-semibold cursor-pointer" onClick={() => { setIsEditing(true); setEditedUserName(selectedChat?.userName); }}>{selectedChat?.userName}</h3>
+                      <MdOutlineModeEdit className="cursor-pointer" onClick={() => { setIsEditing(true); setEditedUserName(selectedChat?.userName); }} />
+                    </>
+                  )}
+                </div>
+                <div className="text-gray-500">Created by {allUsers?.find((user) => user._id == selectedChat?.createdBy)?.userName || "Unknown User"}</div>
+              </div>
+              <div className="mt-4 p-4">
+                <div className="flex items-center justify-between p-2 border-b border-gray-400">
+                  <span className="text-gray-600 font-bold">Participants</span>
+                  <span className="text-gray-800 ">{selectedChat?.members.length}</span>
+                </div>
+                <div className="flex flex-col max-h-48 overflow-y-auto">
+                  {/* <div className="flex items-center justify-between p-2 ">
+                  <span className="text-gray-600 font-bold">Add participants</span>
+                  <button className="text-blue-500 hover:underline">+</button>
+                </div> */}
+                  <div className="flex items-center p-2 cursor-pointer" onClick={() => {
+                    setGroupUsers(selectedChat?.members)
+                    setIsGroupModalOpen(false)
+                    setIsModalOpen(true)
+                  }}>
+                    <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2 font-bold">
+                      +
+                    </div>
+                    <span className="text-gray-800 font-bold">Add participants</span>
+                  </div>
+                  {selectedChat?.members.map((member, index) => {
+                    const user = allUsers.find((user) => user._id === member);
+                    return (
+                      <div key={index} className="flex items-center p-2 group">
+                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
+                          {user.userName.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="text-gray-800">{user.userName}</span>
+                        <button className="ml-auto text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs border border-red-500 rounded-full px-2 py-1"
+                          onClick={() => {
+                            dispatch(leaveGroup({ groupId: selectedChat._id, userId: user._id }))
+                            socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== user._id) })
+                            dispatch(getAllMessageUsers())
+                          }}>
+                          Remove
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex items-center justify-between p-2">
+                  <span className="text-red-600 font-bold cursor-pointer"
+                    onClick={() => {
+                      dispatch(leaveGroup({ groupId: selectedChat._id, userId: userId }))
+                      socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
+                      dispatch(getAllMessageUsers())
+                      setIsGroupModalOpen(false)
+                    }}>
+                    Leave Group
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
+      {
+        isGroupCreateModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg w-96 " style={{ background: "#CCF7FF", background: "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)" }}>
+              <div className="flex justify-between items-center pb-2 p-4">
+                <h2 className="text-lg font-bold">Create Group</h2>
+                <button
+                  onClick={() => setIsGroupCreateModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <ImCross />
+                </button>
+              </div>
+              <div className="flex flex-col items-center" >
+                <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4 group">
+                  <img
+                    src={groupPhoto ? URL.createObjectURL(groupPhoto) : require('../img/group.png')}
+                    alt="Profile"
+                    className="cursor-pointer object-cover w-full h-full rounded-full"
+                    onClick={() => document.getElementById('fileInput').click()}
+                  />
+                  <input
+                    type="file"
+                    id="fileInput"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        setGroupPhoto(file);
+                      }
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <MdOutlineModeEdit className="text-white text-4xl cursor-pointer" onClick={() => document.getElementById('fileInput').click()} />
                   </div>
                 </div>
-                <div className="mt-4 p-4">
-                  <div className="flex items-center justify-between p-2 border-b border-gray-400">
-                    <span className="text-gray-600 font-bold">Participants</span>
-                    <span className="text-gray-800 ">{groupUsers.length || 0}</span>
-                  </div>
-                  <div className="flex flex-col max-h-48 overflow-y-auto">
-                    {allUsers.map((user, index) => {
-                      const isChecked = groupUsers.includes(user._id); // Check if user is already selected
-                      return (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
-                          onClick={() => {
-                            if (!isChecked) {
-                              setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
-                            } else {
-                              setGroupUsers((prev) =>
-                                prev.filter((id) => id !== user._id)
-                              ); // Remove user ID from groupUsers state
-                            }
-                          }}
-                        >
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-2 font-bold">
-                              {user.userName
-                                .split(" ")
-                                .map((n) => n[0].toUpperCase())
-                                .join("")}
-                            </div>
-                            <span>{user.userName}</span>
+                <div className="flex items-center justify-between">
+                  <input
+                    type="text"
+                    placeholder="Group Name"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    className="mt-2 text-xl font-semibold bg-transparent border-none outline-none text-center"
+                    autoFocus // This will focus the input when isEditing is true
+                  />
+                </div>
+              </div>
+              <div className="mt-4 p-4">
+                <div className="flex items-center justify-between p-2 border-b border-gray-400">
+                  <span className="text-gray-600 font-bold">Participants</span>
+                  <span className="text-gray-800 ">{groupUsers.length || 0}</span>
+                </div>
+                <div className="flex flex-col max-h-48 overflow-y-auto">
+                  {allUsers.map((user, index) => {
+                    const isChecked = groupUsers.includes(user._id); // Check if user is already selected
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
+                        onClick={() => {
+                          if (!isChecked) {
+                            setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
+                          } else {
+                            setGroupUsers((prev) =>
+                              prev.filter((id) => id !== user._id)
+                            ); // Remove user ID from groupUsers state
+                          }
+                        }}
+                      >
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-2 font-bold">
+                            {user.userName
+                              .split(" ")
+                              .map((n) => n[0].toUpperCase())
+                              .join("")}
                           </div>
-                          <input
-                            id={`checkbox-${user._id}`}
-                            type="checkbox"
-                            checked={isChecked} // Set checkbox state based on selection
-                            readOnly // Make checkbox read-only to prevent direct interaction
-                            className="form-checkbox rounded-full"
-                            style={{
-                              width: "20px",
-                              height: "20px",
-                              borderRadius: "50%",
-                              border: "2px solid #ccc",
-                              backgroundColor: "#fff",
-                              cursor: "pointer",
-                            }}
-                          />
+                          <span>{user.userName}</span>
                         </div>
-                      );
-                    })}
-                    {/* <div className="flex items-center p-2 cursor-pointer" onClick={() => {
+                        <input
+                          id={`checkbox-${user._id}`}
+                          type="checkbox"
+                          checked={isChecked} // Set checkbox state based on selection
+                          readOnly // Make checkbox read-only to prevent direct interaction
+                          className="form-checkbox rounded-full"
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            border: "2px solid #ccc",
+                            backgroundColor: "#fff",
+                            cursor: "pointer",
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
+                  {/* <div className="flex items-center p-2 cursor-pointer" onClick={() => {
                   setGroupUsers(selectedChat?.members)
                   setIsGroupModalOpen(false)
                   setIsModalOpen(true)
@@ -2134,7 +2249,7 @@ const Chat2 = () => {
                   </div>
                   <span className="text-gray-800 font-bold">Add participants</span>
                 </div> */}
-                    {/* {selectedChat?.members.map((member, index) => {
+                  {/* {selectedChat?.members.map((member, index) => {
                   const user = allUsers.find((user) => user._id === member);
                   return (
                     <div key={index} className="flex items-center p-2 group">
@@ -2153,20 +2268,20 @@ const Chat2 = () => {
                     </div>
                   )
                 })} */}
-                  </div>
-                  <div className="mt-4 flex justify-center">
-                    <button
-                      onClick={() => handleCreateGroup()}
-                      className="bg-blue-500 text-white px-4 py-1 rounded-full hover:bg-blue-600"
-                    >
-                      Create Group
-                    </button>
-                  </div>
+                </div>
+                <div className="mt-4 flex justify-center">
+                  <button
+                    onClick={() => handleCreateGroup()}
+                    className="bg-blue-500 text-white px-4 py-1 rounded-full hover:bg-blue-600"
+                  >
+                    Create Group
+                  </button>
                 </div>
               </div>
             </div>
-          )
-        }
+          </div>
+        )
+      }
 
 
       {/* Add the context menu */}
@@ -2205,13 +2320,13 @@ const Chat2 = () => {
         style={{ display: 'none' }}
         accept="image/*"
         onChange={(e) => {
-          console.log("aaaa")
+          // console.log("aaaa")
 
           const file = e.target.files[0];
           if (file) {
             // Handle the file upload logic here
             dispatch(updateUser({ id: currentUser, values: { photo: file } }));
-            console.log('Selected file:', file);
+            // console.log('Selected file:', file);
             // You can update the profile picture state here
           }
         }}

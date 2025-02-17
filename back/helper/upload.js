@@ -15,27 +15,18 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "image/jpeg",
-    "image/png",
-    "image/gif",
-    "image/webp",
-    "video/mp4",
-    "video/webm",
-    "audio/mpeg",
-    "audio/wav",
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "text/plain",
-    "application/zip",
-  ];
-
-  if (allowedTypes.includes(file.mimetype)) {
+  const allowedTypes = "*/*";
+  if (true) {
     cb(null, true);
   } else {
     cb(new Error("Invalid file type"), false);
   }
+
+  // if (allowedTypes.includes(file.mimetype)) {
+  //   cb(null, true);
+  // } else {
+  //   cb(new Error("Invalid file type"), false);
+  // }
 };
 
 const upload = multer({
