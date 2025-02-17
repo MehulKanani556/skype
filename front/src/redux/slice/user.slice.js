@@ -399,6 +399,22 @@ export const leaveGroup = createAsyncThunk(
     }
   }
 );
+export const getOnlineUsers = createAsyncThunk(
+    'user/getOnlineUsers',
+    async (_, { rejectWithValue }) => {
+        try {
+            const token = await sessionStorage.getItem("token");
+            const response = await axios.get(`${BASE_URL}/online-users`,{
+                headers:{
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            return response.data;
+        } catch (error) {
+            return handleErrors(error, null, rejectWithValue);
+        }
+    }
+);
 
 const userSlice = createSlice({
   name: "user",
@@ -639,6 +655,9 @@ const userSlice = createSlice({
         })
 
 
+    },
+    setOnlineuser: (state, action) => {
+      state.onlineUser = action.payload;
     },
   },
   extraReducers: (builder) => {

@@ -67,6 +67,8 @@ import Front from '../component/Front';
 const Chat2 = () => {
   const { onlineUser, isLoading, allUsers, messages, allMessageUsers, groups, user } =
     useSelector((state) => state.user);
+    console.log(user)
+
   const [selectedTab, setSelectedTab] = useState("All");
   const [recentChats, setRecentChats] = useState([]);
   const [messagesA, setMessages] = useState([]);
