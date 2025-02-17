@@ -477,6 +477,7 @@ exports.getAllMessageUsers = async (req, res) => {
             admin: { $ifNull: ["$groupData.admin", null] },
             description: { $ifNull: ["$groupData.description", null] },
             createdBy: { $ifNull: ["$groupData.createdBy", null] },
+            photo: { $ifNull: ["$groupData.photo", null] },
           },
           messages: { $ifNull: ["$messageData.messages", []] }
         }
@@ -544,6 +545,7 @@ exports.getAllMessageUsers = async (req, res) => {
               admin: user.group.admin,
               description: user.group.description,
               createdBy: user.group.createdBy,
+              photo: user.group.photo,
             })
           )
       )

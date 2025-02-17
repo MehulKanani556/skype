@@ -1,8 +1,6 @@
 const { saveMessage } = require("../controller/messageController");
 const Message = require("../models/messageModel");
 const {
-  createGroup,
-  updateGroup,
   deleteGroup,
   getGroupById,
   findGroupById,
@@ -345,9 +343,9 @@ function handleCallEnd(socket, data) {
 // ===========================group=============================
 
 async function handleCreateGroup(socket, data) {
-  const { members } = data;
-  console.log("members", members, data);
   try {
+    const { members } = data;
+    console.log("members", members, data);
     // const group = await createGroup(userName, members);
     // Emit to all members of the group
     members.forEach((memberId) => {
@@ -443,61 +441,7 @@ async function handleGroupMessage(socket, data) {
 }
 
 // ===========================socket connection=============================
-function handleConnection(socket) {
-  console.log("User connected:", socket.id);
 
-  // Handle user login
-  // When user comes online, update pending messages to delivered
- 
-
-  // Handle private messages
-  socket.on("private-message", (data) => handlePrivateMessage(socket, data));
-
-  // Add handler for message read status
-  socket.on("message-read", (data) => handleMessageRead(socket, data));
-
-  // Handle typing status
-  socket.on("typing-status", (data) => handleTypingStatus(socket, data));
-
-  // Handle disconnection
-  socket.on("disconnect", () => handleDisconnect(socket));
-
-  // Handle message deletion
-  socket.on("delete-message", (messageId) =>
-    handleDeleteMessage(socket, messageId)
-  );
-
-  // Handle message update
-  socket.on("update-message", (data) => handleUpdateMessage(socket, data));
-
-  // ===========================screen share=============================
-  socket.on("screen-share-request", (data) =>
-    handleScreenShareRequest(socket, data)
-  );
-  socket.on("share-accept", (data) => handleScreenShareAccept(socket, data));
-  socket.on("share-signal", (data) => handleScreenShareSignal(socket, data));
-
-  // ===========================Video call=============================
-  socket.on("video-call-request", (data) =>
-    handleVideoCallRequest(socket, data)
-  );
-  socket.on("video-call-accept", (data) => handleVideoCallAccept(socket, data));
-  socket.on("video-call-signal", (data) => handleVideoCallSignal(socket, data));
-
-  // ===========================call=============================
-  socket.on("callOffer", (data) => handleCallOffer(socket, data));
-  socket.on("callAnswer", (data) => handleCallAnswer(socket, data));
-  socket.on("ice-candidate", (data) => handleIceCandidate(socket, data));
-  socket.on("endCall", (data) => handleCallEnd(socket, data));
-
-  // Add group handlers
-  socket.on("create-group", (data) => handleCreateGroup(socket, data));
-  socket.on("update-group", (data) => handleUpdateGroup(socket, data));
-  socket.on("delete-group", (groupId) => handleDeleteGroup(socket, groupId));
-
-  // Handle group messages
-  socket.on("group-message", (data) => handleGroupMessage(socket, data));
-}
 
 function handleDisconnect(socket) {
   if (socket.userId) {
@@ -528,7 +472,7 @@ function initializeSocket(io) {
     //   handleUserLogin(socket, userId);
     // });
 
-    socket.on("user-login", async (userId) => {handleUserLogin(socket, userId)});
+  socket.on("user-login", async (userId) => {handleUserLogin(socket, userId)});
 
      // Handle disconnection
   socket.on("disconnect", () => handleDisconnect(socket));

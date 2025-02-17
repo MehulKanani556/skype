@@ -463,7 +463,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
     });
 
     socketRef.current.on("screen-share-request", async (data) => {
-      console.log("Received share request from:", data.fromEmail);
+      console.log("Received share request from:", data.fromEmail,document.visibilityState);
       const accept =
         document.visibilityState === "visible"
           ? new Promise((resolve) => {

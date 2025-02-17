@@ -2,9 +2,12 @@ const Group = require("../models/groupModel"); // Assuming you have a Group mode
 
 async function createGroup(req, res) {
   try {
-    const { userName, members, createdBy } = req.body; // Assuming you're using body-parser middleware
-    const group = await Group.create({ userName, members, createdBy });
-    return res.status(200).json({ groupId: group._id });
+    const { userName, members, createdBy } = req.body;
+    if(req.file){
+        req.body.photo = req.file.path
+    }
+    const group = await Group.create({ userName, members, createdBy, photo: req.body.photo ? req.body.photo : undefined });
+    return res.status(200).json({ groupId: group._id, group });
   } catch (error) {
     console.error("Error creating group:", error);
     return res
@@ -15,8 +18,20 @@ async function createGroup(req, res) {
 
 async function updateGroup(req, res) {
   try {
-    const { groupId, userName, members } = req.body; // Assuming you're using body-parser middleware
-    await Group.findByIdAndUpdate(groupId, { userName, members });
+    const { groupId } = req.body; // Only keep groupId from the body
+    const updateData = {}; // Create an object to hold the fields to update
+
+    if (req.body.userName) {
+      updateData.userName = req.body.userName; // Add userName if it exists
+    }
+    if (req.body.members) {
+      updateData.members = req.body.members; // Add members if it exists
+    }
+    if (req.file) {
+      updateData.photo = req.file.path; // Update photo if a file is uploaded
+    }
+
+    await Group.findByIdAndUpdate(groupId, updateData); // Update only the fields that are present
     return res.status(200).json({ message: "Group updated successfully" });
   } catch (error) {
     console.error("Error updating group:", error);

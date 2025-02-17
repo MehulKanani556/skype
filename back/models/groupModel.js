@@ -10,7 +10,7 @@ const groupSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
-  profilePicture: {
+  photo: {
     type: String,
     default: "https://via.placeholder.com/150",
   },

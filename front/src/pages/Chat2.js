@@ -56,6 +56,7 @@ import {
   updateGroup,
   updateUser,
   updateMessage,
+  clearChat,
 } from "../redux/slice/user.slice";
 import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
@@ -63,6 +64,7 @@ import { RxCross2 } from "react-icons/rx";
 import { IoCameraOutline, IoCheckmarkCircleOutline, IoCheckmarkDoneCircle, IoCheckmarkDoneCircleOutline, IoCheckmarkDoneCircleSharp, IoCheckmarkDoneSharp, IoCheckmarkSharp } from "react-icons/io5";
 import { PiDotsThreeBold } from "react-icons/pi";
 import Front from '../component/Front';
+import { MdOutlineDeleteSweep } from "react-icons/md";
 
 const Chat2 = () => {
   const { onlineUser, isLoading, allUsers, messages, allMessageUsers, groups, user } =
@@ -114,6 +116,7 @@ const Chat2 = () => {
   const [activeMessageId, setActiveMessageId] = useState(null);
   const [isGroupCreateModalOpen, setIsGroupCreateModalOpen] = useState(false);
   const [groupName, setGroupName] = useState('');
+  const [groupPhoto, setGroupPhoto] = useState(null);
   const [groupMembers, setGroupMembers] = useState([]);
   const dispatch = useDispatch();
   const dropdownRef = useRef(null);
@@ -124,10 +127,6 @@ const Chat2 = () => {
   const [searchIndex, setSearchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
-
-
-
-
   const [isEditingUserName, setIsEditingUserName] = useState(false);
   const [isEditingDob, setIsEditingDob] = useState(false);
   const [editedDob, setEditedDob] = useState(user?.dob || "");
@@ -510,18 +509,21 @@ const Chat2 = () => {
 
   // ==================group chat=================
 
-  const handleCreateGroup = () => {
+  const handleCreateGroup = async () => {
     const data = {
-      userName: `group-${Math.random().toString(36).substring(2, 7)}`,
+      userName: groupName,
       members: groupUsers,
       createdBy: userId,
+      photo: groupPhoto,
     };
     // console.log(data);
-    dispatch(createGroup(data));
-    socket.emit("create-group", data);
+    await dispatch(createGroup(data)); // Wait for the group creation to complete
+    socket.emit("create-group", { members: groupUsers });
     setGroupUsers([]);
-    setIsModalOpen(false);
-    dispatch(getAllMessageUsers())
+    setGroupPhoto(null);
+    setGroupName('');
+    setIsGroupCreateModalOpen(false);
+    dispatch(getAllMessageUsers()); // Call getAllMessageUsers after the socket event
   };
 
   const handleAddParticipants = () => {
@@ -857,7 +859,7 @@ const Chat2 = () => {
             </div>
             <div className="flex flex-col items-center text-gray-500 cursor-pointer" onClick={() => setIsGroupCreateModalOpen(true)}>
               <FaUsers className="w-6 h-6" />
-              <span className="text-xs mt-1">+ Group</span>
+              <span className="text-xs mt-1">+Group</span>
             </div>
             <div className="flex flex-col items-center text-gray-500">
               <FaBell className="w-6 h-6" />
@@ -919,14 +921,14 @@ const Chat2 = () => {
                     onClick={() => setSelectedChat(item)}
                   >
                     <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                      <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
                         {item?.photo && item.photo !== "null" ? (
                           <img src={`${IMG_URL}${item.photo.replace(
                             /\\/g,
                             "/"
-                          )}`} alt="Profile" className="object-cover" />
+                          )}`} alt="Profile" className="object-cover h-full w-full" />
                         ) : (
-                          <span className="text-white text-xl font-bold">{item?.userName && item?.userName.includes(' ') ? item?.userName.split(' ')[0][0] + item?.userName.split(' ')[1][0] : item?.userName[0]}</span>
+                          <span className="text-gray-900 text-lg font-bold">{item?.userName && item?.userName.includes(' ') ? item?.userName.split(' ')[0][0].toUpperCase() + item?.userName.split(' ')[1][0].toUpperCase() : item?.userName[0].toUpperCase()}</span>
                         )}
                       </div>
                       {onlineUsers.includes(item._id) && (
@@ -1070,10 +1072,22 @@ const Chat2 = () => {
                         </button>
                       </div>
                     )}
+                    <MdOutlineDeleteSweep
+                      className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 text-4xl"
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to clear this chat?")) {
+                          dispatch(clearChat({ selectedId: selectedChat._id }))
+                            .then(() => {
+                              dispatch(getAllMessages({ selectedId: selectedChat._id }));
+                            });
+                        }
+                      }}
+                   />
                     <LuScreenShare
                       className="w-6 h-6 cursor-pointer"
                       onClick={() => handleStartScreenShare()}
                     />
+                    {selectedChat?.members && (
                     <MdGroupAdd
                       className="w-6 h-6 cursor-pointer"
                       onClick={() => {
@@ -1085,6 +1099,7 @@ const Chat2 = () => {
                         setIsModalOpen(true)
                       }}
                     />
+                    )}
                     <MdPhoneEnabled
                       className=" w-6 h-6 cursor-pointer"
                       onClick={() => handleMakeCall("audio")}
@@ -1159,7 +1174,7 @@ const Chat2 = () => {
                                         <img
                                           src={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`}
                                           alt={message.content.content}
-                                          className={`w-full object-contain ${message.sender === userId
+                                          className={`w-full object-contain  ${message.sender === userId
                                             ? "rounded-s-lg rounded-tr-lg"
                                             : "rounded-e-lg rounded-tl-lg"
                                             } `}
@@ -1908,10 +1923,34 @@ const Chat2 = () => {
                   </button>
                 </div>
                 <div className="flex flex-col items-center" >
-                  <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4 group">
-                    <img src={require('../img/profile.jpg')} alt="Profile" className="" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                      <MdOutlineModeEdit className="text-white text-4xl cursor-pointer" />
+                <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4">
+                    <img 
+                      src={selectedChat?.photo ? `${IMG_URL}${selectedChat?.photo}` : require('../img/group.png')} 
+                      alt="Profile" 
+                      className="cursor-pointer object-cover w-full h-full rounded-full" 
+                      onClick={() => document.getElementById('fileInput').click()} 
+                    />
+                    <input 
+                      type="file" 
+                      id="fileInput" 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={async (e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const file = e.target.files[0];
+                          setGroupPhoto(file); 
+                          try {
+                            await dispatch(updateGroup({ groupId: selectedChat._id, photo: file })); // Dispatch the update action
+                            socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) });
+                            await dispatch(getAllMessageUsers());
+                          } catch (error) {
+                            console.error("Failed to update group photo:", error);
+                          }
+                        }
+                      }} 
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity duration-200">
+                      <MdOutlineModeEdit className="text-white text-4xl cursor-pointer" onClick={() => document.getElementById('fileInput').click()} />
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
@@ -1921,16 +1960,16 @@ const Chat2 = () => {
                         value={editedUserName}
                         onChange={(e) => setEditedUserName(e.target.value)}
                         onBlur={() => {
-                          // Dispatch action to update the username
-                          dispatch(updateGroup({ groupId: selectedChat._id, userName: editedUserName }));
+                        
+                          dispatch(updateGroup({ groupId: selectedChat._id, userName: editedUserName, members: selectedChat?.members }));
                           socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
                           dispatch(getAllMessageUsers())
                           setIsEditing(false);
                         }}
                         onKeyPress={(e) => {
                           if (e.key === 'Enter') {
-                            // Dispatch action to update the username
-                            dispatch(updateGroup({ groupId: selectedChat._id, userName: editedUserName }));
+                         
+                            dispatch(updateGroup({ groupId: selectedChat._id, userName: editedUserName, members: selectedChat?.members }));
                             socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== userId) })
                             dispatch(getAllMessageUsers())
                             setIsEditing(false);
@@ -2020,8 +2059,24 @@ const Chat2 = () => {
                 </div>
                 <div className="flex flex-col items-center" >
                   <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4 group">
-                    <img src={require('../img/profile.jpg')} alt="Profile" className="cursor-pointer" onClick={() => document.getElementById('fileInput').click()} />
-                    <input type="file" id="fileInput" className="hidden" accept="image/*" />
+                    <img 
+                      src={groupPhoto ? URL.createObjectURL(groupPhoto) : require('../img/group.png')} 
+                      alt="Profile" 
+                      className="cursor-pointer object-cover w-full h-full rounded-full" 
+                      onClick={() => document.getElementById('fileInput').click()} 
+                    />
+                    <input 
+                      type="file" 
+                      id="fileInput" 
+                      className="hidden" 
+                      accept="image/*" 
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const file = e.target.files[0];
+                          setGroupPhoto(file); 
+                        }
+                      }} 
+                    />
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <MdOutlineModeEdit className="text-white text-4xl cursor-pointer" onClick={() => document.getElementById('fileInput').click()} />
                     </div>
@@ -2030,8 +2085,8 @@ const Chat2 = () => {
                     <input
                       type="text"
                       placeholder="Group Name"
-                      value={editedUserName}
-                      onChange={(e) => setEditedUserName(e.target.value)}
+                      value={groupName}
+                      onChange={(e) => setGroupName(e.target.value)}
                       className="mt-2 text-xl font-semibold bg-transparent border-none outline-none text-center"
                       autoFocus // This will focus the input when isEditing is true
                     />

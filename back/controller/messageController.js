@@ -44,6 +44,7 @@ exports.getAllMessages = async (req, res) => {
   try {
     let page = parseInt(req.query.page);
     let pageSize = parseInt(req.query.pageSize);
+    const userId = req.user._id;
 
     if (page < 1 || pageSize < 1) {
       return res.status(401).json({
@@ -57,18 +58,20 @@ exports.getAllMessages = async (req, res) => {
 
     let paginatedUser;
 
-    const group = await groupModel.findById(selectedId); 
+    const group = await groupModel.findById(selectedId);
 
     if (group) {
       paginatedUser = await Message.find({
         receiver: selectedId,
+        deletedFor: { $ne: userId },
       });
     } else {
       paginatedUser = await Message.find({
         $or: [
-          { sender: req.user._id, receiver: selectedId },
-          { sender: selectedId, receiver: req.user._id },
+          { sender: userId, receiver: selectedId },
+          { sender: selectedId, receiver: userId },
         ],
+        deletedFor: { $ne: userId },
       });
     }
 
@@ -119,12 +122,13 @@ exports.deleteMessage = async (req, res) => {
       });
     }
 
-    // Update the message instead of deleting it
-    await Message.findByIdAndUpdate(messageId, {
-      content: { content: "deleted message", type: "text" },
-      deletedAt: new Date(),
-      status: "deleted",
-    });
+    // await Message.findByIdAndUpdate(messageId, {
+    //   content: { content: "deleted message", type: "text" },
+    //   deletedAt: new Date(),
+    //   status: "deleted",
+    // });
+
+    await Message.findByIdAndDelete(messageId);
 
     return res.status(200).json({
       status: 200,
@@ -180,6 +184,41 @@ exports.updateMessage = async (req, res) => {
       status: 200,
       message: "Message updated successfully",
       data: updatedMessage,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+};
+
+exports.clearChat = async (req, res) => {
+  try {
+    const { selectedId } = req.body;
+    const userId = req.user._id;
+
+    // Find all messages between these users
+    const messages = await Message.find({
+      $or: [
+        { sender: userId, receiver: selectedId },
+        { sender: selectedId, receiver: userId },
+      ],
+    });
+
+    // Add current user to deletedFor array for each message
+    await Promise.all(
+      messages.map(async (message) => {
+        await Message.findByIdAndUpdate(message._id, {
+          $addToSet: { deletedFor: userId },
+        });
+      })
+    );
+
+    return res.status(200).json({
+      status: 200,
+      message: "Chat cleared successfully",
     });
   } catch (error) {
     console.error(error);

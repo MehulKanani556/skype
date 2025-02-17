@@ -8,6 +8,7 @@ const {
   getAllMessages,
   deleteMessage,
   updateMessage,
+  clearChat,
 } = require("../controller/messageController");
 const upload = require("../helper/upload");
 const uploadController = require("../controller/uploadController");
@@ -32,8 +33,8 @@ indexRoutes.put("/editUser/:id", auth, upload.single("photo"), updateUser);
 indexRoutes.get("/singleUser/:id", auth, getSingleUser)
 
 // Group Routes
-indexRoutes.post("/createGroup", auth, createGroup);
-indexRoutes.put("/updateGroup/:groupId", auth, updateGroup);
+indexRoutes.post("/createGroup", auth, upload.single("photo"), createGroup);
+indexRoutes.put("/updateGroup/:groupId", auth,upload.single("photo"), updateGroup);
 indexRoutes.delete("/deleteGroup/:groupId", auth, deleteGroup);
 indexRoutes.get("/allGroups",  getAllGroups);
 indexRoutes.get("/getGroupById/:groupId", auth, getGroupById);
@@ -45,7 +46,7 @@ indexRoutes.get("/online-users", getOnlineUsers);
 indexRoutes.post("/allMessages", auth, getAllMessages);
 indexRoutes.get("/deleteMessage/:messageId", auth, deleteMessage);
 indexRoutes.put("/updateMessage/:messageId", auth, updateMessage);
-
+indexRoutes.post("/clearChat", auth, clearChat);
 // File upload endpoint
 indexRoutes.post("/upload",auth,upload.single("file"),uploadController.uploadFile);
 
