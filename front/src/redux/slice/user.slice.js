@@ -236,7 +236,6 @@ export const getAllMessages = createAsyncThunk(
           },
         }
       );
-      console.log(response.data);
       return response.data.messages;
     } catch (error) {
       return handleErrors(error, null, rejectWithValue);
@@ -529,6 +528,7 @@ const userSlice = createSlice({
           // enqueueSnackbar(state.message, { variant: 'error' });
         })
         .addCase(updateUser.fulfilled, (state, action) => {
+          console.log(action.payload)
           state.user = action.payload.users; // Assuming the API returns the updated user data
           state.loading = false;
           state.error = null;
@@ -744,7 +744,7 @@ const userSlice = createSlice({
         // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(getUser.fulfilled, (state, action) => {
-        state.user = action.payload.data; // Assuming the API returns the user data
+        state.user = action.payload.users; // Assuming the API returns the user data
         state.loading = false;
         state.error = null;
         state.message = "User retrieved successfully";
@@ -757,7 +757,7 @@ const userSlice = createSlice({
         // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(updateUser.fulfilled, (state, action) => {
-        state.user = action.payload.data; // Assuming the API returns the updated user data
+        state.user = action.payload.users; // Assuming the API returns the updated user data
         state.loading = false;
         state.error = null;
         state.message = "User updated successfully";
