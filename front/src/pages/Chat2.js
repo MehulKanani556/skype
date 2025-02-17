@@ -1258,27 +1258,6 @@ const Chat2 = () => {
                                     </div>
                                   </div>
                                 )}
-
-
-                                {message.sender === userId && (
-                                  <div
-                                    className={`flex items-center mt-1  ${showTime ? "bottom-3" : "-bottom-2"}  right-0`}
-                                  >
-                                    {message.status === "sent" && (
-                                      <IoCheckmarkCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
-                                    )}
-                                    {message.status === "delivered" && (
-                                      <>
-                                        <IoCheckmarkDoneCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
-                                      </>
-                                    )}
-                                    {message.status === "read" && (
-                                      <>
-                                        <IoCheckmarkDoneCircle className="text-xl mr-1 text-blue-500 font-bold" />
-                                      </>
-                                    )}
-                                  </div>
-                                )}
                               </div>
                             )
                           })}
