@@ -54,7 +54,7 @@ exports.getAllMessages = async (req, res) => {
     }
 
     const { selectedId } = req.body;
-    console.log(selectedId);
+    // console.log(selectedId);
 
     let paginatedUser;
 
@@ -99,7 +99,7 @@ exports.deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
 
-    console.log(messageId);
+    // console.log(messageId);
 
     // Find the message first to check if it exists and if the user has permission
     const message = await Message.findById(messageId);

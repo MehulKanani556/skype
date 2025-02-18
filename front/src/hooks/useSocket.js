@@ -610,6 +610,9 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
   //==========================video call=============================
 
   const startVideoCall = async (receiverId) => {
+
+    console.log(localVideoRef,localVideoRef?.current);
+
     if (!receiverId) {
       setError("Please enter peer email first");
       return;
@@ -631,9 +634,12 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef) => {
         setIsCameraOn(true);
         setIsMicrophoneOn(true);
         streamRef.current = stream;
-        // console.log(stream,localStreamRef);
-        if (localVideoRef.current) {
+
+        console.log(stream,localStreamRef,localVideoRef?.current);
+
+        if (localVideoRef?.current) {
           localVideoRef.current.srcObject = stream;
+          console.log("Local video stream set successfully");
 
           try {
             await localVideoRef.current.play();

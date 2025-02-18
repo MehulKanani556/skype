@@ -1,4 +1,6 @@
 const Group = require("../models/groupModel"); // Assuming you have a Group model
+const User = require("../models/userModels");
+const { saveMessage } = require("./messageController");
 
 async function createGroup(req, res) {
   try {
@@ -7,6 +9,9 @@ async function createGroup(req, res) {
         req.body.photo = req.file.path
     }
     const group = await Group.create({ userName, members, createdBy, photo: req.body.photo ? req.body.photo : undefined });
+    if(!group){
+        return res.status(400).json({ error: "Failed to create group", code: 400 });
+    }
     return res.status(200).json({ groupId: group._id, group });
   } catch (error) {
     console.error("Error creating group:", error);
@@ -38,6 +43,36 @@ async function updateGroup(req, res) {
     return res
       .status(500)
       .json({ error: "Error updating group", code: error.code || 500 });
+  }
+}
+
+async function addParticipants(req, res) {
+  try {
+    const { groupId, members, addedBy } = req.body; 
+    const group = await Group.findByIdAndUpdate(groupId, { $push: { members } });
+    
+    console.log(members);
+  
+    for (const memberId of members) {
+      const addedByUser = await User.findById(addedBy);
+      const memberName = await User.findById(memberId); // Function to get user name by ID
+
+      await saveMessage({
+        senderId: addedBy,
+        receiverId: groupId,
+        content: {
+          type: "system",
+          content: `**${addedByUser.userName}** added **${memberName.userName}** to this conversation`,
+        },
+      });
+     }
+
+    return res.status(200).json({ group }); 
+  } catch (error) {
+    console.error("Error adding participants:", error);
+    return res
+      .status(500)
+      .json({ error: "Error adding participants", code: error.code || 500 });
   }
 }
 
@@ -94,7 +129,7 @@ async function getAllGroups(req, res) {
 
   async function leaveGroup(req, res) {
     try {
-      const { userId, groupId } = req.body;
+      const { userId, groupId, removeId } = req.body;
       const group = await Group.findByIdAndUpdate(
         groupId,
         { $pull: { members: userId } }, // Remove the user from the group's members
@@ -102,6 +137,31 @@ async function getAllGroups(req, res) {
       );
       if (!group) {
         return res.status(404).json({ error: "Group not found", code: 404 });
+      }
+      const user = await User.findById(userId);
+     
+      // Save a message indicating the user has left the group
+
+      if(removeId){
+
+      const removeUser = await User.findById(removeId);
+      await saveMessage({
+        senderId: userId,
+        receiverId: groupId,
+        content: {
+          type: "system",
+          content: `**${removeUser.userName}** has removed **${user.userName}** from this conversation`,
+        },
+      });
+      }else{
+        await saveMessage({
+          senderId: userId,
+          receiverId: groupId,
+          content: {
+            type: "system",
+            content: `**${user.userName}** has left the group.`,
+          },
+        });
       }
       return res.status(200).json({ message: "User left the group successfully", group });
     } catch (error) {
@@ -120,4 +180,5 @@ module.exports = {
   getAllGroups,
   findGroupById,
   leaveGroup,
+  addParticipants,
 };

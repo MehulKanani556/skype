@@ -4,7 +4,7 @@ const uploadController = {
   uploadFile: async (req, res) => {
     try {
       const file = req.file;
-      console.log("file", file);
+      // console.log("file", file);
 
       // Save file details to your database
       const fileDoc = await FileModel.create({

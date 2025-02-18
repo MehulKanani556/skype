@@ -2,8 +2,10 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import sessionStorage from "redux-persist/es/storage/session";
 import axios from "axios";
 import { BASE_URL } from "../../utils/baseUrl";
-import { useSocket } from "../../hooks/useSocket";
+// import { Socket } from "socket.io-client";
 // import { enqueueSnackbar } from 'notistack';
+
+
 
 const handleErrors = (error, dispatch, rejectWithValue) => {
   const errorMessage = error.response?.data?.message || "An error occurred";
@@ -307,7 +309,7 @@ export const updateUser = createAsyncThunk(
 
 export const createGroup = createAsyncThunk(
   "user/createGroup",
-  async (groupData, { rejectWithValue }) => {
+  async ({groupData, socket}, { rejectWithValue }) => {
     const token = await sessionStorage.getItem("token");
     const formData = new FormData();
     Object.keys(groupData).forEach((key) => {
@@ -326,8 +328,12 @@ export const createGroup = createAsyncThunk(
           "Content-Type": "multipart/form-data",
         },
       });
-      console.log("response", response.data.group);
-      useSocket.socket.emit("create-group", response.data.group);
+      console.log("response", response.data);
+      // Emit socket event for group creation
+      if (socket) {
+        console.log("socket", socket);
+        socket.emit("create-group", response.data.group);
+      }
       return response.data;
     } catch (error) {
       return handleErrors(error, null, rejectWithValue);
@@ -405,14 +411,33 @@ export const deleteGroup = createAsyncThunk(
   }
 );
 
+export const addParticipants = createAsyncThunk(
+  "user/addParticipants",
+  async ({ groupId, members, addedBy }, { rejectWithValue }) => {
+    const token = await sessionStorage.getItem("token");  
+    try {
+      const response = await axios.post(`${BASE_URL}/addParticipants`, { groupId, members, addedBy }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }); 
+      return response.data;
+    } catch (error) {
+      return handleErrors(error, null, rejectWithValue);
+    }
+  }
+);
+
+
+
 export const leaveGroup = createAsyncThunk(
   "user/leaveGroup",
-  async ({ groupId, userId }, { rejectWithValue }) => {
+  async ({ groupId, userId, removeId }, { rejectWithValue }) => {
     const token = await sessionStorage.getItem("token");
     try {
       const response = await axios.post(
         `${BASE_URL}/leaveGroup`,
-        { groupId, userId },
+        { groupId, userId, removeId },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -703,7 +728,18 @@ const userSlice = createSlice({
           state.loading = false;
           state.error = action.payload;
           state.message = action.payload?.message || "Failed to leave group";
+        })
+        .addCase(addParticipants.fulfilled, (state, action) => {
+          state.loading = false;
+          state.error = null;
+          state.message = "Participants added successfully";
+        })
+        .addCase(addParticipants.rejected, (state, action) => {
+          state.loading = false;
+          state.error = action.payload;
+          state.message = action.payload?.message || "Failed to add participants";
         });
+
     },
     setOnlineuser: (state, action) => {
       state.onlineUser = action.payload;
@@ -912,6 +948,20 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.message = action.payload?.message || "Failed to retrieve groups";
+      })
+      .addCase(createGroup.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createGroup.fulfilled, (state, action) => {
+        state.loading = false;
+        state.error = null;
+        state.message = "Group created successfully";
+      })
+      .addCase(createGroup.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.message = action.payload?.message || "Failed to create group";
       })
       .addCase(updateGroup.fulfilled, (state, action) => {
         state.loading = false;

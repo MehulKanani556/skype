@@ -5,6 +5,7 @@ const {
   getGroupById,
   findGroupById,
 } = require("../controller/groupController");
+const User = require("../models/userModels");
 
 const onlineUsers = new Map();
 
@@ -54,12 +55,12 @@ async function handleUserLogin(socket, userId) {
     console.error("Error updating pending messages:", error);
   }
 
-  console.log("User logged in:", userId);
-  console.log("Current online users:", onlineUsersList);
+  // console.log("User logged in:", userId);
+  // console.log("Current online users:", onlineUsersList);
 }
 
 function getSocketByUserId(userId) {
-  console.log("userId", userId, onlineUsers);
+  // console.log("userId", userId, onlineUsers);
   const socketId = onlineUsers.get(userId);
   if (socketId && global.io && global.io.sockets) {
     return global.io.sockets.get(socketId);
@@ -69,7 +70,7 @@ function getSocketByUserId(userId) {
 
 async function handlePrivateMessage(socket, data) {
   const { senderId, receiverId, content } = data;
-  console.log("Handling private message:", data);
+  // console.log("Handling private message:", data);
 
   try {
     // Save message to database with initial status 'sent'
@@ -81,7 +82,7 @@ async function handlePrivateMessage(socket, data) {
     });
 
     const receiverSocketId = onlineUsers.get(receiverId);
-    console.log("Receiver socket ID:", receiverSocketId);
+    // console.log("Receiver socket ID:", receiverSocketId);
 
     if (receiverSocketId) {
       // Send to receiver
@@ -104,7 +105,7 @@ async function handlePrivateMessage(socket, data) {
         status: "delivered",
       });
     } else {
-      console.log("Receiver is offline:", receiverId);
+      // console.log("Receiver is offline:", receiverId);
       // Receiver is offline - message stays as 'sent'
       socket.emit("message-sent-status", {
         messageId: savedMessage._id,
@@ -161,16 +162,16 @@ function handleTypingStatus(socket, data) {
 
 async function handleDeleteMessage(socket, messageId) {
   try {
-    console.log("messageId", messageId);
+    // console.log("messageId", messageId);
     // Assuming the message document contains senderId and receiverId
     const message = await Message.findById(messageId);
     if (!message) return;
 
-    console.log("message", message.receiver.toString());
+    // console.log("message", message.receiver.toString());
 
     // Notify the other user about the message deletion
     const receiverSocketId = onlineUsers.get(message.receiver.toString());
-    console.log("receiverSocketId", receiverSocketId);
+    // console.log("receiverSocketId", receiverSocketId);
     if (receiverSocketId) {
       socket.to(receiverSocketId).emit("message-deleted", messageId);
     }
@@ -320,7 +321,7 @@ function handleCallAnswer(socket, data) {
 
 function handleIceCandidate(socket, data) {
   const { to, candidate } = data;
-  console.log("candidate", data);
+  // console.log("candidate", data);
   const targetSocketId = onlineUsers.get(to);
 
   if (targetSocketId) {
@@ -347,26 +348,31 @@ async function handleCreateGroup(socket, data) {
     const { members, userName, createdBy } = data;
     console.log("members", members, data);
 
+    const createdByUser = await User.findById(createdBy);
+    
     // Create system message for group creation
     const systemMessage = await saveMessage({
       senderId: createdBy,
       receiverId: data._id, // group ID
       content: {
         type: "system",
-        content: `${userName} created group`,
+        content: `**${createdByUser.userName}** created the group`,
       },
     });
 
     // Create system messages for each member added
     for (const memberId of members) {
+      const memberName = await User.findById(memberId); // Function to get user name by ID
+     if(createdBy !== memberId){
       await saveMessage({
         senderId: createdBy,
         receiverId: data._id,
         content: {
           type: "system",
-          content: `${createdBy === memberId ? "You" : memberId} joined`,
+          content: `**${createdByUser.userName}** added **${memberName.userName}** to this conversation`,
         },
       });
+     }
     }
 
     // Emit to all members of the group
@@ -425,7 +431,7 @@ async function handleDeleteGroup(socket, groupId) {
 
 async function handleGroupMessage(socket, data) {
   const { groupId, senderId, content } = data;
-  console.log("Handling group message:", data, socket.id);
+  // console.log("Handling group message:", data, socket.id);
 
   try {
     // Save message to database (you may need to adjust this part)
@@ -438,14 +444,14 @@ async function handleGroupMessage(socket, data) {
     async function getGroupMembers(groupId) {
       // Assuming you have a way to get group members from your database or in-memory store
       const group = await findGroupById(groupId); // Implement this function to retrieve the group
-      console.log("group", group);
+      // console.log("group", group);
       return group.members
         .map((memberId) => onlineUsers.get(memberId.toString()))
         .filter(Boolean);
     }
 
     const groupMembers = await getGroupMembers(groupId);
-    console.log("Group members' socket IDs:", groupMembers); // Log the socket IDs
+    // console.log("Group members' socket IDs:", groupMembers); // Log the socket IDs
 
     groupMembers.forEach((memberSocketId) => {
       if (memberSocketId !== socket.id) {
@@ -471,15 +477,15 @@ function handleDisconnect(socket) {
     const onlineUsersList = Array.from(onlineUsers.keys());
     global.io.emit("user-status-changed", onlineUsersList);
 
-    console.log("User disconnected:", socket.userId);
-    console.log("Current online users:", onlineUsersList);
+    // console.log("User disconnected:", socket.userId);
+    // console.log("Current online users:", onlineUsersList);
   }
 }
 
 async function getOnlineUsers(req, res) {
-  console.log("onlineUsers", onlineUsers);
+  // console.log("onlineUsers", onlineUsers);
   const onlineUsersArray = Array.from(onlineUsers.keys());
-  console.log("onlineUsersArray", onlineUsersArray);
+  // console.log("onlineUsersArray", onlineUsersArray);
 
   return res.status(200).json(onlineUsersArray);
   // return onlineUsersArray;
@@ -543,6 +549,7 @@ function initializeSocket(io) {
 
     // Add group handlers
     socket.on("create-group", (data) => handleCreateGroup(socket, data));
+    // socket.on("create-group", (data) => console.log("create-group", data));
     socket.on("update-group", (data) => handleUpdateGroup(socket, data));
     socket.on("delete-group", (groupId) => handleDeleteGroup(socket, groupId));
 

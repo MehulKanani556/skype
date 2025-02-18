@@ -61,6 +61,7 @@ import {
   updateMessage,
   clearChat,
   sendAudioMessage,
+  addParticipants,
 } from "../redux/slice/user.slice";
 import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
@@ -109,6 +110,7 @@ const Chat2 = () => {
   const peerConnectionRef = useRef(null);
   const [userId, setUserId] = useState(sessionStorage.getItem("userId"));
   const [groupUsers, setGroupUsers] = useState([]);
+  const [groupNewUsers, setGroupNewUsers] = useState([]);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const [searchInput, setSearchInput] = useState("");
@@ -203,12 +205,14 @@ const Chat2 = () => {
     } else {
       if (selectedTab === "Unread") {
         setFilteredUsers(
-          allMessageUsers.filter((user) =>
-            user.messages.some(
-              (message) =>
-                message.status === "sent" || message.status === "delivered"
-            )
-          )
+          allMessageUsers.filter((user) => {
+            // console.log(user.messages),
+            if (user.messages && user.messages.length > 0) {
+              return user.messages.some(
+                (message) => message.status === "sent" || message.status === "delivered"
+              )
+            }
+          })
         );
       } else {
         setFilteredUsers(allMessageUsers); // Show allMessageUsers when searchInput is empty
@@ -538,33 +542,58 @@ const Chat2 = () => {
 
   // ==================group chat=================
 
+  // const handleCreateGroup = async () => {
+  //   try{
+  //   const data = {
+  //     userName: groupName,
+  //     members: groupUsers,
+  //     createdBy: userId,
+  //     photo: groupPhoto,
+  //   };
+  //   // console.log(data);
+  //   const result = await dispatch(createGroup(data)).unwrap(); 
+  
+  //   console.log(result);
+  //      // Wait for the group creation to complete
+  //   // socket.emit("create-group",  data );
+  //   setGroupUsers([]);
+  //   setGroupPhoto(null);
+  //   setGroupName("");
+  //   setIsGroupCreateModalOpen(false);
+  //   dispatch(getAllMessageUsers()); // Call getAllMessageUsers after the socket event
+  // };
   const handleCreateGroup = async () => {
-    const data = {
+      const data = {
       userName: groupName,
       members: groupUsers,
       createdBy: userId,
       photo: groupPhoto,
     };
-    // console.log(data);
-    await dispatch(createGroup(data)); // Wait for the group creation to complete
-    // socket.emit("create-group",  data );
-    setGroupUsers([]);
-    setGroupPhoto(null);
-    setGroupName("");
-    setIsGroupCreateModalOpen(false);
-    dispatch(getAllMessageUsers()); // Call getAllMessageUsers after the socket event
+    try {
+  
+         await dispatch(createGroup({groupData: data, socket}));
+        setGroupUsers([]);
+        setGroupPhoto(null); 
+        setGroupName("");
+        setIsGroupCreateModalOpen(false);
+        dispatch(getAllMessageUsers());
+    } catch (error) {
+      // Handle any errors that occur during group creation
+      console.error("Error creating group:", error);
+      // Optionally show error to user via toast/alert
+    }
   };
 
   const handleAddParticipants = () => {
     const data = {
       groupId: selectedChat._id,
-      members: groupUsers,
-      userName: selectedChat?.userName,
-      createdBy: selectedChat?.createdBy,
+      members: groupNewUsers,
+      addedBy: userId,
     };
-    dispatch(updateGroup(data));
+    dispatch(addParticipants(data));
     socket.emit("update-group", data);
     setGroupUsers([]);
+    setGroupNewUsers([]);
     setIsModalOpen(false);
     dispatch(getAllMessageUsers());
   };
@@ -1015,25 +1044,31 @@ const Chat2 = () => {
     </div>
   );
 
-  const renderMessage = (message) => {
-    // Add system message handling
-    if (message.content?.type === "system") {
-      return (
-        <div className="flex justify-center my-2">
-          <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
-            {message.content.content}
-          </span>
-        </div>
-      );
+  useEffect(() => {
+    if (isVideoCalling && !isReceiving) {
+      navigator.mediaDevices
+        .getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+          if (localVideoRef.current) {
+            localVideoRef.current.srcObject = stream;
+          }
+        })
+        .catch((err) => {
+          console.error("Error accessing camera:", err);
+        });
+  
+      // Cleanup function
+      return () => {
+        if (localVideoRef.current && localVideoRef.current.srcObject) {
+          const tracks = localVideoRef.current.srcObject.getTracks();
+          tracks.forEach(track => track.stop());
+          localVideoRef.current.srcObject = null;
+        }
+      };
     }
+  }, [isVideoCalling, isReceiving]);
 
-    // Rest of your existing message rendering logic
-    return (
-      <div className={`flex ${message.sender === currentUser ? "justify-end" : "justify-start"}`}>
-        {/* Your existing message display code */}
-      </div>
-    );
-  };
+
 
   const handleProfileImageClick = (imageUrl) => {
     setSelectedImage(imageUrl);
@@ -1053,12 +1088,12 @@ const Chat2 = () => {
             onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
           >
             {/* <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden"> */}
-            <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border border-gray-500">
               {user?.photo && user.photo !== "null" ? (
                 <img
                   src={`${IMG_URL}${user.photo.replace(/\\/g, "/")}`}
                   alt="Profile"
-                  className="object-contain"
+                  className="object-fill w-full h-full"
                 />
               ) : (
                 <span className="text-white text-2xl font-bold">
@@ -1503,9 +1538,16 @@ const Chat2 = () => {
                           return (
                             message.content?.type === "system") ? (
 
-                            <div className="flex justify-center my-2">
+                              <div className="flex justify-center my-2">
                               <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
-                                {message.content.content}
+                                {message.content.content.split('**').map((part, index) => {
+                                  // Every odd index (1, 3, 5...) should be bold
+                                  return index % 2 === 1 ? (
+                                    <strong key={index}>{part}</strong>
+                                  ) : (
+                                    <span key={index}>{part}</span>
+                                  );
+                                })}
                               </span>
                             </div>
 
@@ -1997,28 +2039,18 @@ const Chat2 = () => {
         </div>
       )}
 
-      {(isReceiving || isVideoCalling || incomingCall) && (
-        <div className="flex-grow flex flex-col ">
           {/*========== video call ==========*/}
 
           {/*========== screen share ==========*/}
 
 
-
-
-
-
           {/* {console.log(isVideoCalling)} */}
-          {(isSharing || isReceiving || isVideoCalling) && (
+          {/* {(isSharing || isReceiving || isVideoCalling || incomingCall) && ( */}
+        <div className={`flex-grow flex flex-col ${(isSharing || isReceiving || isVideoCalling || incomingCall) ? '' : 'hidden'}`}>
             <div className="grid grid-row-2 gap-4 relative">
-              {isVideoCalling && (
-                <div className="space-y-2 max-w-30 absolute top-1 right-0" >
+              {/* {isVideoCalling && ( */}
+                <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling ? '' : 'hidden'}`}>
                   <h4 className="font-medium">
-                    {/* {isVideoCalling ? "Your Camera" : "Your Screen"} */}
-                    {/* {isSharing && "(Sharing)"} */}
-                    {/* {isVideoCalling && !isCameraOn && (
-                        <div className="text-center">{selectedChat?._id}</div>
-                      )} */}
                   </h4>
                   <video
                     ref={localVideoRef}
@@ -2029,7 +2061,7 @@ const Chat2 = () => {
                     style={{ maxHeight: "40vh" }}
                   />
                 </div>
-              )}
+              {/* )} */}
               <div className="space-y-2">
                 {/* <h4 className="font-medium">
                     {isVideoCalling ? "Remote Camera" : "Remote Screen"}
@@ -2075,10 +2107,8 @@ const Chat2 = () => {
                 </div>
               )}
             </div>
-          )}
-        </div>
-      )
-      }
+            </div>
+          {/* )} */}
 
       {/* ========= incoming call ========= */}
       {incomingCall && (
@@ -2127,49 +2157,51 @@ const Chat2 = () => {
               />
               {/* {console.log(groupUsers)} */}
               <div className="space-y-2 h-80 overflow-y-auto">
-                {allUsers.map((user, index) => {
-                  const isChecked = groupUsers.includes(user._id); // Check if user is already selected
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
-                      onClick={() => {
-                        if (!isChecked) {
-                          setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
-                        } else {
-                          setGroupUsers((prev) =>
-                            prev.filter((id) => id !== user._id)
-                          ); // Remove user ID from groupUsers state
-                        }
-                      }}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-2">
-                          {user.userName
-                            .split(" ")
-                            .map((n) => n[0].toUpperCase())
-                            .join("")}
-                        </div>
-                        <span>{user.userName}</span>
-                      </div>
-                      <input
-                        id={`checkbox-${user._id}`}
-                        type="checkbox"
-                        checked={isChecked} // Set checkbox state based on selection
-                        readOnly // Make checkbox read-only to prevent direct interaction
-                        className="form-checkbox rounded-full"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          border: "2px solid #ccc",
-                          backgroundColor: "#fff",
-                          cursor: "pointer",
+                {allUsers
+                  .filter((user) => !groupUsers.includes(user._id)) // Filter out already selected users
+                  .map((user, index) => {
+                    const isChecked = groupNewUsers.includes(user._id); // Check if user is already selected
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
+                        onClick={() => {
+                          if (!isChecked) {
+                            setGroupNewUsers((prev) => [...prev, user._id]); 
+                          } else {
+                            setGroupNewUsers((prev) =>
+                              prev.filter((id) => id !== user._id)
+                            ); // Remove user ID from groupUsers state
+                          }
                         }}
-                      />
-                    </div>
-                  );
-                })}
+                      >
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-2">
+                            {user.userName
+                              .split(" ")
+                              .map((n) => n[0].toUpperCase())
+                              .join("")}
+                          </div>
+                          <span>{user.userName}</span>
+                        </div>
+                        <input
+                          id={`checkbox-${user._id}`}
+                          type="checkbox"
+                          checked={isChecked} // Set checkbox state based on selection
+                          readOnly // Make checkbox read-only to prevent direct interaction
+                          className="form-checkbox rounded-full"
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            border: "2px solid #ccc",
+                            backgroundColor: "#fff",
+                            cursor: "pointer",
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
               </div>
             </div>
             <div className="mt-4 flex justify-center">
@@ -2604,6 +2636,7 @@ const Chat2 = () => {
                             leaveGroup({
                               groupId: selectedChat._id,
                               userId: user._id,
+                              removeId: userId,
                             })
                           );
                           socket.emit("update-group", {

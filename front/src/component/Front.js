@@ -8,13 +8,13 @@ const Front = ({ data }) => {
             <div className="max-w-4xl mx-auto justify-items-center">
                 <div className="flex items-center gap-4 mb-12 justify-items-center">
                     <div className="relative">
-                        <div className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4">
+                        <div className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4 border border-gray-500">
                             {data?.photo && data?.photo != "null" ? (
                                 <>
                                     <img src={`${IMG_URL}${data?.photo.replace(
                                         /\\/g,
                                         "/"
-                                    )}`} alt="Profile" className="object-cover" />
+                                    )}`} alt="Profile" className="object-cover w-full h-full" />
                                 </>
                             ) : (
                                 <div className="w-full h-full text-white text-3xl font-bold capitalize grid place-content-center">{data?.userName && data?.userName.includes(' ') ? data?.userName.split(' ')[0][0] + data?.userName.split(' ')[1][0] : data?.userName[0]}</div>
