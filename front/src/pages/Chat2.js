@@ -184,7 +184,7 @@ const Chat2 = () => {
     toggleCamera,
     toggleMicrophone,
     markMessageAsRead,
-  } = useSocket(currentUser, localVideoRef, remoteVideoRef,allUsers);
+  } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
 
   // console.log(onlineUsers);
 
@@ -555,7 +555,7 @@ const Chat2 = () => {
   //   };
   //   // console.log(data);
   //   const result = await dispatch(createGroup(data)).unwrap(); 
-  
+
   //   console.log(result);
   //      // Wait for the group creation to complete
   //   // socket.emit("create-group",  data );
@@ -566,20 +566,20 @@ const Chat2 = () => {
   //   dispatch(getAllMessageUsers()); // Call getAllMessageUsers after the socket event
   // };
   const handleCreateGroup = async () => {
-      const data = {
+    const data = {
       userName: groupName,
       members: groupUsers,
       createdBy: userId,
       photo: groupPhoto,
     };
     try {
-  
-         await dispatch(createGroup({groupData: data, socket}));
-        setGroupUsers([]);
-        setGroupPhoto(null); 
-        setGroupName("");
-        setIsGroupCreateModalOpen(false);
-        dispatch(getAllMessageUsers());
+
+      await dispatch(createGroup({ groupData: data, socket }));
+      setGroupUsers([]);
+      setGroupPhoto(null);
+      setGroupName("");
+      setIsGroupCreateModalOpen(false);
+      dispatch(getAllMessageUsers());
     } catch (error) {
       // Handle any errors that occur during group creation
       console.error("Error creating group:", error);
@@ -1059,7 +1059,7 @@ const Chat2 = () => {
         .catch((err) => {
           console.error("Error accessing camera:", err);
         });
-  
+
       // Cleanup function
       return () => {
         if (localVideoRef.current && localVideoRef.current.srcObject) {
@@ -1372,8 +1372,8 @@ const Chat2 = () => {
                     ) : (
                       <div
                         className={`text-sm ${onlineUsers.includes(selectedChat?._id)
-                            ? "text-green-500"
-                            : "text-gray-500"
+                          ? "text-green-500"
+                          : "text-gray-500"
                           }`}
                       >
                         {onlineUsers.includes(selectedChat?._id)
@@ -1541,7 +1541,7 @@ const Chat2 = () => {
                           return (
                             message.content?.type === "system") ? (
 
-                              <div className="flex justify-center my-2">
+                            <div className="flex justify-center my-2">
                               <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
                                 {message.content.content.split('**').map((part, index) => {
                                   // Every odd index (1, 3, 5...) should be bold
@@ -1562,59 +1562,59 @@ const Chat2 = () => {
                                 <div className="flex items-center text-gray-600 text-sm px-3 py-2 rounded-md bg-gray-100">
                                   <FaPhone className={message.sender === userId ? "rotate-90" : "-rotate-90"} />
                                   <div className="flex flex-col ml-2">
-                                  <span>
-                                    {message.sender === userId ? "Outgoing call" : "Incoming call"} • {message.content.duration}
-                                  </span>
-                                  <span className="text-gray-500 text-xs">
-                                    {new Date(message.content.timestamp).toLocaleTimeString([], {hour: "numeric",minute: "2-digit",hour12: true,})}
-                                  </span>
+                                    <span>
+                                      {message.sender === userId ? "Outgoing call" : "Incoming call"} • {message.content.duration}
+                                    </span>
+                                    <span className="text-gray-500 text-xs">
+                                      {new Date(message.content.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true, })}
+                                    </span>
                                   </div>
                                   <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
-                                  {message.content.callType === "audio" ? (
-                                  <MdPhoneEnabled
-                                    className=" w-5 h-5 cursor-pointer text-black"
+                                    {message.content.callType === "audio" ? (
+                                      <MdPhoneEnabled
+                                        className=" w-5 h-5 cursor-pointer text-black"
                                         onClick={() => handleMakeCall("audio")}
-                                  />) : (
-                                    <GoDeviceCameraVideo
-                                          className="w-5 h-5 cursor-pointer text-black"
-                                          onClick={() => handleMakeCall("video")}
-                                    />
-                                      )}
+                                      />) : (
+                                      <GoDeviceCameraVideo
+                                        className="w-5 h-5 cursor-pointer text-black"
+                                        onClick={() => handleMakeCall("video")}
+                                      />
+                                    )}
                                   </span>
                                 </div>
                               </div>
-                              ) : (
+                            ) : (
                               // Render missed call
                               <div className="flex justify-center my-2">
                                 <div className="flex items-center text-red-500 text-sm px-3 py-2 rounded-md bg-gray-100">
                                   <FaPhone className={message.sender === userId ? "rotate-90" : "-rotate-90"} />
                                   <div className="flex flex-col ml-2">
-                                  <span >{message.sender === userId ? "Call not answered" : "Missed call"}</span>
-                                  <span className="text-gray-500 text-xs">
-                                    {new Date(message.content.timestamp).toLocaleTimeString([], {hour: "numeric",minute: "2-digit",hour12: true,})}
-                                  </span>
+                                    <span >{message.sender === userId ? "Call not answered" : "Missed call"}</span>
+                                    <span className="text-gray-500 text-xs">
+                                      {new Date(message.content.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true, })}
+                                    </span>
                                   </div>
                                   <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
-                                  {message.content.callType === "audio" ? (
-                                  <MdPhoneEnabled
-                                    className=" w-5 h-5 cursor-pointer text-black"
+                                    {message.content.callType === "audio" ? (
+                                      <MdPhoneEnabled
+                                        className=" w-5 h-5 cursor-pointer text-black"
                                         onClick={() => handleMakeCall("audio")}
-                                  />) : (
-                                    <GoDeviceCameraVideo
-                                          className="w-5 h-5 cursor-pointer text-black"
-                                          onClick={() => handleMakeCall("video")}
-                                    />
-                                      )}
+                                      />) : (
+                                      <GoDeviceCameraVideo
+                                        className="w-5 h-5 cursor-pointer text-black"
+                                        onClick={() => handleMakeCall("video")}
+                                      />
+                                    )}
                                   </span>
                                 </div>
                               </div>
                             )
-                          ):(
+                          ) : (
                             <div
                               key={message._id}
                               className={`flex relative ${message.sender === userId
-                                  ? "justify-end items-end"
-                                  : "justify-start items-start"
+                                ? "justify-end items-end"
+                                : "justify-start items-start"
                                 } ${isConsecutive ? "mb-1" : "mb-4"
                                 } message-content`}
                             >
@@ -1642,8 +1642,8 @@ const Chat2 = () => {
                                         )}`}
                                         alt={message.content.content}
                                         className={`w-full object-contain ${message.sender === userId
-                                            ? "rounded-s-lg rounded-tr-lg"
-                                            : "rounded-e-lg rounded-tl-lg"
+                                          ? "rounded-s-lg rounded-tr-lg"
+                                          : "rounded-e-lg rounded-tl-lg"
                                           } `}
                                         onClick={() =>
                                           handleImageClick(
@@ -1658,8 +1658,8 @@ const Chat2 = () => {
                                   ) : message.content?.fileType.includes("audio/") ? (
                                     <div
                                       className={`p-4 max-w-[300px] ${message.sender === userId
-                                          ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
-                                          : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
+                                        ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
+                                        : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
                                         }`}
                                       style={{ wordWrap: "break-word" }}
                                       onContextMenu={(e) =>
@@ -1716,10 +1716,10 @@ const Chat2 = () => {
                                   <div className="flex gap-1">
                                     <div
                                       className={`group flex-1 p-2  flex justify-between items-center relative ${message.sender === userId
-                                          ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""
-                                          } `
-                                          : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""
-                                          }`
+                                        ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""
+                                        } `
+                                        : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""
+                                        }`
                                         }`}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
@@ -2097,121 +2097,121 @@ const Chat2 = () => {
         </div>
       )}
 
-          {/*========== video call ==========*/}
+      {/*========== video call ==========*/}
 
-          {/*========== screen share ==========*/}
+      {/*========== screen share ==========*/}
 
 
-          {/* {console.log(isVideoCalling)} */}
-          {/* {(isSharing || isReceiving || isVideoCalling || incomingCall) && ( */}
-        <div className={`flex-grow flex flex-col ${(isSharing || isReceiving || isVideoCalling || incomingCall) ? '' : 'hidden'}`}>
-            <div className="grid grid-row-2 gap-4 relative">
-              {/* {isVideoCalling && ( */}
-                <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling ? '' : 'hidden'}`}>
-                  <h4 className="font-medium">
-                  </h4>
-                  <video
-                    ref={localVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className="w-full bg-gray-100 rounded "
-                    style={{ maxHeight: "40vh" }}
-                  />
-                </div>
-              {/* )} */}
-              <div className="space-y-2">
-                {/* <h4 className="font-medium">
+      {/* {console.log(isVideoCalling)} */}
+      {/* {(isSharing || isReceiving || isVideoCalling || incomingCall) && ( */}
+      <div className={`flex-grow flex flex-col ${(isSharing || isReceiving || isVideoCalling || incomingCall) ? '' : 'hidden'}`}>
+        <div className="grid grid-row-2 gap-4 relative">
+          {/* {isVideoCalling && ( */}
+          <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling ? '' : 'hidden'}`}>
+            <h4 className="font-medium">
+            </h4>
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full bg-gray-100 rounded "
+              style={{ maxHeight: "20vh" }}
+            />
+          </div>
+          {/* )} */}
+          <div className="space-y-2">
+            {/* <h4 className="font-medium">
                     {isVideoCalling ? "Remote Camera" : "Remote Screen"}
                     {isReceiving && "(Receiving)"}
                   </h4> */}
 
-                <video
-                  ref={remoteVideoRef}
-                  autoPlay
-                  playsInline
-                  className="w-full bg-gray-100 rounded"
-                  style={{ maxHeight: "90vh", }}
-                />
-              </div>
-              {(isSharing || isReceiving || isVideoCalling) && (
-                <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full bg-gray-100 rounded"
+              style={{ maxHeight: "90vh", }}
+            />
+          </div>
+          {(isSharing || isReceiving || isVideoCalling) && (
+            <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
 
+              <button
+                onClick={() => {
+                  if (isVideoCalling) {
+                    endVideoCall();
+                  }
+                  cleanupConnection();
+                }}
+                className="bg-red-500 h-10 w-10  text-white  grid place-content-center rounded-full hover:bg-red-600 transition-colors "
+              >
+                <MdCallEnd className="text-xl " />
+                {/* {isSharing ? "Sharing" : isReceiving ? "Receiving" : "Video Call"} */}
+              </button>
+              {isVideoCalling && (
+                <>
                   <button
-                    onClick={() => {
-                      if (isVideoCalling) {
-                      endVideoCall();
-                      }
-                      cleanupConnection();
-                    }}
-                    className="bg-red-500 h-10 w-10  text-white  grid place-content-center rounded-full hover:bg-red-600 transition-colors "
+                    onClick={toggleCamera}
+                    className={`w-10 grid place-content-center  rounded-full h-10 ${isCameraOn ? "bg-blue-500" : "bg-gray-400"
+                      } text-white`}
                   >
-                    <MdCallEnd className="text-xl " />
-                    {/* {isSharing ? "Sharing" : isReceiving ? "Receiving" : "Video Call"} */}
+                    {isCameraOn ? <FiCamera className="text-xl " /> : <FiCameraOff className="text-xl " />}
                   </button>
-                  {isVideoCalling && (
-                    <>
-                      <button
-                        onClick={toggleCamera}
-                        className={`w-10 grid place-content-center  rounded-full h-10 ${isCameraOn ? "bg-blue-500" : "bg-gray-400"
-                          } text-white`}
-                      >
-                        {isCameraOn ? <FiCamera className="text-xl " /> : <FiCameraOff className="text-xl " />}
-                      </button>
-                      <button
-                        onClick={toggleMicrophone}
-                        className={`w-10 grid place-content-center  rounded-full h-10 ${isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
-                          } text-white`}
-                      >
-                        {isMicrophoneOn ? <BsFillMicFill className="text-xl " /> : <BsFillMicMuteFill className="text-xl " />}
-                      </button>
-                    </>
-                  )}
-                </div>
+                  <button
+                    onClick={toggleMicrophone}
+                    className={`w-10 grid place-content-center  rounded-full h-10 ${isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
+                      } text-white`}
+                  >
+                    {isMicrophoneOn ? <BsFillMicFill className="text-xl " /> : <BsFillMicMuteFill className="text-xl " />}
+                  </button>
+                </>
               )}
             </div>
-            </div>
-          {/* )} */}
+          )}
+        </div>
+      </div>
+      {/* )} */}
 
       {/* ========= incoming call ========= */}
       {incomingCall && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-    <div className="bg-black rounded-lg p-6 w-72 text-center">
-      <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden">
-        {/* Profile image or default avatar */}
-        {allUsers.find(user => user._id === incomingCall.fromEmail)?.photo && allUsers.find(user => user._id === incomingCall.fromEmail)?.photo !== "null" ? (
-        <img 
-          src={`${IMG_URL}${allUsers.find(user => user._id === incomingCall.fromEmail)?.photo.replace(/\\/g, "/")}`} // Replace with actual user profile image
-          alt="Caller"
-          className="w-full h-full object-cover"
-        />
-        ):(
-          <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden bg-gray-300 grid place-content-center">
-            <IoPersonCircleOutline className="text-4xl" />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-black rounded-lg p-6 w-72 text-center">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden">
+              {/* Profile image or default avatar */}
+              {allUsers.find(user => user._id === incomingCall.fromEmail)?.photo && allUsers.find(user => user._id === incomingCall.fromEmail)?.photo !== "null" ? (
+                <img
+                  src={`${IMG_URL}${allUsers.find(user => user._id === incomingCall.fromEmail)?.photo.replace(/\\/g, "/")}`} // Replace with actual user profile image
+                  alt="Caller"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden bg-gray-300 grid place-content-center">
+                  <IoPersonCircleOutline className="text-4xl" />
+                </div>
+              )}
+            </div>
+            <h3 className="text-2xl text-white mb-2">
+              {allUsers.find(user => user._id === incomingCall.fromEmail)?.userName}
+            </h3>
+            <p className="text-gray-400 mb-8 animate-pulse">Incoming call...</p>
+            <div className="flex justify-center gap-8">
+              <button
+                onClick={acceptVideoCall}
+                className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 animate-bounce"
+              >
+                <FaPhone className="text-xl" />
+              </button>
+              <button
+                onClick={rejectVideoCall}
+                className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+              >
+                <MdCallEnd className="text-xl" />
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-      <h3 className="text-2xl text-white mb-2">
-        {allUsers.find(user => user._id === incomingCall.fromEmail)?.userName}
-      </h3>
-      <p className="text-gray-400 mb-8 animate-pulse">Incoming call...</p>
-      <div className="flex justify-center gap-8">
-        <button
-          onClick={acceptVideoCall}
-          className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 animate-bounce"
-        >
-          <FaPhone className="text-xl" />
-        </button>
-        <button
-          onClick={rejectVideoCall}
-          className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-        >
-          <FaPhoneSlash className="text-xl" />
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+        </div>
+      )}
 
       {/*========== Group Modal ==========*/}
       {isModalOpen && (
@@ -2245,7 +2245,7 @@ const Chat2 = () => {
                         className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
                         onClick={() => {
                           if (!isChecked) {
-                            setGroupNewUsers((prev) => [...prev, user._id]); 
+                            setGroupNewUsers((prev) => [...prev, user._id]);
                           } else {
                             setGroupNewUsers((prev) =>
                               prev.filter((id) => id !== user._id)
@@ -2876,7 +2876,7 @@ const Chat2 = () => {
                   </div>
                   <span className="text-gray-800 font-bold">Add participants</span>
                 </div> */}
-                  {/* {selectedChat?.members.map((member, index) => {
+                {/* {selectedChat?.members.map((member, index) => {
                   const user = allUsers.find((user) => user._id === member);
                   return (
                     <div key={index} className="flex items-center p-2 group">
