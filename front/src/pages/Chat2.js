@@ -19,6 +19,7 @@ import {
   FaFilePowerpoint,
   FaFileArchive,
   FaArrowDown,
+  FaPhoneSlash,
 } from "react-icons/fa";
 import { HiOutlineReply } from "react-icons/hi";
 import { PiDotsThreeVerticalBold, PiDotsThreeBold } from "react-icons/pi";
@@ -43,6 +44,7 @@ import {
   IoCheckmarkCircleOutline,
   IoCheckmarkDoneCircle,
   IoCheckmarkDoneCircleOutline,
+  IoPersonCircleOutline,
 } from "react-icons/io5";
 import { useSocket } from "../hooks/useSocket";
 import { useDispatch, useSelector } from "react-redux";
@@ -173,6 +175,7 @@ const Chat2 = () => {
     startSharing,
     startVideoCall,
     acceptVideoCall,
+    rejectVideoCall,
     endVideoCall,
     isSharing,
     setIsSharing,
@@ -181,7 +184,7 @@ const Chat2 = () => {
     toggleCamera,
     toggleMicrophone,
     markMessageAsRead,
-  } = useSocket(currentUser, localVideoRef, remoteVideoRef);
+  } = useSocket(currentUser, localVideoRef, remoteVideoRef,allUsers);
 
   // console.log(onlineUsers);
 
@@ -469,7 +472,7 @@ const Chat2 = () => {
   const handleStartScreenShare = async () => {
     // console.log(selectedChat);
     if (selectedChat) {
-      const success = await startSharing(selectedChat._id);
+      const success = await startSharing(selectedChat);
       // console.log(success);
       if (!success) {
         console.error("Failed to start screen sharing");
@@ -1551,7 +1554,62 @@ const Chat2 = () => {
                               </span>
                             </div>
 
-                          ) : (
+                          ) : message.content?.type === "call" ? (
+
+                            message.content.status === "ended" ? (
+                              // Render completed call with duration
+                              <div className="flex justify-center my-2">
+                                <div className="flex items-center text-gray-600 text-sm px-3 py-2 rounded-md bg-gray-100">
+                                  <FaPhone className={message.sender === userId ? "rotate-90" : "-rotate-90"} />
+                                  <div className="flex flex-col ml-2">
+                                  <span>
+                                    {message.sender === userId ? "Outgoing call" : "Incoming call"} • {message.content.duration}
+                                  </span>
+                                  <span className="text-gray-500 text-xs">
+                                    {new Date(message.content.timestamp).toLocaleTimeString([], {hour: "numeric",minute: "2-digit",hour12: true,})}
+                                  </span>
+                                  </div>
+                                  <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
+                                  {message.content.callType === "audio" ? (
+                                  <MdPhoneEnabled
+                                    className=" w-5 h-5 cursor-pointer text-black"
+                                        onClick={() => handleMakeCall("audio")}
+                                  />) : (
+                                    <GoDeviceCameraVideo
+                                          className="w-5 h-5 cursor-pointer text-black"
+                                          onClick={() => handleMakeCall("video")}
+                                    />
+                                      )}
+                                  </span>
+                                </div>
+                              </div>
+                              ) : (
+                              // Render missed call
+                              <div className="flex justify-center my-2">
+                                <div className="flex items-center text-red-500 text-sm px-3 py-2 rounded-md bg-gray-100">
+                                  <FaPhone className={message.sender === userId ? "rotate-90" : "-rotate-90"} />
+                                  <div className="flex flex-col ml-2">
+                                  <span >{message.sender === userId ? "Call not answered" : "Missed call"}</span>
+                                  <span className="text-gray-500 text-xs">
+                                    {new Date(message.content.timestamp).toLocaleTimeString([], {hour: "numeric",minute: "2-digit",hour12: true,})}
+                                  </span>
+                                  </div>
+                                  <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
+                                  {message.content.callType === "audio" ? (
+                                  <MdPhoneEnabled
+                                    className=" w-5 h-5 cursor-pointer text-black"
+                                        onClick={() => handleMakeCall("audio")}
+                                  />) : (
+                                    <GoDeviceCameraVideo
+                                          className="w-5 h-5 cursor-pointer text-black"
+                                          onClick={() => handleMakeCall("video")}
+                                    />
+                                      )}
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          ):(
                             <div
                               key={message._id}
                               className={`flex relative ${message.sender === userId
@@ -2080,7 +2138,12 @@ const Chat2 = () => {
                 <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
 
                   <button
-                    onClick={cleanupConnection}
+                    onClick={() => {
+                      if (isVideoCalling) {
+                      endVideoCall();
+                      }
+                      cleanupConnection();
+                    }}
                     className="bg-red-500 h-10 w-10  text-white  grid place-content-center rounded-full hover:bg-red-600 transition-colors "
                   >
                     <MdCallEnd className="text-xl " />
@@ -2112,28 +2175,43 @@ const Chat2 = () => {
 
       {/* ========= incoming call ========= */}
       {incomingCall && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-4 rounded-lg shadow-lg">
-            <h3 className="text-lg font-semibold mb-4">
-              Incoming video call from {incomingCall.fromEmail}
-            </h3>
-            <div className="flex gap-4">
-              <button
-                onClick={acceptVideoCall}
-                className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              >
-                Accept
-              </button>
-              <button
-                onClick={() => setIncomingCall(null)}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-              >
-                Decline
-              </button>
-            </div>
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div className="bg-black rounded-lg p-6 w-72 text-center">
+      <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden">
+        {/* Profile image or default avatar */}
+        {allUsers.find(user => user._id === incomingCall.fromEmail)?.photo && allUsers.find(user => user._id === incomingCall.fromEmail)?.photo !== "null" ? (
+        <img 
+          src={`${IMG_URL}${allUsers.find(user => user._id === incomingCall.fromEmail)?.photo.replace(/\\/g, "/")}`} // Replace with actual user profile image
+          alt="Caller"
+          className="w-full h-full object-cover"
+        />
+        ):(
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden bg-gray-300 grid place-content-center">
+            <IoPersonCircleOutline className="text-4xl" />
           </div>
-        </div>
-      )}
+        )}
+      </div>
+      <h3 className="text-2xl text-white mb-2">
+        {allUsers.find(user => user._id === incomingCall.fromEmail)?.userName}
+      </h3>
+      <p className="text-gray-400 mb-8 animate-pulse">Incoming call...</p>
+      <div className="flex justify-center gap-8">
+        <button
+          onClick={acceptVideoCall}
+          className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 animate-bounce"
+        >
+          <FaPhone className="text-xl" />
+        </button>
+        <button
+          onClick={rejectVideoCall}
+          className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+        >
+          <FaPhoneSlash className="text-xl" />
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/*========== Group Modal ==========*/}
       {isModalOpen && (

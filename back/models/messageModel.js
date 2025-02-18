@@ -15,16 +15,19 @@ const messageSchema = mongoose.Schema(
     content: {
       type: {
         type: String,
-        enum: ["text", "file", "system"],
+        enum: ["text", "file", "system", "call"],
         required: true,
       },
       content: {
         type: String,
-        required: true,
       },
       fileUrl: String,
       fileType: String,
       size: String,
+      timestamp: String,
+      status: String,
+      callType: String,
+      duration: String,
     },
     status: {
       type: String,

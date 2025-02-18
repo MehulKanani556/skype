@@ -202,35 +202,28 @@ async function handleUpdateMessage(socket, data) {
 // ===========================screen share=============================
 
 function handleScreenShareRequest(socket, data) {
-  const targetSocketId = onlineUsers.get(data.toEmail);
-  if (targetSocketId) {
-    socket.to(targetSocketId).emit("screen-share-request", {
-      fromEmail: data.fromEmail,
-      signal: data.signal,
-    });
+  if (data.isGroup) {
+    // For group sharing, forward to specific member
+    const targetSocketId = onlineUsers.get(data.toEmail);
+    if (targetSocketId) {
+      socket.to(targetSocketId).emit("screen-share-request", {
+        fromEmail: data.fromEmail,
+        signal: data.signal,
+        groupId: data.groupId,
+        isGroup: true,
+      });
+    }
+  } else {
+    // Original single-user logic
+    const targetSocketId = onlineUsers.get(data.toEmail);
+    if (targetSocketId) {
+      socket.to(targetSocketId).emit("screen-share-request", {
+        fromEmail: data.fromEmail,
+        signal: data.signal,
+        isGroup: false,
+      });
+    }
   }
-
-  // const { receiverId, senderId, offer } = data;
-  // console.log("Handling screen share request:", {
-  //   receiverId,
-  //   senderId,
-  //   offer,
-  // });
-  // console.log("onlineUsers", onlineUsers);
-  // const receiverSocketId = onlineUsers.get(receiverId);
-
-  // if (receiverSocketId) {
-  //   socket.to(receiverSocketId).emit("screenShareOffer", {
-  //     senderId,
-  //     offer,
-  //   });
-  //   console.log("Screen share offer sent to:", receiverId);
-  // } else {
-  //   socket.emit("screenShare-error", {
-  //     error: "Receiver is offline",
-  //     receiverId,
-  //   });
-  // }
 }
 
 function handleScreenShareAccept(socket, data) {
@@ -239,18 +232,10 @@ function handleScreenShareAccept(socket, data) {
     socket.to(targetSocketId).emit("share-accepted", {
       signal: data.signal,
       fromEmail: data.toEmail,
+      groupId: data.groupId,
+      isGroup: data.isGroup,
     });
   }
-  // // console.log("aa", data);
-  // const { senderId, answer } = data;
-  // const senderSocket = onlineUsers.get(senderId);
-
-  // if (senderSocket) {
-  //   socket.to(senderSocket).emit("screenShareAnswer", {
-  //     answer,
-  //     from: socket.userId,
-  //   });
-  // }
 }
 
 function handleScreenShareSignal(socket, data) {
@@ -341,6 +326,56 @@ function handleCallEnd(socket, data) {
   }
 }
 
+
+// ================ Handle save call message================
+async function handleSaveCallMessage(socket, data) {
+  try {
+    const { senderId, receiverId, callType, status, duration, timestamp } = data;
+    
+    // Format duration string if exists
+    let durationStr = '';
+    if (duration) {
+      const minutes = Math.floor(duration / 60);
+      const seconds = duration % 60;
+      durationStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // Create message content based on status
+    let content = {
+      type: "call",
+      callType,
+      status,
+      timestamp
+    };
+
+    // Add duration for ended calls
+    if (status === 'ended') {
+      content.duration = durationStr;
+    }
+
+    // Save the message
+    const savedMessage = await saveMessage({
+      senderId,
+      receiverId,
+      content,
+    });
+
+    // Emit to both sender and receiver
+    const senderSocket = onlineUsers.get(senderId);
+    const receiverSocket = onlineUsers.get(receiverId);
+
+    if (senderSocket) {
+      socket.to(senderSocket).emit("receive-message", savedMessage);
+    }
+    if (receiverSocket) {
+      socket.to(receiverSocket).emit("receive-message", savedMessage);
+    }
+
+  } catch (error) {
+    console.error("Error saving call message:", error);
+  }
+}
+
 // ===========================group=============================
 
 async function handleCreateGroup(socket, data) {
@@ -349,7 +384,7 @@ async function handleCreateGroup(socket, data) {
     console.log("members", members, data);
 
     const createdByUser = await User.findById(createdBy);
-    
+
     // Create system message for group creation
     const systemMessage = await saveMessage({
       senderId: createdBy,
@@ -363,16 +398,16 @@ async function handleCreateGroup(socket, data) {
     // Create system messages for each member added
     for (const memberId of members) {
       const memberName = await User.findById(memberId); // Function to get user name by ID
-     if(createdBy !== memberId){
-      await saveMessage({
-        senderId: createdBy,
-        receiverId: data._id,
-        content: {
-          type: "system",
-          content: `**${createdByUser.userName}** added **${memberName.userName}** to this conversation`,
-        },
-      });
-     }
+      if (createdBy !== memberId) {
+        await saveMessage({
+          senderId: createdBy,
+          receiverId: data._id,
+          content: {
+            type: "system",
+            content: `**${createdByUser.userName}** added **${memberName.userName}** to this conversation`,
+          },
+        });
+      }
     }
 
     // Emit to all members of the group
@@ -491,6 +526,24 @@ async function getOnlineUsers(req, res) {
   // return onlineUsersArray;
 }
 
+// Add new function to handle group member retrieval
+async function handleGetGroupMembers(socket, groupId) {
+  try {
+    const group = await findGroupById(groupId);
+    if (!group) {
+      socket.emit("error", { message: "Group not found" });
+      return;
+    }
+
+    socket.emit("group-members", {
+      members: group.members,
+    });
+  } catch (error) {
+    console.error("Error getting group members:", error);
+    socket.emit("error", { message: "Failed to get group members" });
+  }
+}
+
 function initializeSocket(io) {
   io.on("connection", (socket) => {
     console.log("New socket connection:", socket.id);
@@ -541,6 +594,10 @@ function initializeSocket(io) {
       handleVideoCallSignal(socket, data)
     );
 
+    // ===========================save call message=============================
+
+    socket.on("save-call-message", (data) => handleSaveCallMessage(socket, data));
+
     // ===========================call=============================
     socket.on("callOffer", (data) => handleCallOffer(socket, data));
     socket.on("callAnswer", (data) => handleCallAnswer(socket, data));
@@ -555,6 +612,11 @@ function initializeSocket(io) {
 
     // Handle group messages
     socket.on("group-message", (data) => handleGroupMessage(socket, data));
+
+    // Add new handler for getting group members
+    socket.on("get-group-members", (groupId) =>
+      handleGetGroupMembers(socket, groupId)
+    );
   });
 }
 
