@@ -255,6 +255,7 @@ function handleVideoCallRequest(socket, data) {
     socket.to(targetSocketId).emit("video-call-request", {
       fromEmail: data.fromEmail,
       signal: data.signal,
+      type: data.type,
     });
   }
 }
@@ -278,51 +279,51 @@ function handleVideoCallSignal(socket, data) {
   }
 }
 
-// ===========================call=============================
+function handleVideoCallEnd(socket, data) {
+  const { to, from, duration } = data;
+  const targetSocketId = onlineUsers.get(to);
 
-function handleCallOffer(socket, data) {
-  const { to, from, offer, type } = data;
-  const receiverSocketId = onlineUsers.get(to);
-
-  if (receiverSocketId) {
-    socket.to(receiverSocketId).emit("callOffer", {
+  // Notify the other user that the call has ended
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("video-call-ended", {
       from,
-      offer,
-      type, // 'video' or 'audio'
+      duration
     });
   }
 }
 
-function handleCallAnswer(socket, data) {
-  const { to, answer } = data;
-  const callerSocketId = onlineUsers.get(to);
-
-  if (callerSocketId) {
-    socket.to(callerSocketId).emit("callAnswer", {
-      answer,
+// ===========================call=============================
+// Voice call handlers
+function handleVoiceCallRequest(socket, data) {
+  const targetSocketId = onlineUsers.get(data.toEmail);
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("voice-call-request", {
+      fromEmail: data.fromEmail,
+      signal: data.signal,
+      type: data.type,
     });
   }
 }
 
-function handleIceCandidate(socket, data) {
-  const { to, candidate } = data;
-  // console.log("candidate", data);
+function handleVoiceCallAccept(socket, data) {
+  const targetSocketId = onlineUsers.get(data.fromEmail);
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("voice-call-accepted", {
+      signal: data.signal,
+      fromEmail: data.toEmail,
+    });
+  }
+}
+
+function handleVoiceCallEnd(socket, data) {
+  const { to, from, duration } = data;
   const targetSocketId = onlineUsers.get(to);
 
   if (targetSocketId) {
-    socket.to(targetSocketId).emit("ice-candidate", {
-      candidate,
-      from: socket.userId,
+    socket.to(targetSocketId).emit("voice-call-ended", {
+      from,
+      duration
     });
-  }
-}
-
-function handleCallEnd(socket, data) {
-  const { to } = data;
-  const targetSocketId = onlineUsers.get(to);
-
-  if (targetSocketId) {
-    socket.to(targetSocketId).emit("callEnded");
   }
 }
 
@@ -584,26 +585,21 @@ function initializeSocket(io) {
     socket.on("share-signal", (data) => handleScreenShareSignal(socket, data));
 
     // ===========================Video call=============================
-    socket.on("video-call-request", (data) =>
-      handleVideoCallRequest(socket, data)
-    );
-    socket.on("video-call-accept", (data) =>
-      handleVideoCallAccept(socket, data)
-    );
-    socket.on("video-call-signal", (data) =>
-      handleVideoCallSignal(socket, data)
-    );
+    socket.on("video-call-request", (data) =>handleVideoCallRequest(socket, data));
+    socket.on("video-call-accept", (data) =>handleVideoCallAccept(socket, data));
+    socket.on("video-call-signal", (data) => handleVideoCallSignal(socket, data));
+    socket.on("end-video-call", (data) => handleVideoCallEnd(socket, data));
 
     // ===========================save call message=============================
 
     socket.on("save-call-message", (data) => handleSaveCallMessage(socket, data));
 
-    // ===========================call=============================
-    socket.on("callOffer", (data) => handleCallOffer(socket, data));
-    socket.on("callAnswer", (data) => handleCallAnswer(socket, data));
-    socket.on("ice-candidate", (data) => handleIceCandidate(socket, data));
-    socket.on("endCall", (data) => handleCallEnd(socket, data));
+    // =========================== voice call=============================
+    socket.on("voice-call-request", (data) => handleVoiceCallRequest(socket, data));
+    socket.on("voice-call-accept", (data) => handleVoiceCallAccept(socket, data));
+    socket.on("end-voice-call", (data) => handleVoiceCallEnd(socket, data));
 
+    // ===========================group=============================
     // Add group handlers
     socket.on("create-group", (data) => handleCreateGroup(socket, data));
     // socket.on("create-group", (data) => console.log("create-group", data));

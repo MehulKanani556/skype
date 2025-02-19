@@ -33,7 +33,7 @@ import {
 } from "react-icons/md";
 import { CiSquareRemove } from "react-icons/ci";
 import { RiShutDownLine } from "react-icons/ri";
-import { LuScreenShare, LuSendHorizontal } from "react-icons/lu";
+import { LuScreenShare, LuSendHorizontal ,LuScreenShareOff } from "react-icons/lu";
 import { IoIosArrowDown, IoIosArrowUp, IoMdSearch } from "react-icons/io";
 import { GoDeviceCameraVideo } from "react-icons/go";
 import { ImCross } from "react-icons/im";
@@ -190,6 +190,14 @@ const Chat2 = () => {
     toggleCamera,
     toggleMicrophone,
     markMessageAsRead,
+    incomingShare,
+    setIncomingShare,
+    acceptScreenShare,
+    isVoiceCalling,
+    setIsVoiceCalling,
+    startVoiceCall,
+    acceptVoiceCall,
+    endVoiceCall,
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
 
   // console.log(onlineUsers);
@@ -507,6 +515,12 @@ const Chat2 = () => {
       // console.log(success);
       if (!success) {
         console.error("Failed to start screen sharing");
+      }
+    } else if (type == "voice") {
+      const success = await startVoiceCall(selectedChat._id);
+      // console.log(success);
+      if (!success) {
+        console.error("Failed to start voice call");
       }
     }
   };
@@ -1663,10 +1677,17 @@ const Chat2 = () => {
                       }
                     }}
                   />
-                  <LuScreenShare
-                    className="w-6 h-6 cursor-pointer"
-                    onClick={() => handleStartScreenShare()}
+                  {isSharing ? (
+                    <LuScreenShareOff
+                      className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 animate-bounce"
+                      onClick={() =>  cleanupConnection()}
+                    />
+                  ) : (
+                    <LuScreenShare
+                      className="w-6 h-6 cursor-pointer"
+                      onClick={() => handleStartScreenShare()}
                   />
+                  )}
                   {selectedChat?.members && (
                     <MdGroupAdd
                       className="w-6 h-6 cursor-pointer"
@@ -1682,7 +1703,7 @@ const Chat2 = () => {
                   )}
                   <MdPhoneEnabled
                     className=" w-6 h-6 cursor-pointer"
-                    onClick={() => handleMakeCall("audio")}
+                    onClick={() => handleMakeCall("voice")}
                   />
                   <GoDeviceCameraVideo
                     className="w-6 h-6 cursor-pointer"
@@ -1785,10 +1806,10 @@ const Chat2 = () => {
                                     </span>
                                   </div>
                                   <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
-                                    {message.content.callType === "audio" ? (
+                                    {message.content.callType === "voice" ? (
                                       <MdPhoneEnabled
                                         className=" w-5 h-5 cursor-pointer text-black"
-                                        onClick={() => handleMakeCall("audio")}
+                                        onClick={() => handleMakeCall("voice")}
                                       />) : (
                                       <GoDeviceCameraVideo
                                         className="w-5 h-5 cursor-pointer text-black"
@@ -2290,7 +2311,7 @@ const Chat2 = () => {
 
       {/* {console.log(isVideoCalling)} */}
       {/* {(isSharing || isReceiving || isVideoCalling || incomingCall) && ( */}
-      <div className={`flex-grow flex flex-col ${(isSharing || isReceiving || isVideoCalling || incomingCall) ? '' : 'hidden'}`}>
+      <div className={`flex-grow flex flex-col ${(isReceiving || isVideoCalling || incomingCall) ? '' : 'hidden'}`}>
         <div className="grid grid-row-2 gap-4 relative">
           {/* {isVideoCalling && ( */}
           <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling ? '' : 'hidden'}`}>
@@ -2393,6 +2414,36 @@ const Chat2 = () => {
                 className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
               >
                 <MdCallEnd className="text-xl" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {incomingShare && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-black rounded-lg p-6 w-72 text-center">
+            <h3 className="text-2xl text-gray-300 mb-2 ">Incoming Screen <br /> Request...</h3>
+            <p className="text-gray-400 mb-8">
+              {allUsers.find(user => user._id === incomingShare.fromEmail)?.userName}
+            </p>
+            <div className="flex justify-center gap-8">
+              <button
+                onClick={() =>acceptScreenShare()}
+                className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 animate-bounce" 
+              >
+                <LuScreenShare
+                  className="w-6 h-6 cursor-pointer"
+                />
+              </button> 
+              <button
+                onClick={() => {
+                  setIncomingShare(null);
+                  cleanupConnection();
+                }}
+                className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+              >
+                <LuScreenShareOff  className="text-xl" />
               </button>
             </div>
           </div>
