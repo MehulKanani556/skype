@@ -595,7 +595,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
     socketRef.current.on("screen-share-request", async (data) => {
       console.log("Incoming screen share from:", data.fromEmail);
-      setIncomingShare(data)});
+      setIncomingShare(data)
+    });
 
     // Handle incoming signals
     socketRef.current.on("share-signal", ({ signal, fromEmail }) => {
@@ -660,7 +661,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
   const acceptScreenShare = () => {
     if (!incomingShare) return;
-    
+
     try {
       setIsReceiving(true);
       setPeerEmail(incomingShare.fromEmail);
@@ -799,6 +800,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       endVideoCall();
     }
   };
+
   const acceptVideoCall = async () => {
     if (!incomingCall) return;
 
@@ -822,6 +824,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       }
 
       if (stream) {
+        setIsCameraOn(true);
+        setIsMicrophoneOn(true);
         streamRef.current = stream;
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
@@ -958,7 +962,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       setError("Please enter peer email first");
       return;
     }
-  
+
     try {
       let stream = null;
       try {
@@ -971,7 +975,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         console.warn("Could not get audio device:", err);
         return;
       }
-  
+
       if (stream) {
         setIsMicrophoneOn(true);
         streamRef.current = stream;
@@ -988,17 +992,17 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
           }
         }
       }
-  
+
       // Set call start time when call is initiated
       setCallStartTime(new Date());
-  
+
       // Create peer connection for voice only
       const peer = new Peer({
         initiator: true,
         trickle: false,
         stream,
       });
-  
+
       peer.on("signal", (signal) => {
         socketRef.current.emit("voice-call-request", {
           fromEmail: userId,
@@ -1007,7 +1011,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
           type: "voice",
         });
       });
-  
+
       peer.on("stream", (remoteStream) => {
         console.log("Received remote audio stream");
         if (remoteVideoRef.current) {
@@ -1017,13 +1021,13 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
           });
         }
       });
-  
+
       peer.on("error", (err) => {
         console.error("Peer error:", err);
         setError("Voice call connection error occurred");
         endVoiceCall();
       });
-  
+
       peerRef.current = peer;
       setIsVoiceCalling(true);
     } catch (err) {
@@ -1035,12 +1039,12 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
   const acceptVoiceCall = async () => {
     if (!incomingCall) return;
-  
+
     try {
       // Set call start time when call is accepted
       setCallStartTime(new Date());
       startCallDurationTimer();
-  
+
       let stream = null;
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -1051,17 +1055,17 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         console.warn("Could not get audio device:", err);
         return;
       }
-  
+
       if (stream) {
         streamRef.current = stream;
       }
-  
+
       const peer = new Peer({
         initiator: false,
         trickle: false,
         stream,
       });
-  
+
       peer.on("signal", (signal) => {
         socketRef.current.emit("voice-call-accept", {
           signal,
@@ -1069,20 +1073,20 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
           toEmail: userId,
         });
       });
-  
+
       peer.on("stream", (remoteStream) => {
         console.log("Received remote audio stream");
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStream;
         }
       });
-  
+
       peer.on("error", (err) => {
         console.error("Peer error:", err);
         setError("Voice call connection error occurred");
         endVoiceCall();
       });
-  
+
       peer.signal(incomingCall.signal);
       peerRef.current = peer;
       setPeerEmail(incomingCall.fromEmail);
@@ -1094,18 +1098,18 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       endVoiceCall();
     }
   };
-  
+
   const endVoiceCall = () => {
     // Calculate final call duration
     const finalDuration = callStartTime
       ? Math.floor((new Date() - callStartTime) / 1000)
       : 0;
-  
+
     // Clear timer
     if (callTimerRef.current) {
       clearInterval(callTimerRef.current);
     }
-  
+
     if (socketRef.current?.connected && peerEmail) {
       socketRef.current.emit("end-voice-call", {
         to: peerEmail,
@@ -1113,7 +1117,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         duration: finalDuration
       });
     }
-  
+
     if (callStartTime) {
       socketRef.current.emit("save-call-message", {
         senderId: userId,
@@ -1124,11 +1128,11 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         timestamp: new Date(),
       });
     }
-  
+
     // Reset states
     setCallStartTime(null);
     setCallDuration(null);
-  
+
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;

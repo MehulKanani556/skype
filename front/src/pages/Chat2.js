@@ -33,7 +33,7 @@ import {
 } from "react-icons/md";
 import { CiSquareRemove } from "react-icons/ci";
 import { RiShutDownLine } from "react-icons/ri";
-import { LuScreenShare, LuSendHorizontal ,LuScreenShareOff } from "react-icons/lu";
+import { LuScreenShare, LuSendHorizontal, LuScreenShareOff } from "react-icons/lu";
 import { IoIosArrowDown, IoIosArrowUp, IoMdSearch } from "react-icons/io";
 import { GoDeviceCameraVideo } from "react-icons/go";
 import { ImCross } from "react-icons/im";
@@ -598,7 +598,7 @@ const Chat2 = () => {
   const handleCreateGroup = async () => {
     const data = {
       userName: groupName,
-      members: groupUsers,
+      members: [...groupUsers, userId],
       createdBy: userId,
       photo: groupPhoto,
     };
@@ -1680,13 +1680,13 @@ const Chat2 = () => {
                   {isSharing ? (
                     <LuScreenShareOff
                       className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 animate-bounce"
-                      onClick={() =>  cleanupConnection()}
+                      onClick={() => cleanupConnection()}
                     />
                   ) : (
                     <LuScreenShare
                       className="w-6 h-6 cursor-pointer"
                       onClick={() => handleStartScreenShare()}
-                  />
+                    />
                   )}
                   {selectedChat?.members && (
                     <MdGroupAdd
@@ -1771,12 +1771,9 @@ const Chat2 = () => {
                             0 ||
                             !issameUser;
 
-                          const name = allUsers.find(user => user._id === message.sender)?.userName
-                          // console.log("fghfgh",currentTime, prevMessage , nextMessage, showTime,);
-
+                          const name = allUsers.find(user => user._id === message.sender)?.userName;
                           return (
                             message.content?.type === "system") ? (
-
                             <div className="flex justify-center my-2">
                               <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
                                 {message.content.content.split('**').map((part, index) => {
@@ -1789,9 +1786,7 @@ const Chat2 = () => {
                                 })}
                               </span>
                             </div>
-
                           ) : message.content?.type === "call" ? (
-
                             message.content.status === "ended" ? (
                               // Render completed call with duration
                               <div className="flex justify-center my-2">
@@ -2429,13 +2424,13 @@ const Chat2 = () => {
             </p>
             <div className="flex justify-center gap-8">
               <button
-                onClick={() =>acceptScreenShare()}
-                className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 animate-bounce" 
+                onClick={() => acceptScreenShare()}
+                className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 animate-bounce"
               >
                 <LuScreenShare
                   className="w-6 h-6 cursor-pointer"
                 />
-              </button> 
+              </button>
               <button
                 onClick={() => {
                   setIncomingShare(null);
@@ -2443,7 +2438,7 @@ const Chat2 = () => {
                 }}
                 className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
               >
-                <LuScreenShareOff  className="text-xl" />
+                <LuScreenShareOff className="text-xl" />
               </button>
             </div>
           </div>
@@ -2482,7 +2477,7 @@ const Chat2 = () => {
                         className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
                         onClick={() => {
                           if (!isChecked) {
-                            setGroupNewUsers((prev) => [...prev, user._id]); 
+                            setGroupNewUsers((prev) => [...prev, user._id]);
                           } else {
                             setGroupNewUsers((prev) =>
                               prev.filter((id) => id !== user._id)
@@ -2553,7 +2548,7 @@ const Chat2 = () => {
             }}
           >
             <div className="flex justify-between items-center pb-2 p-4">
-              <h2 className="text-lg font-bold">Profilez</h2>
+              <h2 className="text-lg font-bold">Profile</h2>
               <button
                 onClick={() => setIsProfileModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -2782,7 +2777,7 @@ const Chat2 = () => {
             }}
           >
             <div className="flex justify-between items-center pb-2 p-4">
-              <h2 className="text-lg font-bold">Profile</h2>
+              <h2 className="text-lg font-bold">Profileaa</h2>
               <button
                 onClick={() => setIsGroupModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -2791,8 +2786,24 @@ const Chat2 = () => {
               </button>
             </div>
             <div className="flex flex-col items-center">
+
               <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4">
-                <img
+                {selectedChat?.photo && selectedChat.photo !== "null" ? (
+                  <img
+                    src={`${IMG_URL}${selectedChat?.photo}`}
+                    alt="Profile"
+                    className="cursor-pointer object-cover w-full h-full rounded-full"
+                    onClick={() => document.getElementById("fileInput").click()}
+                  />
+                ) : (
+                  <div className="text-gray-900 text-lg font-bold flex w-24 h-24 justify-center items-center">
+                    {selectedChat.userName
+                      .split(" ")
+                      .map((n) => n[0].toUpperCase())
+                      .join("")}
+                  </div>
+                )}
+                {/* <img
                   src={
                     selectedChat?.photo
                       ? `${IMG_URL}${selectedChat?.photo}`
@@ -2801,7 +2812,7 @@ const Chat2 = () => {
                   alt="Profile"
                   className="cursor-pointer object-cover w-full h-full rounded-full"
                   onClick={() => document.getElementById("fileInput").click()}
-                />
+                /> */}
                 <input
                   type="file"
                   id="fileInput"
@@ -2904,7 +2915,7 @@ const Chat2 = () => {
                   </>
                 )}
               </div>
-              <div className="text-gray-500">
+              <div className="text-gray-500 mt-1">
                 Created by{" "}
                 {allUsers?.find((user) => user._id == selectedChat?.createdBy)
                   ?.userName || "Unknown User"}
@@ -3061,12 +3072,12 @@ const Chat2 = () => {
                 <span className="text-gray-800 ">{groupUsers.length || 0}</span>
               </div>
               <div className="flex flex-col max-h-48 overflow-y-auto">
-                {allUsers.map((user, index) => {
+                {allUsers.filter(user => user._id !== currentUser).map((user, index) => {
                   const isChecked = groupUsers.includes(user._id); // Check if user is already selected
                   return (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
+                      className={`flex items-center justify-between p-2 hover:bg-gray-100 rounded ${isChecked ? 'order-first' : ''}`}
                       onClick={() => {
                         if (!isChecked) {
                           setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
@@ -3078,11 +3089,21 @@ const Chat2 = () => {
                       }}
                     >
                       <div className="flex items-center">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-2 font-bold">
-                          {user.userName
-                            .split(" ")
-                            .map((n) => n[0].toUpperCase())
-                            .join("")}
+                        <div className="w-8 h-8 rounded-full mr-2 bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
+                          {user?.photo && user.photo !== "null" ? (
+                            <img
+                              src={`${IMG_URL}${user.photo.replace(/\\/g, "/")}`}
+                              alt={`${user.userName}`}
+                              className="object-cover h-full w-full"
+                            />
+                          ) : (
+                            <span className="text-gray-900 text-lg font-bold">
+                              {user.userName
+                                .split(" ")
+                                .map((n) => n[0].toUpperCase())
+                                .join("")}
+                            </span>
+                          )}
                         </div>
                         <span>{user.userName}</span>
                       </div>
@@ -3104,35 +3125,6 @@ const Chat2 = () => {
                     </div>
                   );
                 })}
-                {/* <div className="flex items-center p-2 cursor-pointer" onClick={() => {
-                  setGroupUsers(selectedChat?.members)
-                  setIsGroupModalOpen(false)
-                  setIsModalOpen(true)
-                }}>
-                  <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2 font-bold">
-                    +
-                  </div>
-                  <span className="text-gray-800 font-bold">Add participants</span>
-                </div> */}
-                {/* {selectedChat?.members.map((member, index) => {
-                  const user = allUsers.find((user) => user._id === member);
-                  return (
-                    <div key={index} className="flex items-center p-2 group">
-                      <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
-                        {user.userName.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="text-gray-800">{user.userName}</span>
-                      <button className="ml-auto text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs border border-red-500 rounded-full px-2 py-1"
-                        onClick={() => {
-                          dispatch(leaveGroup({ groupId: selectedChat._id, userId: user._id }))
-                          socket.emit("update-group", { groupId: selectedChat._id, members: selectedChat?.members.filter((id) => id !== user._id) })
-                          dispatch(getAllMessageUsers())
-                        }}>
-                        Remove
-                      </button>
-                    </div>
-                  )
-                })} */}
               </div>
               <div className="mt-4 flex justify-center">
                 <button
