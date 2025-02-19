@@ -1512,12 +1512,40 @@ const Chat2 = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {filteredUsers.map((item) => {
-            // Define lastMessage here for each item
-            const lastMessage = Array.isArray(item.messages) && item.messages.length > 0
-              ? [...item.messages].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]
-              : null;
+        {filteredUsers
+            .slice()
+            .sort((a, b) => {
+              // Prioritize the current user
+              if (a._id === currentUser) return -1;
+              if (b._id === currentUser) return 1;
 
+              const lastMessageA = Array.isArray(a.messages)
+                ? [...a.messages].sort(
+                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                )[0]
+                : null;
+              const lastMessageB = Array.isArray(b.messages)
+                ? [...b.messages].sort(
+                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                )[0]
+                : null;
+
+              if (!lastMessageA && !lastMessageB) return 0;
+              if (!lastMessageA) return 1;
+              if (!lastMessageB) return -1;
+
+              return (
+                new Date(lastMessageB.createdAt) -
+                new Date(lastMessageA.createdAt)
+              );
+            })
+            .map((item) => {
+              const lastMessage = Array.isArray(item.messages)
+                ? [...item.messages] // Create a shallow copy of the array
+                  .sort(
+                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                  )[0]
+                : null;
             return (
               <div
                 key={item._id}
