@@ -629,6 +629,16 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       }
     });
 
+    socketRef.current.on("voice-call-accepted", ({ signal, fromEmail }) => {
+      console.log("Voice call accepted by:", fromEmail);
+      if (peerRef.current) {
+        peerRef.current.signal(signal);
+        setIsVoiceCalling(true);
+      } else {
+        console.error("No peer connection found for:", fromEmail);
+      }
+    });
+
     // Handle incoming video signals
     socketRef.current.on("video-call-signal", ({ signal, fromEmail }) => {
       console.log("Received video call signal from:", fromEmail);
@@ -645,6 +655,12 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       // Add any additional logic you need here
     });
 
+    socketRef.current.on("voice-call-ended", ({ to, from, duration }) => {
+      // console.log("Video call ended between:", to, from, "Duration:", duration);
+      endVoiceCall();
+      // Add any additional logic you need here
+    });
+
     return () => {
       cleanupConnection();
       if (socketRef.current) {
@@ -655,6 +671,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         socketRef.current.off("share-accepted");
         socketRef.current.off("share-signal");
         socketRef.current.off("video-call-ended");
+        socketRef.current.off("voice-call-ended");
       }
     };
   }, [userId]);
@@ -794,6 +811,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
       peerRef.current = peer;
       setIsVideoCalling(true);
+      setPeerEmail(receiverId);
     } catch (err) {
       console.error("Error starting video call:", err);
       setError(err.message || "Failed to start video call");
@@ -894,7 +912,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
     // Save call ended message with duration if call was connected
 
-    if (socketRef.current?.connected && peerEmail) {
+    if (socketRef.current) {
       socketRef.current.emit("end-video-call", {
         to: peerEmail,
         from: userId,
@@ -962,7 +980,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       setError("Please enter peer email first");
       return;
     }
-
+  
+    console.log("startVoiceCall", receiverId);
     try {
       let stream = null;
       try {
@@ -1030,6 +1049,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
       peerRef.current = peer;
       setIsVoiceCalling(true);
+      setPeerEmail(receiverId);
     } catch (err) {
       console.error("Error starting voice call:", err);
       setError(err.message || "Failed to start voice call");
@@ -1058,6 +1078,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
       if (stream) {
         streamRef.current = stream;
+        setIsMicrophoneOn(true);
       }
 
       const peer = new Peer({
@@ -1101,6 +1122,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
   const endVoiceCall = () => {
     // Calculate final call duration
+    console.log("endVoiceCall", peerEmail,userId);
     const finalDuration = callStartTime
       ? Math.floor((new Date() - callStartTime) / 1000)
       : 0;
@@ -1118,11 +1140,12 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       });
     }
 
+  
     if (callStartTime) {
       socketRef.current.emit("save-call-message", {
         senderId: userId,
         receiverId: peerEmail,
-        callType: "audio",
+        callType: "voice",
         status: "ended",
         duration: finalDuration,
         timestamp: new Date(),
@@ -1145,7 +1168,9 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       remoteVideoRef.current.srcObject = null;
     }
     setIsVoiceCalling(false);
+    setIsVideoCalling(false);
     setIncomingCall(null);
+    setIsCameraOn(false);
     setIsMicrophoneOn(false);
     setCallDuration(null);
     setCallStartTime(null);
