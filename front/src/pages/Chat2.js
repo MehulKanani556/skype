@@ -2421,48 +2421,26 @@ const Chat2 = () => {
               />
               {/* {console.log(groupUsers)} */}
               <div className="space-y-2 h-80 overflow-y-auto">
-                {allUsers.map((user, index) => {
-                  const isChecked = groupUsers.includes(user._id); // Check if user is already selected
-                  return (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
-                      onClick={() => {
-                        if (!isChecked) {
-                          setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
-                        } else {
-                          setGroupUsers((prev) =>
-                            prev.filter((id) => id !== user._id)
-                          ); // Remove user ID from groupUsers state
-                        }
-                      }}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center mr-2">
-                          {user.userName
-                            .split(" ")
-                            .map((n) => n[0].toUpperCase())
-                            .join("")}
-                        </div>
-                        <span>{user.userName}</span>
-                      </div>
-                      <input
-                        id={`checkbox-${user._id}`}
-                        type="checkbox"
-                        checked={isChecked} // Set checkbox state based on selection
-                        readOnly // Make checkbox read-only to prevent direct interaction
-                        className="form-checkbox rounded-full"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          border: "2px solid #ccc",
-                          backgroundColor: "#fff",
-                          cursor: "pointer",
+                {allUsers
+                  .filter((user) => !groupUsers.includes(user._id)) // Filter out already selected users
+                  .map((user, index) => {
+                    const isChecked = groupNewUsers.includes(user._id); // Check if user is already selected
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
+                        onClick={() => {
+                          if (!isChecked) {
+                            setGroupNewUsers((prev) => [...prev, user._id]); 
+                          } else {
+                            setGroupNewUsers((prev) =>
+                              prev.filter((id) => id !== user._id)
+                            ); // Remove user ID from groupUsers state
+                          }
                         }}
-                       />
+                      >
                         <div className="flex items-center">
-                          <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-2">
+                          <div className="w-9 h-9 bg-gray-200 text-sm font-semibold rounded-full flex items-center justify-center mr-2">
                             {user.userName
                               .split(" ")
                               .map((n) => n[0].toUpperCase())
@@ -2510,6 +2488,7 @@ const Chat2 = () => {
           </div>
         </div>
       )}
+
 
       {/* Profile Modal */}
       {isProfileModalOpen && (

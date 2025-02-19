@@ -715,8 +715,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     // Handle when video call is accepted
     socketRef.current.on("video-call-accepted", ({ signal, fromEmail }) => {
       console.log("Video call accepted by:", fromEmail);
-      if (peerRef.current && peerRef.current[fromEmail]) {
-        peerRef.current[fromEmail].signal(signal);
+      if (peerRef.current) {
+        peerRef.current.signal(signal);
         setIsVideoCalling(true);
       } else {
         console.error("No peer connection found for:", fromEmail);
@@ -726,8 +726,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     // Handle incoming video signals
     socketRef.current.on("video-call-signal", ({ signal, fromEmail }) => {
       console.log("Received video call signal from:", fromEmail);
-      if (peerRef.current && peerRef.current[fromEmail]) {
-        peerRef.current[fromEmail].signal(signal);
+      if (peerRef.current) {
+        peerRef.current.signal(signal);
       } else {
         console.error("No peer connection found for:", fromEmail);
       }
