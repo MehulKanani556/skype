@@ -32,6 +32,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -42,6 +43,7 @@
   0%, 100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-4px);
   }
@@ -56,7 +58,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background-color: #e0f7fa; /* Light background */
+  background-color: #e0f7fa;
+  /* Light background */
   padding: 10px;
   border-radius: 5px;
 }
@@ -76,20 +79,28 @@
 }
 
 .waveform {
-  flex-grow: 1; /* Allow the waveform to take available space */
-  height: 10px; /* Height of the progress bar */
-  background-color: #e0e0e0; /* Background color for the waveform */
+  flex-grow: 1;
+  /* Allow the waveform to take available space */
+  height: 10px;
+  /* Height of the progress bar */
+  background-color: #e0e0e0;
+  /* Background color for the waveform */
   border-radius: 5px;
-  position: relative; /* Positioning for inner elements */
-  overflow: hidden; /* Hide overflow */
+  position: relative;
+  /* Positioning for inner elements */
+  overflow: hidden;
+  /* Hide overflow */
 }
 
 .progress {
   height: 100%;
-  background-color: #007bff; /* Color of the progress */
+  background-color: #007bff;
+  /* Color of the progress */
   border-radius: 5px;
-  transition: width 0.1s; /* Smooth transition for progress */
+  transition: width 0.1s;
+  /* Smooth transition for progress */
 }
+
 .active-search-result {
   background-color: rgba(255, 255, 0, 0.3);
   transition: background-color 0.3s ease;
@@ -99,4 +110,34 @@
   background-color: yellow;
   padding: 2px;
   border-radius: 2px;
+}
+
+
+/* Hide scrollbar by default */
+.flex-1.overflow-y-auto::-webkit-scrollbar {
+  width: 6px;
+  background: transparent;
+  visibility: hidden;
+}
+
+/* Show scrollbar on hover */
+.flex-1.overflow-y-auto:hover::-webkit-scrollbar {
+  width: 6px;
+  visibility: visible;
+}
+
+/* Track */
+.flex-1.overflow-y-auto:hover::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+/* Handle */
+.flex-1.overflow-y-auto:hover::-webkit-scrollbar-thumb {
+  background: #bebebe;
+  border-radius: 5px;
+}
+
+/* Handle on hover */
+.flex-1.overflow-y-auto:hover::-webkit-scrollbar-thumb:hover {
+  background: #555;
 }
