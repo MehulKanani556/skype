@@ -1554,7 +1554,7 @@ const Chat2 = () => {
             })}
         </div>
       </div>
-      {!(isReceiving || isVideoCalling) && (
+      {!(isReceiving || isVideoCalling || isVoiceCalling) && (
         <div className="flex-1 flex flex-col">
           {selectedChat ? (
             <>
@@ -2310,13 +2310,9 @@ const Chat2 = () => {
 
 
       {/* {console.log(isVideoCalling)} */}
-      {/* {(isSharing || isReceiving || isVideoCalling || incomingCall) && ( */}
-      <div className={`flex-grow flex flex-col ${(isReceiving || isVideoCalling || incomingCall) ? '' : 'hidden'}`}>
+      <div className={`flex-grow flex flex-col ${(isReceiving || isVideoCalling || incomingCall || isVoiceCalling) ? '' : 'hidden'}`}>
         <div className="grid grid-row-2 gap-4 relative">
-          {/* {isVideoCalling && ( */}
-          <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling ? '' : 'hidden'}`}>
-            <h4 className="font-medium">
-            </h4>
+          <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling || isVoiceCalling ? '' : 'hidden'}`}>
             <video
               ref={localVideoRef}
               autoPlay
@@ -2326,13 +2322,7 @@ const Chat2 = () => {
               style={{ maxHeight: "20vh" }}
             />
           </div>
-          {/* )} */}
           <div className="space-y-2">
-            {/* <h4 className="font-medium">
-                    {isVideoCalling ? "Remote Camera" : "Remote Screen"}
-                    {isReceiving && "(Receiving)"}
-                  </h4> */}
-
             <video
               ref={remoteVideoRef}
               autoPlay
@@ -2341,27 +2331,25 @@ const Chat2 = () => {
               style={{ maxHeight: "90vh", }}
             />
           </div>
-          {(isSharing || isReceiving || isVideoCalling) && (
+          {(isSharing || isReceiving || isVideoCalling || isVoiceCalling) && (
             <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
-
               <button
                 onClick={() => {
-                  if (isVideoCalling) {
-                    endVideoCall();
+                  if (isVideoCalling || isVoiceCalling) {
+                    isVideoCalling ? endVideoCall() : endVoiceCall();
                   }
                   cleanupConnection();
                 }}
                 className="bg-red-500 h-10 w-10  text-white  grid place-content-center rounded-full hover:bg-red-600 transition-colors "
               >
                 <MdCallEnd className="text-xl " />
-                {/* {isSharing ? "Sharing" : isReceiving ? "Receiving" : "Video Call"} */}
               </button>
-              {isVideoCalling && (
+              {(isVideoCalling || isVoiceCalling) && (
                 <>
                   <button
                     onClick={toggleCamera}
                     className={`w-10 grid place-content-center  rounded-full h-10 ${isCameraOn ? "bg-blue-500" : "bg-gray-400"
-                      } text-white`}
+                      } text-white ${isVideoCalling ? "" : "hidden"}`}
                   >
                     {isCameraOn ? <FiCamera className="text-xl " /> : <FiCameraOff className="text-xl " />}
                   </button>
@@ -2378,7 +2366,7 @@ const Chat2 = () => {
           )}
         </div>
       </div>
-      {/* )} */}
+    
 
       {/* ========= incoming call ========= */}
       {incomingCall && (
@@ -2401,10 +2389,14 @@ const Chat2 = () => {
             <h3 className="text-2xl text-white mb-2">
               {allUsers.find(user => user._id === incomingCall.fromEmail)?.userName}
             </h3>
-            <p className="text-gray-400 mb-8 animate-pulse">Incoming call...</p>
+            <p className="text-gray-400 mb-8 animate-pulse">Incoming {incomingCall.type} call...</p>
             <div className="flex justify-center gap-8">
+              {console.log(incomingCall.type)}
+              
               <button
-                onClick={acceptVideoCall}
+                onClick={
+                  incomingCall.type === "video" ? acceptVideoCall : acceptVoiceCall
+                }
                 className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 animate-bounce"
               >
                 <FaPhone className="text-xl" />
