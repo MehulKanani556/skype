@@ -622,3 +622,99 @@ exports.getSingleUser = async (req, res) => {
     });
   }
 };
+
+
+exports.getAllCallUsers = async (req, res) => {
+  try {
+    const pipeline = [
+      // Match messages where user is either sender or receiver and content type is "call"
+      {
+        $match: {
+          $and: [
+            {
+              $or: [{ sender: req.user._id }, { receiver: req.user._id }],
+            },
+            {
+              "content.type": "call" // Filter for call messages
+            }
+          ],
+        },
+      },
+
+      // Project to get the other user in the conversation
+      {
+        $project: {
+          user: {
+            $cond: {
+              if: { $eq: ["$sender", req.user._id] },
+              then: "$receiver",
+              else: "$sender",
+            },
+          },
+          message: "$$ROOT" // Include the entire message document
+        },
+      },
+
+      // Group by user to remove duplicates
+      {
+        $group: {
+          _id: "$user",
+          messages: { $push: "$message" } // Collect messages for each user
+        },
+      },
+
+      // Lookup user details
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "userData",
+        },
+      },
+
+      // Unwind user data
+      {
+        $unwind: "$userData",
+      },
+
+      // Group again to ensure uniqueness and project required user fields
+      {
+        $group: {
+          _id: "$userData._id",
+          userName: { $first: "$userData.userName" },
+          email: { $first: "$userData.email" },
+          photo: { $first: "$userData.photo" },
+          createdAt: { $first: "$userData.createdAt" },
+          messages: { $first: "$messages" } // Include messages in the final output
+        },
+      },
+
+      // Final projection
+      {
+        $project: {
+          _id: 1,
+          userName: 1,
+          email: 1,
+          photo: 1,
+          createdAt: 1,
+          messages: 1 // Include messages in the response
+        },
+      },
+    ];
+
+    const results = await message.aggregate(pipeline);
+
+    return res.status(200).json({
+      status: 200,
+      message: "All Unique Call Users and Messages Found Successfully...",
+      users: results,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      status: 500,
+      message: error.message,
+    });
+  }
+};

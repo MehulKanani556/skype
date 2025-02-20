@@ -1,5 +1,5 @@
 const express = require("express");
-const { createUser, getAllUsers, getAllMessageUsers, updateUser, getSingleUser } = require("../controller/userController");
+const { createUser, getAllUsers, getAllMessageUsers, updateUser, getSingleUser, getAllCallUsers } = require("../controller/userController");
 const { userLogin, googleLogin,forgotPassword,verifyOtp,changePassword } = require("../auth/auth");
 const { auth } = require("../helper/auth");
 const { getOnlineUsers } = require("../socketManager/SocketManager");
@@ -29,6 +29,7 @@ indexRoutes.post('/changePassword', changePassword)
 indexRoutes.post("/createUser", createUser);
 indexRoutes.get("/allUsers", auth, getAllUsers);
 indexRoutes.get("/allMessageUsers", auth, getAllMessageUsers);
+indexRoutes.get("/allCallUsers", auth, getAllCallUsers);
 indexRoutes.put("/editUser/:id", auth, upload.single("photo"), updateUser);
 indexRoutes.get("/singleUser/:id", auth, getSingleUser)
 

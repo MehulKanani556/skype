@@ -52,14 +52,14 @@ exports.googleLogin = async (req, res) => {
 
 exports.forgotPassword = async (req, res) => {
     try {
-        let { email } = req.body
+        let { email } = req.body;
 
         let checkEmail = await user.findOne({ email })
 
         if (!checkEmail) {
             return res.status(404).json({ status: 404, message: "Email Not Found" })
         }
-
+ 
         const transport = nodemailer.createTransport({
             service: "Gmail",
             auth: {
@@ -75,8 +75,8 @@ exports.forgotPassword = async (req, res) => {
             to: email,
             subject: "Reset Password",
             text: `Your code is: ${otp} `
-        }
-
+        }   
+        
         checkEmail.otp = otp
 
         await checkEmail.save()

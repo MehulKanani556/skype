@@ -30,6 +30,7 @@ import {
   MdOutlineModeEdit,
   MdPhoneEnabled,
   MdGroupAdd,
+  MdOutlinePhoneEnabled,
 } from "react-icons/md";
 import { CiSquareRemove } from "react-icons/ci";
 import { RiShutDownLine } from "react-icons/ri";
@@ -41,6 +42,7 @@ import { FiCamera, FiCameraOff } from "react-icons/fi";
 import { BsFillMicFill, BsFillMicMuteFill } from "react-icons/bs";
 import { RxCross2 } from "react-icons/rx";
 import {
+  IoCallOutline,
   IoCameraOutline,
   IoCheckmarkCircleOutline,
   IoCheckmarkDoneCircle,
@@ -65,6 +67,7 @@ import {
   clearChat,
   sendAudioMessage,
   addParticipants,
+  getAllCallUsers,
 } from "../redux/slice/user.slice";
 import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
@@ -209,6 +212,7 @@ const Chat2 = () => {
     dispatch(getAllMessageUsers());
     dispatch(getAllGroups());
     dispatch(getUser(currentUser));
+    dispatch(getAllCallUsers());
   }, [dispatch]);
 
   // Add this effect to filter users based on search input
@@ -241,11 +245,12 @@ const Chat2 = () => {
             }
           })
         );
+      
       } else {
         setFilteredUsers(allMessageUsers); // Show allMessageUsers when searchInput is empty
       }
     }
-  }, [searchInput, allUsers, groups, currentUser, allMessageUsers]);
+  }, [searchInput, allUsers, groups,selectedTab, currentUser, allMessageUsers]);
   useEffect(() => {
     if (selectedChat && allMessageUsers) {
       const updatedChat = allMessageUsers.find(
@@ -1512,7 +1517,7 @@ const Chat2 = () => {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-        {filteredUsers
+          {filteredUsers
             .slice()
             .sort((a, b) => {
               // Prioritize the current user
@@ -1546,98 +1551,98 @@ const Chat2 = () => {
                     (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
                   )[0]
                 : null;
-            return (
-              <div
-                key={item._id}
-                className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""}`}
-                onClick={() => {
-                  setSelectedChat(item);
-                  if (window.innerWidth <= 425) {
-                    setShowLeftSidebar(false);
-                  }
-                }}
-              >
-                <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                  <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
-                    {item?.photo && item.photo !== "null" ? (
-                      <img
-                        src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
-                        alt="Profile"
-                        className="object-cover h-full w-full"
-                      />
-                    ) : (
-                      <span className="text-gray-900 text-lg font-bold">
-                        {item?.userName && item?.userName.includes(" ")
-                          ? item?.userName.split(" ")[0][0].toUpperCase() +
-                          item?.userName.split(" ")[1][0].toUpperCase()
-                          : item?.userName[0].toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  {onlineUsers.includes(item._id) && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
-                  )}
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="flex justify-between">
-                    <span className="font-medium">
-                      {item._id === currentUser
-                        ? `${item.userName} (You)`
-                        : item.userName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {lastMessage
-                        ? new Date(lastMessage.createdAt).toLocaleTimeString(
-                          [],
-                          {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }
-                        )
-                        : ""}
-                    </span>
-                  </div>
-                  {/* {item.email} */}
-
-                  <div className="flex justify-between">
-                    <div className="text-sm text-gray-500">
-                      {item?.messages?.[0]?.content.content}
-                      {item.hasPhoto && (
-                        <span className="text-xs ml-1">[photo]</span>
+              return (
+                <div
+                  key={item._id}
+                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""}`}
+                  onClick={() => {
+                    setSelectedChat(item);
+                    if (window.innerWidth <= 425) {
+                      setShowLeftSidebar(false);
+                    }
+                  }}
+                >
+                  <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
+                    <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
+                      {item?.photo && item.photo !== "null" ? (
+                        <img
+                          src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
+                          alt="Profile"
+                          className="object-cover h-full w-full"
+                        />
+                      ) : (
+                        <span className="text-gray-900 text-lg font-bold">
+                          {item?.userName && item?.userName.includes(" ")
+                            ? item?.userName.split(" ")[0][0].toUpperCase() +
+                            item?.userName.split(" ")[1][0].toUpperCase()
+                            : item?.userName[0].toUpperCase()}
+                        </span>
                       )}
                     </div>
-                    <div className="badge">
-                      {item.messages?.filter(
-                        (message) =>
-                          message.receiver === currentUser &&
-                          message.status !== "read"
-                      ).length > 0 && (
-                          <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
-                            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                              {item.messages?.filter(
-                                (message) =>
-                                  message.receiver === currentUser &&
-                                  message.status !== "read"
-                              ).length > 99
-                                ? "99+"
-                                : item.messages?.filter(
+                    {onlineUsers.includes(item._id) && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
+                    )}
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between">
+                      <span className="font-medium">
+                        {item._id === currentUser
+                          ? `${item.userName} (You)`
+                          : item.userName}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {lastMessage
+                          ? new Date(lastMessage.createdAt).toLocaleTimeString(
+                            [],
+                            {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            }
+                          )
+                          : ""}
+                      </span>
+                    </div>
+                    {/* {item.email} */}
+
+                    <div className="flex justify-between">
+                      <div className="text-sm text-gray-500">
+                        {item?.messages?.[0]?.content.content}
+                        {item.hasPhoto && (
+                          <span className="text-xs ml-1">[photo]</span>
+                        )}
+                      </div>
+                      <div className="badge">
+                        {item.messages?.filter(
+                          (message) =>
+                            message.receiver === currentUser &&
+                            message.status !== "read"
+                        ).length > 0 && (
+                            <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
+                              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                                {item.messages?.filter(
                                   (message) =>
                                     message.receiver === currentUser &&
                                     message.status !== "read"
-                                ).length}
-                            </span>
-                          </div>
-                        )}
+                                ).length > 99
+                                  ? "99+"
+                                  : item.messages?.filter(
+                                    (message) =>
+                                      message.receiver === currentUser &&
+                                      message.status !== "read"
+                                  ).length}
+                              </span>
+                            </div>
+                          )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </div>
-    
+
 
       {/* Right Sidebar */}
       {!(isReceiving || isVideoCalling || isVoiceCalling) && (
@@ -1715,6 +1720,10 @@ const Chat2 = () => {
                   <IoMdSearch
                     className="w-6 h-6 cursor-pointer"
                     onClick={() => setIsSearchBoxOpen((prev) => !prev)}
+                    title="Find"
+                    data-tooltip="Find"
+                    data-tooltip-delay="0"
+                    data-tooltip-duration="0"
                   />
                   {isSearchBoxOpen && (
                     <div className="absolute top-12 right-[31%] bg-white shadow-lg p-4 z-10 flex items-center border-rounded" style={{ padding: "5px 25px", borderRadius: "30px" }}>
@@ -1759,7 +1768,11 @@ const Chat2 = () => {
                     </div>
                   )}
                   <MdOutlineDeleteSweep
-                    className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 text-4xl"
+                    title="Clear chat"
+                    data-tooltip="Clear chat"
+                    data-tooltip-delay="0"
+                    data-tooltip-duration="0"
+                    className="w-7 h-7 cursor-pointer  hover:text-red-600 text-4xl"
                     onClick={() => {
                       if (
                         window.confirm(
@@ -1778,17 +1791,29 @@ const Chat2 = () => {
                   />
                   {isSharing ? (
                     <LuScreenShareOff
+                      title="Stop sharing"
+                      data-tooltip="Stop sharing"
+                      data-tooltip-delay="0"
+                      data-tooltip-duration="0"
                       className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 animate-bounce"
                       onClick={() => cleanupConnection()}
                     />
                   ) : (
                     <LuScreenShare
+                      title="Screen sharing"
+                      data-tooltip="Screen sharing"
+                      data-tooltip-delay="0"
+                      data-tooltip-duration="0"
                       className="w-6 h-6 cursor-pointer"
                       onClick={() => handleStartScreenShare()}
                     />
                   )}
                   {selectedChat?.members && (
                     <MdGroupAdd
+                      title="Add to group"
+                      data-tooltip="Add to group"
+                      data-tooltip-delay="0"
+                      data-tooltip-duration="0"
                       className="w-6 h-6 cursor-pointer"
                       onClick={() => {
                         if (selectedChat?.members) {
@@ -1800,13 +1825,22 @@ const Chat2 = () => {
                       }}
                     />
                   )}
-                  <MdPhoneEnabled
-                    className=" w-6 h-6 cursor-pointer"
-                    onClick={() => handleMakeCall("voice")}
-                  />
                   <GoDeviceCameraVideo
                     className="w-6 h-6 cursor-pointer"
                     onClick={() => handleMakeCall("video")}
+                    title="Video Call"
+                    data-tooltip="Video Call"
+                    data-tooltip-delay="0"
+                    data-tooltip-duration="0"
+
+                  />
+                  <IoCallOutline
+                    className=" w-6 h-6 cursor-pointer"
+                    onClick={() => handleMakeCall("voice")}
+                    title="Voice Call"
+                    data-tooltip="Voice Call"
+                    data-tooltip-delay="0"
+                    data-tooltip-duration="0"
                   />
                   {/* <FaEllipsisH className="" /> */}
                 </div>
@@ -2465,7 +2499,7 @@ const Chat2 = () => {
           )}
         </div>
       </div>
-    
+
 
       {/* ========= incoming call ========= */}
       {incomingCall && (
@@ -2491,7 +2525,7 @@ const Chat2 = () => {
             <p className="text-gray-400 mb-8 animate-pulse">Incoming {incomingCall.type} call...</p>
             <div className="flex justify-center gap-8">
               {console.log(incomingCall.type)}
-              
+
               <button
                 onClick={
                   incomingCall.type === "video" ? acceptVideoCall : acceptVoiceCall
@@ -2581,33 +2615,33 @@ const Chat2 = () => {
                           }
                         }}
                       >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-2">
-                          {user.userName
-                            .split(" ")
-                            .map((n) => n[0].toUpperCase())
-                            .join("")}
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-2">
+                            {user.userName
+                              .split(" ")
+                              .map((n) => n[0].toUpperCase())
+                              .join("")}
+                          </div>
+                          <span>{user.userName}</span>
                         </div>
-                        <span>{user.userName}</span>
+                        <input
+                          id={`checkbox-${user._id}`}
+                          type="checkbox"
+                          checked={isChecked} // Set checkbox state based on selection
+                          readOnly // Make checkbox read-only to prevent direct interaction
+                          className="form-checkbox rounded-full"
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            border: "2px solid #ccc",
+                            backgroundColor: "#fff",
+                            cursor: "pointer",
+                          }}
+                        />
                       </div>
-                      <input
-                        id={`checkbox-${user._id}`}
-                        type="checkbox"
-                        checked={isChecked} // Set checkbox state based on selection
-                        readOnly // Make checkbox read-only to prevent direct interaction
-                        className="form-checkbox rounded-full"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          border: "2px solid #ccc",
-                          backgroundColor: "#fff",
-                          cursor: "pointer",
-                        }}
-                      />
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
             <div className="mt-4 flex justify-center">

@@ -15,6 +15,7 @@ const handleErrors = (error, dispatch, rejectWithValue) => {
 
 const initialState = {
   user: null,
+  allCallUsers:[],
   onlineUser: [],
   allUsers: [],
   allMessageUsers: [],
@@ -194,6 +195,22 @@ export const getAllMessageUsers = createAsyncThunk(
     try {
       const token = await sessionStorage.getItem("token");
       const response = await axios.get(`${BASE_URL}/allMessageUsers`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data.users;
+    } catch (error) {
+      return handleErrors(error, null, rejectWithValue);
+    }
+  }
+);
+export const getAllCallUsers = createAsyncThunk(
+  "user/getAllCallUsers",
+  async (_, { rejectWithValue }) => {
+    try {
+      const token = await sessionStorage.getItem("token");
+      const response = await axios.get(`${BASE_URL}/allCallUsers`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -494,6 +511,7 @@ const userSlice = createSlice({
   reducers: {
     logout: (state, action) => {
       state.user = null;
+      state.allCallUsers = null;
       state.isAuthenticated = false;
       state.loggedIn = false;
       state.isLoggedOut = true;
@@ -738,8 +756,18 @@ const userSlice = createSlice({
           state.loading = false;
           state.error = action.payload;
           state.message = action.payload?.message || "Failed to add participants";
+        })
+        .addCase(getAllCallUsers.fulfilled, (state, action) => {
+          state.allCallUsers = action.payload; // Assuming the API returns the call users
+          state.loading = false;
+          state.error = null;
+          state.message = "Call users retrieved successfully";
+        })
+        .addCase(getAllCallUsers.rejected, (state, action) => {
+          state.loading = false;
+          state.error = action.payload.message;
+          state.message = action.payload?.message || "Failed to retrieve call users";
         });
-
     },
     setOnlineuser: (state, action) => {
       state.onlineUser = action.payload;
