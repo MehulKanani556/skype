@@ -147,7 +147,7 @@ const Chat2 = () => {
   const [filteredPeople, setFilteredPeople] = useState([]);
   const [filteredGroups, setFilteredGroups] = useState([]);
   //changes end
-
+  const [isClearChatModalOpen, setIsClearChatModalOpen] = useState(false);
 
 
   const [isEditingUserName, setIsEditingUserName] = useState(false);
@@ -530,8 +530,7 @@ const Chat2 = () => {
   const handleContextMenu = (e, message) => {
     e.preventDefault();
     if (
-      message.sender === sessionStorage.getItem("userId") &&
-      message.content?.type === "text"
+      message.sender === sessionStorage.getItem("userId")
     ) {
       setContextMenu({
         visible: true,
@@ -1132,7 +1131,6 @@ const Chat2 = () => {
     }
   };
 
-  {/* ********************************** Archit's Changes ********************************** */ }
   const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
 
   // Add this useEffect to handle clicking outside the search dropdown
@@ -1146,7 +1144,6 @@ const Chat2 = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  {/* ********************************** Archit's Changes end ********************************** */ }
 
   // Add this useEffect to handle paste events
   useEffect(() => {
@@ -1193,6 +1190,22 @@ const Chat2 = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [selectedChat]);
+
+  // clear chat
+  const handleClearChat = () => {
+    dispatch(clearChat({ selectedId: selectedChat._id }))
+      .then(() => {
+        dispatch(getAllMessages({ selectedId: selectedChat._id }));
+        setIsClearChatModalOpen(false);
+      });
+  }
+
+  // Add useEffect to handle input focus when chat is selected
+  useEffect(() => {
+    if (selectedChat && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [selectedChat]); // Dependency on selectedChat
 
   return (
     <div className="flex h-screen bg-white">
@@ -1257,7 +1270,6 @@ const Chat2 = () => {
           )}
         </div>
 
-        {/* ********************************** Archit's Changes ********************************** */}
         <div className="p-4 border-b relative" ref={searchRef}>
           <div className="flex items-center bg-gray-100 rounded-md p-2">
             <FaSearch className="w-5 h-5 text-gray-500" />
@@ -1273,7 +1285,7 @@ const Chat2 = () => {
 
           {/* ********************************** Search Dropdown ********************************** */}
           {isSearchDropdownOpen && (
-            <div className="absolute left-0 right-0 bg-white mt-2 shadow-lg z-50 h-[792px]">
+            <div className="absolute left-0 top-[65px] right-0 bg-white mt-2 shadow-lg z-50 h-[782px]">
               {/* Tabs */}
               <div className="flex border-b">
                 <button
@@ -1463,7 +1475,6 @@ const Chat2 = () => {
             </div>
           )}
         </div>
-        {/* ********************************** Archit's Changes end ********************************** */}
 
         <div className="flex justify-around p-4 border-b">
           <div className="flex flex-col items-center text-blue-500">
@@ -1511,8 +1522,8 @@ const Chat2 = () => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-        {filteredUsers
+        <div className="flex-1 overflow-y-auto modal_scroll cursor-pointer">
+          {filteredUsers
             .slice()
             .sort((a, b) => {
               // Prioritize the current user
@@ -1546,98 +1557,99 @@ const Chat2 = () => {
                     (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
                   )[0]
                 : null;
-            return (
-              <div
-                key={item._id}
-                className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""}`}
-                onClick={() => {
-                  setSelectedChat(item);
-                  if (window.innerWidth <= 425) {
-                    setShowLeftSidebar(false);
-                  }
-                }}
-              >
-                <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                  <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
-                    {item?.photo && item.photo !== "null" ? (
-                      <img
-                        src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
-                        alt="Profile"
-                        className="object-cover h-full w-full"
-                      />
-                    ) : (
-                      <span className="text-gray-900 text-lg font-bold">
-                        {item?.userName && item?.userName.includes(" ")
-                          ? item?.userName.split(" ")[0][0].toUpperCase() +
-                          item?.userName.split(" ")[1][0].toUpperCase()
-                          : item?.userName[0].toUpperCase()}
-                      </span>
-                    )}
-                  </div>
-                  {onlineUsers.includes(item._id) && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
-                  )}
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="flex justify-between">
-                    <span className="font-medium">
-                      {item._id === currentUser
-                        ? `${item.userName} (You)`
-                        : item.userName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {lastMessage
-                        ? new Date(lastMessage.createdAt).toLocaleTimeString(
-                          [],
-                          {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }
-                        )
-                        : ""}
-                    </span>
-                  </div>
-                  {/* {item.email} */}
-
-                  <div className="flex justify-between">
-                    <div className="text-sm text-gray-500">
-                      {item?.messages?.[0]?.content.content}
-                      {item.hasPhoto && (
-                        <span className="text-xs ml-1">[photo]</span>
+              return (
+                <div
+                  key={item._id}
+                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""}`}
+                  onClick={() => {
+                    setSelectedChat(item);
+                    if (window.innerWidth <= 425) {
+                      setShowLeftSidebar(false);
+                    }
+                    // Input will automatically focus due to the useEffect above
+                  }}
+                >
+                  <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
+                    <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
+                      {item?.photo && item.photo !== "null" ? (
+                        <img
+                          src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
+                          alt="Profile"
+                          className="object-cover h-full w-full"
+                        />
+                      ) : (
+                        <span className="text-gray-900 text-lg font-bold">
+                          {item?.userName && item?.userName.includes(" ")
+                            ? item?.userName.split(" ")[0][0].toUpperCase() +
+                            item?.userName.split(" ")[1][0].toUpperCase()
+                            : item?.userName[0].toUpperCase()}
+                        </span>
                       )}
                     </div>
-                    <div className="badge">
-                      {item.messages?.filter(
-                        (message) =>
-                          message.receiver === currentUser &&
-                          message.status !== "read"
-                      ).length > 0 && (
-                          <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
-                            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                              {item.messages?.filter(
-                                (message) =>
-                                  message.receiver === currentUser &&
-                                  message.status !== "read"
-                              ).length > 99
-                                ? "99+"
-                                : item.messages?.filter(
+                    {onlineUsers.includes(item._id) && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
+                    )}
+                  </div>
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between">
+                      <span className="font-medium">
+                        {item._id === currentUser
+                          ? `${item.userName} (You)`
+                          : item.userName}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {lastMessage
+                          ? new Date(lastMessage.createdAt).toLocaleTimeString(
+                            [],
+                            {
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            }
+                          )
+                          : ""}
+                      </span>
+                    </div>
+                    {/* {item.email} */}
+
+                    <div className="flex justify-between">
+                      <div className="text-sm text-gray-500">
+                        {item?.messages?.[0]?.content.content}
+                        {item.hasPhoto && (
+                          <span className="text-xs ml-1">[photo]</span>
+                        )}
+                      </div>
+                      <div className="badge">
+                        {item.messages?.filter(
+                          (message) =>
+                            message.receiver === currentUser &&
+                            message.status !== "read"
+                        ).length > 0 && (
+                            <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
+                              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                                {item.messages?.filter(
                                   (message) =>
                                     message.receiver === currentUser &&
                                     message.status !== "read"
-                                ).length}
-                            </span>
-                          </div>
-                        )}
+                                ).length > 99
+                                  ? "99+"
+                                  : item.messages?.filter(
+                                    (message) =>
+                                      message.receiver === currentUser &&
+                                      message.status !== "read"
+                                  ).length}
+                              </span>
+                            </div>
+                          )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       </div>
-    
+
 
       {/* Right Sidebar */}
       {!(isReceiving || isVideoCalling || isVoiceCalling) && (
@@ -1758,7 +1770,7 @@ const Chat2 = () => {
                       </button>
                     </div>
                   )}
-                  <MdOutlineDeleteSweep
+                  {/* <MdOutlineDeleteSweep
                     className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 text-4xl"
                     onClick={() => {
                       if (
@@ -1775,6 +1787,11 @@ const Chat2 = () => {
                         });
                       }
                     }}
+                  /> */}
+
+                  <MdOutlineDeleteSweep
+                    className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 text-4xl"
+                    onClick={() => setIsClearChatModalOpen(true)}
                   />
                   {isSharing ? (
                     <LuScreenShareOff
@@ -1814,7 +1831,7 @@ const Chat2 = () => {
               {/*========== Messages ==========*/}
 
               <div
-                className="flex-1 overflow-y-auto p-4"
+                className="flex-1 overflow-y-auto p-4 modal_scroll"
                 ref={messagesContainerRef}
                 style={{ height: "calc(100vh - 180px)" }}
               >
@@ -1961,8 +1978,12 @@ const Chat2 = () => {
                                     <div
                                       className={` max-w-[300px] max-h-[300px]  overflow-hidden`}
                                       style={{ wordWrap: "break-word" }}
-                                      onContextMenu={(e) =>
+                                      onContextMenu={(e) => {
+                                        console.log("sdkfsbgdjhf");
+
                                         handleContextMenu(e, message)
+                                      }
+
                                       }
                                     >
                                       <img
@@ -1983,6 +2004,9 @@ const Chat2 = () => {
                                             )}`
                                           )
                                         }
+                                      // onContextMenu={(e) =>
+                                      //   handleContextMenu(e, message)
+                                      // }
                                       />
                                       <PiDotsThreeVerticalBold
                                         className={`absolute top-2 -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-gray-600`}
@@ -2003,6 +2027,13 @@ const Chat2 = () => {
                                         handleContextMenu(e, message)
                                       }
                                     >
+                                      <PiDotsThreeVerticalBold
+                                        className={`absolute top-2 -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-gray-600`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDropdownToggle(message._id);
+                                        }}
+                                      />
                                       <AudioPlayer audioUrl={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} />
                                       {/* <audio controls>
                                         <source src={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} type={message.content.fileType} />
@@ -2078,47 +2109,61 @@ const Chat2 = () => {
                                 {/* Context Menu (Right Click) */}
                                 {contextMenu.visible && contextMenu.messageId === message._id && (
                                   <div className="absolute right-0 top-10 mt-2 bg-white border rounded shadow-lg z-50">
-                                    <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                      onClick={() => handleEditMessage(contextMenu.message)}
-                                    >
-                                      <MdOutlineModeEdit className="mr-2" /> Edit
-                                    </button>
-                                    <button
-                                      className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                      onClick={() => handleCopyMessage(
-                                        message.content,  // Pass the entire content object instead of just content.content
-                                        () => setActiveMessageId(null)
+                                    {/* Only show Edit button if message is not an image or audio */}
+                                    {!message.content?.fileType?.includes("image/") &&
+                                      !message.content?.fileType?.includes("audio/") && (
+                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                          onClick={() => handleEditMessage(contextMenu.message)}
+                                        >
+                                          <MdOutlineModeEdit className="mr-2" /> Edit
+                                        </button>
                                       )}
-                                    >
-                                      <VscCopy className="mr-2" /> Copy
-                                    </button>
-                                    <button
-                                      className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                      onClick={() => handleDeleteMessage(message._id)}
-                                    >
-                                      <CiSquareRemove className="mr-2" /> Remove
-
-                                    </button>
-                                  </div>
-                                )}
-                                {/* Three Dots Dropdown */}
-                                {activeMessageId === message._id && (
-                                  <div className=" text-gray-500 mt-1" ref={dropdownRef}>
-                                    <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-50">
-                                      <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                        onClick={() => handleEditMessage(contextMenu.message)}
-                                      >
-                                        <MdOutlineModeEdit className="mr-2" /> Edit
-                                      </button>
+                                    {/* Only show Copy button if message is not an audio file */}
+                                    {!message.content?.fileType?.includes("audio/") && (
                                       <button
                                         className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
                                         onClick={() => handleCopyMessage(
-                                          message.content,  // Pass the entire content object instead of just content.content
+                                          message.content,
                                           () => setActiveMessageId(null)
                                         )}
                                       >
                                         <VscCopy className="mr-2" /> Copy
                                       </button>
+                                    )}
+                                    <button
+                                      className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                      onClick={() => handleDeleteMessage(message._id)}
+                                    >
+                                      <CiSquareRemove className="mr-2" /> Remove
+                                    </button>
+                                  </div>
+                                )}
+
+                                {/* Three Dots Dropdown */}
+                                {activeMessageId === message._id && (
+                                  <div className="text-gray-500 mt-1" ref={dropdownRef}>
+                                    <div className="absolute top-[30px] right-0 mt-2 bg-white border rounded shadow-lg z-50">
+                                      {/* Only show Edit button if message is not an image or audio */}
+                                      {!message.content?.fileType?.includes("image/") &&
+                                        !message.content?.fileType?.includes("audio/") && (
+                                          <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                            onClick={() => handleEditMessage(message)}
+                                          >
+                                            <MdOutlineModeEdit className="mr-2" /> Edit
+                                          </button>
+                                        )}
+                                      {/* Only show Copy button if message is not an audio file */}
+                                      {!message.content?.fileType?.includes("audio/") && (
+                                        <button
+                                          className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                          onClick={() => handleCopyMessage(
+                                            message.content,
+                                            () => setActiveMessageId(null)
+                                          )}
+                                        >
+                                          <VscCopy className="mr-2" /> Copy
+                                        </button>
+                                      )}
                                       <button
                                         className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
                                         onClick={() => handleDeleteMessage(message._id)}
@@ -2411,13 +2456,14 @@ const Chat2 = () => {
       {/* {console.log(isVideoCalling)} */}
       <div className={`flex-grow flex flex-col ${(isReceiving || isVideoCalling || incomingCall || isVoiceCalling) ? '' : 'hidden'}`}>
         <div className="grid grid-row-2 gap-4 relative">
-          <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling || isVoiceCalling ? '' : 'hidden'}`}>
+          {/* <div className={`space-y-2 max-w-30 absolute top-1 right-1 ${isVideoCalling || isVoiceCalling ? '' : 'hidden'}`}> */}
+          <div className={`space-y-2 max-w-30 absolute top-1 right-1 ${isVideoCalling ? '' : 'hidden'}`}>
             <video
               ref={localVideoRef}
               autoPlay
               playsInline
               muted
-              className="w-full bg-gray-100 rounded "
+              className="w-full bg-gray-100 rounded"
               style={{ maxHeight: "20vh" }}
             />
           </div>
@@ -2426,9 +2472,15 @@ const Chat2 = () => {
               ref={remoteVideoRef}
               autoPlay
               playsInline
-              className="w-full bg-gray-100 rounded"
-              style={{ maxHeight: "90vh", }}
+              className="w-full rounded"
+              style={{ maxHeight: "90vh", backgroundColor: "#a5a5a5" }}
             />
+            {/* Add name overlay */}
+            {/* <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <span className="text-white text-2xl font-semibold bg-black bg-opacity-50 px-4 py-2 rounded-full">
+                {selectedChat?.userName || "Calling..."}
+              </span>
+            </div> */}
           </div>
           {(isSharing || isReceiving || isVideoCalling || isVoiceCalling) && (
             <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
@@ -2465,7 +2517,7 @@ const Chat2 = () => {
           )}
         </div>
       </div>
-    
+
 
       {/* ========= incoming call ========= */}
       {incomingCall && (
@@ -2491,7 +2543,7 @@ const Chat2 = () => {
             <p className="text-gray-400 mb-8 animate-pulse">Incoming {incomingCall.type} call...</p>
             <div className="flex justify-center gap-8">
               {console.log(incomingCall.type)}
-              
+
               <button
                 onClick={
                   incomingCall.type === "video" ? acceptVideoCall : acceptVoiceCall
@@ -2581,33 +2633,33 @@ const Chat2 = () => {
                           }
                         }}
                       >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-2">
-                          {user.userName
-                            .split(" ")
-                            .map((n) => n[0].toUpperCase())
-                            .join("")}
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-2">
+                            {user.userName
+                              .split(" ")
+                              .map((n) => n[0].toUpperCase())
+                              .join("")}
+                          </div>
+                          <span>{user.userName}</span>
                         </div>
-                        <span>{user.userName}</span>
+                        <input
+                          id={`checkbox-${user._id}`}
+                          type="checkbox"
+                          checked={isChecked} // Set checkbox state based on selection
+                          readOnly // Make checkbox read-only to prevent direct interaction
+                          className="form-checkbox rounded-full"
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            border: "2px solid #ccc",
+                            backgroundColor: "#fff",
+                            cursor: "pointer",
+                          }}
+                        />
                       </div>
-                      <input
-                        id={`checkbox-${user._id}`}
-                        type="checkbox"
-                        checked={isChecked} // Set checkbox state based on selection
-                        readOnly // Make checkbox read-only to prevent direct interaction
-                        className="form-checkbox rounded-full"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          border: "2px solid #ccc",
-                          backgroundColor: "#fff",
-                          cursor: "pointer",
-                        }}
-                      />
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
             <div className="mt-4 flex justify-center">
@@ -2636,12 +2688,13 @@ const Chat2 = () => {
       {isProfileModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
-            className="bg-white rounded-lg w-96 "
-            style={{
-              background: "#CCF7FF",
-              background:
-                "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
-            }}
+            className="bg-white rounded-lg w-96 modal_background"
+          // style={{
+          //   background: "#CCF7FF",
+          //   background:
+          //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
+          //     "#CDE0EC",
+          // }}
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Profile</h2>
@@ -2865,12 +2918,13 @@ const Chat2 = () => {
       {isGroupModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
-            className="bg-white rounded-lg w-96 "
-            style={{
-              background: "#CCF7FF",
-              background:
-                "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
-            }}
+            className="bg-white rounded-lg w-96 modal_background "
+          // style={{
+          //   background: "#CCF7FF",
+          //   background:
+          //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
+          //     "#CDE0EC",
+          // }}
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Profileaa</h2>
@@ -3024,7 +3078,7 @@ const Chat2 = () => {
                   {selectedChat?.members.length}
                 </span>
               </div>
-              <div className="flex flex-col max-h-48 overflow-y-auto">
+              <div className="flex flex-col max-h-48 overflow-y-auto modal_scroll">
                 {/* <div className="flex items-center justify-between p-2 ">
                   <span className="text-gray-600 font-bold">Add participants</span>
                   <button className="text-blue-500 hover:underline">+</button>
@@ -3104,12 +3158,13 @@ const Chat2 = () => {
       {isGroupCreateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
-            className="bg-white rounded-lg w-96 "
-            style={{
-              background: "#CCF7FF",
-              background:
-                "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
-            }}
+            className="bg-white rounded-lg w-96 modal_background"
+          // style={{
+          //   background: "#CCF7FF",
+          //   background:
+          //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
+          //     "#CDE0EC",
+          // }}
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Create Group</h2>
@@ -3167,7 +3222,7 @@ const Chat2 = () => {
                 <span className="text-gray-600 font-bold">Participants</span>
                 <span className="text-gray-800 ">{groupUsers.length || 0}</span>
               </div>
-              <div className="flex flex-col max-h-48 overflow-y-auto">
+              <div className="flex flex-col max-h-48 overflow-y-auto cursor-pointer modal_scroll">
                 {allUsers.filter(user => user._id !== currentUser).map((user, index) => {
                   const isChecked = groupUsers.includes(user._id); // Check if user is already selected
                   return (
@@ -3308,6 +3363,30 @@ const Chat2 = () => {
           </div>
         )
       }
+
+      {/* delete message modal */}
+      {isClearChatModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-96">
+            <h3 className="text-xl font-semibold mb-4">Clear Chat</h3>
+            <p className="text-gray-600 mb-6 font-semibold">Are you sure you want to clear this chat?</p>
+            <div className="flex justify-center space-x-4">
+              <button
+                onClick={() => setIsClearChatModalOpen(false)}
+                className="px-4 py-2 bg-blue-500 text-white hover:text-gray-800 rounded font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearChat}
+                className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 font-semibold"
+              >
+                Clear Chat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 };

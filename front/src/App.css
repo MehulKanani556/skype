@@ -112,32 +112,35 @@
   border-radius: 2px;
 }
 
+.modal_background{
+  background-color: #CDE0EC;
+}
 
 /* Hide scrollbar by default */
-.flex-1.overflow-y-auto::-webkit-scrollbar {
+.modal_scroll::-webkit-scrollbar {
   width: 6px;
   background: transparent;
   visibility: hidden;
 }
 
 /* Show scrollbar on hover */
-.flex-1.overflow-y-auto:hover::-webkit-scrollbar {
+.modal_scroll:hover::-webkit-scrollbar {
   width: 6px;
   visibility: visible;
 }
 
 /* Track */
-.flex-1.overflow-y-auto:hover::-webkit-scrollbar-track {
+.modal_scroll:hover::-webkit-scrollbar-track {
   background: #f1f1f1;
 }
 
 /* Handle */
-.flex-1.overflow-y-auto:hover::-webkit-scrollbar-thumb {
+.modal_scroll:hover::-webkit-scrollbar-thumb {
   background: #bebebe;
   border-radius: 5px;
 }
 
 /* Handle on hover */
-.flex-1.overflow-y-auto:hover::-webkit-scrollbar-thumb:hover {
+.modal_scroll:hover::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
