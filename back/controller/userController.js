@@ -655,11 +655,11 @@ exports.getAllCallUsers = async (req, res) => {
         },
       },
 
-      // Group by user to remove duplicates
+      // Group by user to remove duplicates and get the last message
       {
         $group: {
           _id: "$user",
-          messages: { $push: "$message" } // Collect messages for each user
+          lastMessage: { $last: "$message" } // Get the last message for each user
         },
       },
 
@@ -686,7 +686,7 @@ exports.getAllCallUsers = async (req, res) => {
           email: { $first: "$userData.email" },
           photo: { $first: "$userData.photo" },
           createdAt: { $first: "$userData.createdAt" },
-          messages: { $first: "$messages" } // Include messages in the final output
+          messages: { $addToSet: "$lastMessage" } // Include messages in the final output as an array
         },
       },
 
@@ -698,7 +698,7 @@ exports.getAllCallUsers = async (req, res) => {
           email: 1,
           photo: 1,
           createdAt: 1,
-          messages: 1 // Include messages in the response
+          messages: 1 // Include messages in the response as an array
         },
       },
     ];
@@ -707,7 +707,7 @@ exports.getAllCallUsers = async (req, res) => {
 
     return res.status(200).json({
       status: 200,
-      message: "All Unique Call Users and Messages Found Successfully...",
+      message: "All Unique Call Users and Last Messages Found Successfully...",
       users: results,
     });
   } catch (error) {

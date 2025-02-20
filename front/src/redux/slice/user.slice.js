@@ -756,17 +756,6 @@ const userSlice = createSlice({
           state.loading = false;
           state.error = action.payload;
           state.message = action.payload?.message || "Failed to add participants";
-        })
-        .addCase(getAllCallUsers.fulfilled, (state, action) => {
-          state.allCallUsers = action.payload; // Assuming the API returns the call users
-          state.loading = false;
-          state.error = null;
-          state.message = "Call users retrieved successfully";
-        })
-        .addCase(getAllCallUsers.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Failed to retrieve call users";
         });
     },
     setOnlineuser: (state, action) => {
@@ -1020,6 +1009,17 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload?.message || "Failed to clear chat";
+      })
+      .addCase(getAllCallUsers.fulfilled, (state, action) => {
+        state.allCallUsers = action.payload; // Assuming the API returns the call users
+        state.loading = false;
+        state.error = null;
+        state.message = "Call users retrieved successfully";
+      })
+      .addCase(getAllCallUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload.message;
+        state.message = action.payload?.message || "Failed to retrieve call users";
       });
   },
 });

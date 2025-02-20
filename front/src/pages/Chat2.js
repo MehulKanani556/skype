@@ -24,7 +24,7 @@ import {
 } from "react-icons/fa";
 import { HiOutlineReply } from "react-icons/hi";
 import { PiDotsThreeVerticalBold, PiDotsThreeBold } from "react-icons/pi";
-import { VscCopy } from "react-icons/vsc";
+import { VscCallIncoming, VscCallOutgoing, VscCopy } from "react-icons/vsc";
 import {
   MdCallEnd,
   MdOutlineModeEdit,
@@ -84,6 +84,7 @@ const Chat2 = () => {
     allMessageUsers,
     groups,
     user,
+    allCallUsers
   } = useSelector((state) => state.user);
   const [selectedTab, setSelectedTab] = useState("All");
   const [recentChats, setRecentChats] = useState([]);
@@ -101,7 +102,7 @@ const Chat2 = () => {
   const [typingUsers, setTypingUsers] = useState({});
   const [showCallModal, setShowCallModal] = useState(false);
   const localVideoRef = useRef(null);
-
+  const [callUsers, setCallUsers] = useState([]);
   const remoteVideoRef = useRef(null);
   const navigate = useNavigate();
   const [contextMenu, setContextMenu] = useState({
@@ -245,12 +246,12 @@ const Chat2 = () => {
             }
           })
         );
-      
+
       } else {
         setFilteredUsers(allMessageUsers); // Show allMessageUsers when searchInput is empty
       }
     }
-  }, [searchInput, allUsers, groups,selectedTab, currentUser, allMessageUsers]);
+  }, [searchInput, allUsers, groups, selectedTab, currentUser, allMessageUsers]);
   useEffect(() => {
     if (selectedChat && allMessageUsers) {
       const updatedChat = allMessageUsers.find(
@@ -757,7 +758,7 @@ const Chat2 = () => {
   };
 
   useEffect(() => {
-    console.log("Dropdown state:", isDropdownOpen);
+    // console.log("Dropdown state:", isDropdownOpen);
   }, [isDropdownOpen]);
 
   const handleDropdownToggle = (messageId) => {
@@ -921,7 +922,7 @@ const Chat2 = () => {
         currentMatchIndex++;
       });
     }
-    console.log("targetElement", targetElement, targetSpan);
+    // console.log("targetElement", targetElement, targetSpan);
 
     // Scroll to the target element if found
     if (targetElement && targetSpan) {
@@ -989,7 +990,7 @@ const Chat2 = () => {
 
         recorder.onstop = async () => {
           const audioBlob = new Blob(chunks, { type: 'audio/webm' }); // Change to 'audio/webm' for better quality
-          console.log("Audio Blob:", audioBlob);
+          // console.log("Audio Blob:", audioBlob);
 
           // Dispatch the audio message
           if (selectedChat) {
@@ -997,7 +998,7 @@ const Chat2 = () => {
               type: "file", // Determine the type based on input
               content: audioBlob, // The actual content of the message
             };
-            console.log("add", audioBlob);
+            // console.log("add", audioBlob);
 
             // Use the same upload logic as for other files
             const formData = new FormData();
@@ -1022,12 +1023,15 @@ const Chat2 = () => {
                   size: `${(audioBlob.size / (1024 * 1024)).toFixed(2)} MB`,
                 });
               }
+              
             } catch (error) {
               console.error("Error uploading audio message:", error);
             }
           }
           // Reset audio chunks
           setAudioChunks([]);
+          // Stop the audio stream to release the microphone
+          stream.getTracks().forEach(track => track.stop());
         };
 
         recorder.start();
@@ -1199,6 +1203,16 @@ const Chat2 = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [selectedChat]);
 
+  const handleFilter = (text) => {
+    if (text == "chat") {
+      setFilteredUsers(allMessageUsers)
+      setCallUsers([]);
+    } else {
+      setFilteredUsers([]);
+      setCallUsers(allCallUsers)
+    }
+  };
+  // console.log("aaaaaa-------", callUsers);
   return (
     <div className="flex h-screen bg-white">
       {/* Left Sidebar */}
@@ -1471,11 +1485,11 @@ const Chat2 = () => {
         {/* ********************************** Archit's Changes end ********************************** */}
 
         <div className="flex justify-around p-4 border-b">
-          <div className="flex flex-col items-center text-blue-500">
+          <div className={`${filteredUsers.length > 0 ? 'text-blue-500  ' : 'text-gray-500 '} flex flex-col items-center cursor-pointer`} onClick={() => handleFilter("chat")}>
             <FaCommentDots className="w-6 h-6" />
             <span className="text-xs mt-1">Chat</span>
           </div>
-          <div className="flex flex-col items-center text-gray-500">
+          <div className={`${callUsers.length > 0 ? 'text-blue-500  ' : 'text-gray-500 '} flex flex-col items-center  cursor-pointer`} onClick={() => handleFilter("call")}>
             <FaPhone className="w-6 h-6" />
             <span className="text-xs mt-1">Calls</span>
           </div>
@@ -1492,31 +1506,34 @@ const Chat2 = () => {
           </div> */}
         </div>
 
-        <div className="flex px-4 space-x-4 border-b">
-          <button
-            className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
-              }`}
-            onClick={() => setSelectedTab("All")}
-          >
-            All
-          </button>
-          <button
-            className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
-              }`}
-            onClick={() => setSelectedTab("Chats")}
-          >
-            Chats
-          </button>
-          <button
-            className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
-              }`}
-            onClick={() => setSelectedTab("Unread")}
-          >
-            Unread
-          </button>
-        </div>
+        {callUsers.length == 0 &&
+          <div className="flex px-4 space-x-4 border-b">
+            <button
+              className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
+                }`}
+              onClick={() => setSelectedTab("All")}
+            >
+              All
+            </button>
+            <button
+              className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
+                }`}
+              onClick={() => setSelectedTab("Chats")}
+            >
+              Chats
+            </button>
+            <button
+              className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
+                }`}
+              onClick={() => setSelectedTab("Unread")}
+            >
+              Unread
+            </button>
+          </div>
+        }
 
-        <div className="flex-1 overflow-y-auto">
+
+        <div className="flex-1 overflow-y-auto ">
           {filteredUsers
             .slice()
             .sort((a, b) => {
@@ -1640,6 +1657,69 @@ const Chat2 = () => {
                 </div>
               );
             })}
+
+          {callUsers && callUsers.map((item) => (
+            <div
+              key={item._id}
+              className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""}`}
+              onClick={() => {
+                setSelectedChat(item);
+                if (window.innerWidth <= 425) {
+                  setShowLeftSidebar(false);
+                }
+              }}
+            >
+              <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
+                <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
+                  {item?.photo && item.photo !== "null" ? (
+                    <img
+                      src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
+                      alt="Profile"
+                      className="object-cover h-full w-full"
+                    />
+                  ) : (
+                    <span className="text-gray-900 text-lg font-bold">
+                      {item?.userName && item?.userName.includes(" ")
+                        ? item?.userName.split(" ")[0][0].toUpperCase() +
+                        item?.userName.split(" ")[1][0].toUpperCase()
+                        : item?.userName[0].toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                {onlineUsers.includes(item._id) && (
+                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
+                )}
+              </div>
+              <div className="ml-3 flex-1">
+                <div className="flex justify-between">
+                  <span className="font-medium">
+                    {item._id === currentUser
+                      ? `${item.userName} (You)`
+                      : item.userName}
+                  </span>
+                  <span className="text-xs text-gray-500">
+
+                  </span>
+                </div>
+                {/* {item.email} */}
+
+                <div className="flex justify-between">
+                  <div className="text-sm text-gray-500 ">
+
+                    {item.messages && item.messages.map((message, index) => (
+                      <div key={index} className="flex gap-1 item-center">
+                        {message.sender !== currentUser ? <VscCallIncoming className="self-center text-base" /> : <VscCallOutgoing className="self-center text-base" />}
+                        {new Date(message.content.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} {new Date(message.content.timestamp).toLocaleDateString("en-GB")}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="badge">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -1686,9 +1766,9 @@ const Chat2 = () => {
                   </div>
                   <div className="ml-3 cursor-pointer"
                     onClick={() => {
-                      console.log("selectedChat", selectedChat);
+                      // console.log("selectedChat", selectedChat);
                       if (selectedChat?.members) {
-                        console.log("selectedChat");
+                        // console.log("selectedChat");
                         setIsGroupModalOpen(true);
                       } else {
                         // setIsModalOpen(true);
@@ -2524,7 +2604,7 @@ const Chat2 = () => {
             </h3>
             <p className="text-gray-400 mb-8 animate-pulse">Incoming {incomingCall.type} call...</p>
             <div className="flex justify-center gap-8">
-              {console.log(incomingCall.type)}
+              {/* {console.log(incomingCall.type)} */}
 
               <button
                 onClick={
