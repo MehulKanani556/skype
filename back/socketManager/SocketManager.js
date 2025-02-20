@@ -260,6 +260,19 @@ function handleVideoCallRequest(socket, data) {
   }
 }
 
+function handleVideoCallInvite(socket, data) {
+  console.log("video-call-invite", data);
+  const targetSocketId = onlineUsers.get(data.toEmail);
+  if (targetSocketId) {
+      socket.to(targetSocketId).emit("video-call-invite", {
+      fromEmail: data.fromEmail,
+      signal: data.signal,
+      participants: data.participants,
+      type: data.type,
+    });
+  }
+}
+
 function handleVideoCallAccept(socket, data) {
   const targetSocketId = onlineUsers.get(data.fromEmail);
   if (targetSocketId) {
@@ -589,6 +602,7 @@ function initializeSocket(io) {
     socket.on("video-call-accept", (data) =>handleVideoCallAccept(socket, data));
     socket.on("video-call-signal", (data) => handleVideoCallSignal(socket, data));
     socket.on("end-video-call", (data) => handleVideoCallEnd(socket, data));
+    socket.on("video-call-invite", (data) => handleVideoCallInvite(socket, data));
 
     // ===========================save call message=============================
 
