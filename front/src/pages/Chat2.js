@@ -206,7 +206,7 @@ const Chat2 = () => {
     callAccept,
     remoteStreams,
     inviteToCall,
-    callParticipants
+    callParticipants,
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
 
   // console.log(onlineUsers);

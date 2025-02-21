@@ -1595,6 +1595,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     callAccept,
     remoteStreams,
     inviteToCall,
-    callParticipants
+    callParticipants,
+    isMicrophoneOn
   };
 };
