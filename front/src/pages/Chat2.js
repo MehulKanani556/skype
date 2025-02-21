@@ -21,6 +21,8 @@ import {
   FaArrowDown,
   FaPhoneSlash,
   FaUserPlus,
+  FaFile,
+  FaFileAudio,
 } from "react-icons/fa";
 import { HiOutlineReply } from "react-icons/hi";
 import { PiDotsThreeVerticalBold, PiDotsThreeBold } from "react-icons/pi";
@@ -34,7 +36,11 @@ import {
 } from "react-icons/md";
 import { CiSquareRemove } from "react-icons/ci";
 import { RiShutDownLine } from "react-icons/ri";
-import { LuScreenShare, LuSendHorizontal, LuScreenShareOff } from "react-icons/lu";
+import {
+  LuScreenShare,
+  LuSendHorizontal,
+  LuScreenShareOff,
+} from "react-icons/lu";
 import { IoIosArrowDown, IoIosArrowUp, IoMdSearch } from "react-icons/io";
 import { GoDeviceCameraVideo } from "react-icons/go";
 import { ImCross } from "react-icons/im";
@@ -84,7 +90,7 @@ const Chat2 = () => {
     allMessageUsers,
     groups,
     user,
-    allCallUsers
+    allCallUsers,
   } = useSelector((state) => state.user);
   const [selectedTab, setSelectedTab] = useState("All");
   const [recentChats, setRecentChats] = useState([]);
@@ -147,7 +153,7 @@ const Chat2 = () => {
   const [isProfileImageModalOpen, setIsProfileImageModalOpen] = useState(false);
   const [selectedProfileImage, setSelectedProfileImage] = useState(null);
   //changes
-  const [activeSearchTab, setActiveSearchTab] = useState('All');
+  const [activeSearchTab, setActiveSearchTab] = useState("All");
   const [filteredPeople, setFilteredPeople] = useState([]);
   const [filteredGroups, setFilteredGroups] = useState([]);
   //changes end
@@ -160,6 +166,7 @@ const Chat2 = () => {
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [editedPhone, setEditedPhone] = useState(user?.phone || "");
   const [visibleDate, setVisibleDate] = useState(null);
+  const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState(false);
 
   const searchRef = useRef(null); // Define searchRef
 
@@ -210,7 +217,7 @@ const Chat2 = () => {
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
 
   // console.log(onlineUsers);
-  console.log("call status", callAccept)
+  console.log("call status", callAccept);
 
   //===========get all users===========
   useEffect(() => {
@@ -232,9 +239,10 @@ const Chat2 = () => {
       setFilteredUsers(matchingPeople);
 
       // Filter groups
-      const matchingGroups = groups.filter((group) =>
-        group.userName.toLowerCase().includes(searchInput.toLowerCase()) &&
-        group.members?.includes(currentUser)
+      const matchingGroups = groups.filter(
+        (group) =>
+          group.userName.toLowerCase().includes(searchInput.toLowerCase()) &&
+          group.members?.includes(currentUser)
       );
 
       //changes
@@ -247,17 +255,24 @@ const Chat2 = () => {
             // console.log(user.messages),
             if (user.messages && user.messages.length > 0) {
               return user.messages.some(
-                (message) => message.status === "sent" || message.status === "delivered"
-              )
+                (message) =>
+                  message.status === "sent" || message.status === "delivered"
+              );
             }
           })
         );
-
       } else {
         setFilteredUsers(allMessageUsers); // Show allMessageUsers when searchInput is empty
       }
     }
-  }, [searchInput, allUsers, groups, selectedTab, currentUser, allMessageUsers]);
+  }, [
+    searchInput,
+    allUsers,
+    groups,
+    selectedTab,
+    currentUser,
+    allMessageUsers,
+  ]);
   useEffect(() => {
     if (selectedChat && allMessageUsers) {
       const updatedChat = allMessageUsers.find(
@@ -541,9 +556,7 @@ const Chat2 = () => {
 
   const handleContextMenu = (e, message) => {
     e.preventDefault();
-    if (
-      message.sender === sessionStorage.getItem("userId")
-    ) {
+    if (message.sender === sessionStorage.getItem("userId")) {
       setContextMenu({
         visible: true,
         x: e.pageX,
@@ -595,7 +608,7 @@ const Chat2 = () => {
   //     photo: groupPhoto,
   //   };
   //   // console.log(data);
-  //   const result = await dispatch(createGroup(data)).unwrap(); 
+  //   const result = await dispatch(createGroup(data)).unwrap();
 
   //   console.log(result);
   //      // Wait for the group creation to complete
@@ -614,7 +627,6 @@ const Chat2 = () => {
       photo: groupPhoto,
     };
     try {
-
       await dispatch(createGroup({ groupData: data, socket }));
       setGroupUsers([]);
       setGroupPhoto(null);
@@ -915,14 +927,14 @@ const Chat2 = () => {
     let targetSpan = null;
 
     // Find all highlighted spans containing the search text
-    const highlightedSpans = document.querySelectorAll('.highlight-text');
+    const highlightedSpans = document.querySelectorAll(".highlight-text");
     // console.log("highlightedSpans", highlightedSpans);
 
     if (highlightedSpans.length > 0) {
       highlightedSpans.forEach((span) => {
         if (currentMatchIndex === index) {
           targetSpan = span;
-          targetElement = span.closest('.message-content');
+          targetElement = span.closest(".message-content");
         }
         currentMatchIndex++;
       });
@@ -932,20 +944,20 @@ const Chat2 = () => {
     // Scroll to the target element if found
     if (targetElement && targetSpan) {
       // Remove previous active highlights
-      document.querySelectorAll('.active-search-result').forEach(el => {
-        el.classList.remove('active-search-result');
+      document.querySelectorAll(".active-search-result").forEach((el) => {
+        el.classList.remove("active-search-result");
       });
 
       // Scroll the message into view
       targetElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
+        behavior: "smooth",
+        block: "center",
       });
 
       // Highlight the specific occurrence
-      targetElement.classList.add('active-search-result');
+      targetElement.classList.add("active-search-result");
       setTimeout(() => {
-        targetElement.classList.remove('active-search-result');
+        targetElement.classList.remove("active-search-result");
       }, 2000);
     }
   };
@@ -994,7 +1006,7 @@ const Chat2 = () => {
         };
 
         recorder.onstop = async () => {
-          const audioBlob = new Blob(chunks, { type: 'audio/webm' }); // Change to 'audio/webm' for better quality
+          const audioBlob = new Blob(chunks, { type: "audio/webm" }); // Change to 'audio/webm' for better quality
           // console.log("Audio Blob:", audioBlob);
 
           // Dispatch the audio message
@@ -1010,12 +1022,16 @@ const Chat2 = () => {
             formData.append("file", audioBlob);
 
             try {
-              const response = await axios.post(`${BASE_URL}/upload`, formData, {
-                headers: {
-                  "Content-Type": "multipart/form-data",
-                  Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-                },
-              });
+              const response = await axios.post(
+                `${BASE_URL}/upload`,
+                formData,
+                {
+                  headers: {
+                    "Content-Type": "multipart/form-data",
+                    Authorization: `Bearer ${sessionStorage.getItem("token")}`,
+                  },
+                }
+              );
 
               if (response.status === 200) {
                 const { fileUrl, fileType } = response.data;
@@ -1028,7 +1044,6 @@ const Chat2 = () => {
                   size: `${(audioBlob.size / (1024 * 1024)).toFixed(2)} MB`,
                 });
               }
-
             } catch (error) {
               console.error("Error uploading audio message:", error);
             }
@@ -1036,7 +1051,7 @@ const Chat2 = () => {
           // Reset audio chunks
           setAudioChunks([]);
           // Stop the audio stream to release the microphone
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach((track) => track.stop());
         };
 
         recorder.start();
@@ -1052,27 +1067,25 @@ const Chat2 = () => {
     }
   };
 
-
-
   // Add intersection observer to track date headers
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            const date = entry.target.getAttribute('data-date');
+            const date = entry.target.getAttribute("data-date");
             setVisibleDate(date);
           }
         });
       },
       {
         threshold: 0.5, // Trigger when date header is 50% visible
-        root: messagesContainerRef.current
+        root: messagesContainerRef.current,
       }
     );
 
     // Observe all date headers
-    const dateHeaders = document.querySelectorAll('.date-header');
+    const dateHeaders = document.querySelectorAll(".date-header");
     dateHeaders.forEach((header) => observer.observe(header));
 
     return () => {
@@ -1108,14 +1121,12 @@ const Chat2 = () => {
       return () => {
         if (localVideoRef.current && localVideoRef.current.srcObject) {
           const tracks = localVideoRef.current.srcObject.getTracks();
-          tracks.forEach(track => track.stop());
+          tracks.forEach((track) => track.stop());
           localVideoRef.current.srcObject = null;
         }
       };
     }
   }, [isVideoCalling, isReceiving]);
-
-
 
   const handleProfileImageClick = (imageUrl) => {
     setSelectedProfileImage(imageUrl);
@@ -1126,12 +1137,14 @@ const Chat2 = () => {
   const handleCopyMessage = async (message, callback) => {
     if (message.type === "file" && message.fileType?.includes("image/")) {
       try {
-        const response = await fetch(`${IMG_URL}${message.fileUrl.replace(/\\/g, "/")}`);
+        const response = await fetch(
+          `${IMG_URL}${message.fileUrl.replace(/\\/g, "/")}`
+        );
         const blob = await response.blob();
 
         // Create a ClipboardItem for the image
         const item = new ClipboardItem({
-          [blob.type]: blob
+          [blob.type]: blob,
         });
 
         await navigator.clipboard.write([item]);
@@ -1156,8 +1169,8 @@ const Chat2 = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Add this useEffect to handle paste events
@@ -1166,25 +1179,25 @@ const Chat2 = () => {
       const items = e.clipboardData?.items;
       if (!items) return;
 
-      const imageItems = Array.from(items).filter(item =>
-        item.type.indexOf('image') !== -1
+      const imageItems = Array.from(items).filter(
+        (item) => item.type.indexOf("image") !== -1
       );
 
       for (const item of imageItems) {
         const file = item.getAsFile();
         if (file) {
           // Add the pasted file to selectedFiles
-          setSelectedFiles(prev => [...prev, file]);
+          setSelectedFiles((prev) => [...prev, file]);
         }
       }
     };
 
     // Add paste event listener to the document
-    document.addEventListener('paste', handlePaste);
+    document.addEventListener("paste", handlePaste);
 
     // Cleanup
     return () => {
-      document.removeEventListener('paste', handlePaste);
+      document.removeEventListener("paste", handlePaste);
     };
   }, []);
 
@@ -1202,28 +1215,27 @@ const Chat2 = () => {
     };
 
     handleResize(); // Set initial state
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [selectedChat]);
 
   const handleFilter = (text) => {
     if (text == "chat") {
-      setFilteredUsers(allMessageUsers)
+      setFilteredUsers(allMessageUsers);
       setCallUsers([]);
     } else {
       setFilteredUsers([]);
-      setCallUsers(allCallUsers)
+      setCallUsers(allCallUsers);
     }
   };
   // console.log("aaaaaa-------", callUsers);
   // clear chat
   const handleClearChat = () => {
-    dispatch(clearChat({ selectedId: selectedChat._id }))
-      .then(() => {
-        dispatch(getAllMessages({ selectedId: selectedChat._id }));
-        setIsClearChatModalOpen(false);
-      });
-  }
+    dispatch(clearChat({ selectedId: selectedChat._id })).then(() => {
+      dispatch(getAllMessages({ selectedId: selectedChat._id }));
+      setIsClearChatModalOpen(false);
+    });
+  };
 
   // Add useEffect to handle input focus when chat is selected
   useEffect(() => {
@@ -1232,10 +1244,24 @@ const Chat2 = () => {
     }
   }, [selectedChat]); // Dependency on selectedChat
 
+  const getGridColumns = (count) => {
+    if (count <= 1) return "grid-cols-1";
+    if (count === 2) return "grid-cols-2";
+    if (count === 3) return "grid-cols-2 md:grid-cols-3";
+    if (count === 4) return "grid-cols-2";
+    if (count <= 6) return "grid-cols-2 md:grid-cols-3";
+    if (count <= 8) return "grid-cols-2 md:grid-cols-4";
+    return "grid-cols-3 md:grid-cols-4";
+  };
+
   return (
     <div className="flex h-screen bg-white">
       {/* Left Sidebar */}
-      <div className={`${showLeftSidebar ? 'block' : 'hidden'} w-full md:w-80 border-r flex flex-col`}>
+      <div
+        className={`${
+          showLeftSidebar ? "block" : "hidden"
+        } w-full md:w-80 border-r flex flex-col`}
+      >
         <div className="relative profile-dropdown">
           <div
             className="flex items-center p-4 border-b cursor-pointer hover:bg-gray-100  mt-4"
@@ -1253,7 +1279,7 @@ const Chat2 = () => {
                 <span className="text-white text-2xl font-bold">
                   {user?.userName && user?.userName.includes(" ")
                     ? user?.userName.split(" ")[0][0] +
-                    user?.userName.split(" ")[1][0]
+                      user?.userName.split(" ")[1][0]
                     : user?.userName[0]}
                 </span>
               )}
@@ -1314,29 +1340,32 @@ const Chat2 = () => {
               {/* Tabs */}
               <div className="flex border-b">
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === 'All'
-                    ? 'text-gray-700 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  onClick={() => setActiveSearchTab('All')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    activeSearchTab === "All"
+                      ? "text-gray-700 border-b-2 border-blue-500"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => setActiveSearchTab("All")}
                 >
                   All
                 </button>
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === 'People'
-                    ? 'text-gray-700 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  onClick={() => setActiveSearchTab('People')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    activeSearchTab === "People"
+                      ? "text-gray-700 border-b-2 border-blue-500"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => setActiveSearchTab("People")}
                 >
                   People
                 </button>
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === 'Groups'
-                    ? 'text-gray-700 border-b-2 border-blue-500'
-                    : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  onClick={() => setActiveSearchTab('Groups')}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    activeSearchTab === "Groups"
+                      ? "text-gray-700 border-b-2 border-blue-500"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                  onClick={() => setActiveSearchTab("Groups")}
                 >
                   Groups
                 </button>
@@ -1348,15 +1377,17 @@ const Chat2 = () => {
               </div>
 
               {/* Content based on active tab */}
-              {(activeSearchTab === 'All' || activeSearchTab === 'People') && (
+              {(activeSearchTab === "All" || activeSearchTab === "People") && (
                 <div className="p-2">
-                  <div className="text-xs font-medium text-gray-500 px-2 mb-2">People</div>
+                  <div className="text-xs font-medium text-gray-500 px-2 mb-2">
+                    People
+                  </div>
                   {filteredUsers.length > 0 ? (
                     <>
                       {/* Show only first 4 users in All tab, or all users in People tab */}
                       {filteredUsers
-                        .filter(user => !user.members)
-                        .slice(0, activeSearchTab === 'All' ? 4 : undefined)
+                        .filter((user) => !user.members)
+                        .slice(0, activeSearchTab === "All" ? 4 : undefined)
                         .map((user) => (
                           <div
                             key={user._id}
@@ -1364,12 +1395,19 @@ const Chat2 = () => {
                             onClick={() => {
                               setSelectedChat(user);
                               setIsSearchDropdownOpen(false);
-                              setSearchInput('');
+                              setSearchInput("");
                             }}
                           >
                             <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
                               {user?.photo ? (
-                                <img src={`${IMG_URL}${user.photo.replace(/\\/g, "/")}`} alt="Profile" className="w-8 h-8 rounded-full" />
+                                <img
+                                  src={`${IMG_URL}${user.photo.replace(
+                                    /\\/g,
+                                    "/"
+                                  )}`}
+                                  alt="Profile"
+                                  className="w-8 h-8 rounded-full"
+                                />
                               ) : (
                                 <span className="text-sm font-medium">
                                   {user.userName.charAt(0).toUpperCase()}
@@ -1384,16 +1422,23 @@ const Chat2 = () => {
                         ))}
 
                       {/* Show View All button only in All tab and if there are more than 4 users */}
-                      {activeSearchTab === 'All' && filteredUsers.filter(user => !user.members).length > 4 && (
-                        <div
-                          className="p-2 text-center text-blue-500 hover:text-blue-600 cursor-pointer font-medium"
-                          onClick={() => {
-                            setActiveSearchTab('People');
-                          }}
-                        >
-                          View All People ({filteredUsers.filter(user => !user.members).length})
-                        </div>
-                      )}
+                      {activeSearchTab === "All" &&
+                        filteredUsers.filter((user) => !user.members).length >
+                          4 && (
+                          <div
+                            className="p-2 text-center text-blue-500 hover:text-blue-600 cursor-pointer font-medium"
+                            onClick={() => {
+                              setActiveSearchTab("People");
+                            }}
+                          >
+                            View All People (
+                            {
+                              filteredUsers.filter((user) => !user.members)
+                                .length
+                            }
+                            )
+                          </div>
+                        )}
                     </>
                   ) : (
                     <div className="p-2 text-center text-gray-500">
@@ -1403,10 +1448,11 @@ const Chat2 = () => {
                 </div>
               )}
 
-
-              {(activeSearchTab === 'All' || activeSearchTab === 'Groups') && (
+              {(activeSearchTab === "All" || activeSearchTab === "Groups") && (
                 <div className="p-2 border-t">
-                  <div className="text-xs font-medium text-gray-500 px-2 mb-2">Groups</div>
+                  <div className="text-xs font-medium text-gray-500 px-2 mb-2">
+                    Groups
+                  </div>
                   {/* Create New Group Button */}
                   <div
                     className="flex items-center p-2 hover:bg-gray-100 rounded-lg cursor-pointer"
@@ -1418,7 +1464,9 @@ const Chat2 = () => {
                     <div className="w-8 h-8 rounded-lg bg-gray-300 flex items-center justify-center mr-2">
                       <FaUserPlus className="text-gray-600" />
                     </div>
-                    <span className="text-sm font-semibold">Create New Group</span>
+                    <span className="text-sm font-semibold">
+                      Create New Group
+                    </span>
                   </div>
 
                   {/* List of Groups */}
@@ -1426,7 +1474,7 @@ const Chat2 = () => {
                     <>
                       {/* Show only first 4 groups in All tab, or all groups in Groups tab */}
                       {groups
-                        .slice(0, activeSearchTab === 'All' ? 4 : undefined)
+                        .slice(0, activeSearchTab === "All" ? 4 : undefined)
                         .map((group) => (
                           <div
                             key={group._id}
@@ -1435,7 +1483,7 @@ const Chat2 = () => {
                               if (group.members?.includes(currentUser)) {
                                 setSelectedChat(group);
                                 setIsSearchDropdownOpen(false);
-                                setSearchInput('');
+                                setSearchInput("");
                               } else {
                                 // Handle non-member click - maybe show a join request dialog
                                 alert("You are not a member of this group");
@@ -1445,7 +1493,10 @@ const Chat2 = () => {
                             <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center mr-2">
                               {group?.photo ? (
                                 <img
-                                  src={`${IMG_URL}${group.photo.replace(/\\/g, "/")}`}
+                                  src={`${IMG_URL}${group.photo.replace(
+                                    /\\/g,
+                                    "/"
+                                  )}`}
                                   alt="Group"
                                   className="w-8 h-8 rounded-lg object-cover"
                                 />
@@ -1456,7 +1507,9 @@ const Chat2 = () => {
                               )}
                             </div>
                             <div className="flex-1">
-                              <span className="text-sm font-medium">{group.userName}</span>
+                              <span className="text-sm font-medium">
+                                {group.userName}
+                              </span>
                               <div className="flex items-center">
                                 <span className="text-xs text-gray-500">
                                   {group.members?.length} members
@@ -1472,11 +1525,11 @@ const Chat2 = () => {
                         ))}
 
                       {/* Show View All button only in All tab and if there are more than 4 groups */}
-                      {activeSearchTab === 'All' && groups.length > 4 && (
+                      {activeSearchTab === "All" && groups.length > 4 && (
                         <div
                           className="p-2 text-center text-blue-500 hover:text-blue-600 cursor-pointer font-medium"
                           onClick={() => {
-                            setActiveSearchTab('Groups');
+                            setActiveSearchTab("Groups");
                           }}
                         >
                           View All Groups ({groups.length})
@@ -1492,21 +1545,33 @@ const Chat2 = () => {
               )}
 
               {/* Add a "No results" message when neither people nor groups are found */}
-              {searchInput && filteredUsers.length === 0 && filteredGroups.length === 0 && (
-                <div className="p-4 text-center text-gray-500">
-                  No results found for "{searchInput}"
-                </div>
-              )}
+              {searchInput &&
+                filteredUsers.length === 0 &&
+                filteredGroups.length === 0 && (
+                  <div className="p-4 text-center text-gray-500">
+                    No results found for "{searchInput}"
+                  </div>
+                )}
             </div>
           )}
         </div>
 
         <div className="flex justify-around p-4 border-b">
-          <div className={`${filteredUsers.length > 0 ? 'text-blue-500  ' : 'text-gray-500 '} flex flex-col items-center cursor-pointer`} onClick={() => handleFilter("chat")}>
+          <div
+            className={`${
+              filteredUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
+            } flex flex-col items-center cursor-pointer`}
+            onClick={() => handleFilter("chat")}
+          >
             <FaCommentDots className="w-6 h-6" />
             <span className="text-xs mt-1">Chat</span>
           </div>
-          <div className={`${callUsers.length > 0 ? 'text-blue-500  ' : 'text-gray-500 '} flex flex-col items-center  cursor-pointer`} onClick={() => handleFilter("call")}>
+          <div
+            className={`${
+              callUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
+            } flex flex-col items-center  cursor-pointer`}
+            onClick={() => handleFilter("call")}
+          >
             <FaPhone className="w-6 h-6" />
             <span className="text-xs mt-1">Calls</span>
           </div>
@@ -1523,31 +1588,34 @@ const Chat2 = () => {
           </div> */}
         </div>
 
-        {callUsers.length == 0 &&
+        {callUsers.length == 0 && (
           <div className="flex px-4 space-x-4 border-b">
             <button
-              className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
-                }`}
+              className={`py-2 ${
+                selectedTab === "All" ? "border-b-2 border-blue-500" : ""
+              }`}
               onClick={() => setSelectedTab("All")}
             >
               All
             </button>
             <button
-              className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
-                }`}
+              className={`py-2 ${
+                selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
+              }`}
               onClick={() => setSelectedTab("Chats")}
             >
               Chats
             </button>
             <button
-              className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
-                }`}
+              className={`py-2 ${
+                selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
+              }`}
               onClick={() => setSelectedTab("Unread")}
             >
               Unread
             </button>
           </div>
-        }
+        )}
 
         <div className="flex-1 overflow-y-auto modal_scroll cursor-pointer">
           {filteredUsers
@@ -1559,13 +1627,13 @@ const Chat2 = () => {
 
               const lastMessageA = Array.isArray(a.messages)
                 ? [...a.messages].sort(
-                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
-                )[0]
+                    (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                  )[0]
                 : null;
               const lastMessageB = Array.isArray(b.messages)
                 ? [...b.messages].sort(
-                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
-                )[0]
+                    (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                  )[0]
                 : null;
 
               if (!lastMessageA && !lastMessageB) return 0;
@@ -1580,14 +1648,16 @@ const Chat2 = () => {
             .map((item) => {
               const lastMessage = Array.isArray(item.messages)
                 ? [...item.messages] // Create a shallow copy of the array
-                  .sort(
-                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                  )[0]
+                    .sort(
+                      (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                    )[0]
                 : null;
               return (
                 <div
                   key={item._id}
-                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""}`}
+                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${
+                    selectedChat?._id === item._id ? "bg-gray-100" : ""
+                  }`}
                   onClick={() => {
                     setSelectedChat(item);
                     if (window.innerWidth <= 425) {
@@ -1607,7 +1677,7 @@ const Chat2 = () => {
                         <span className="text-gray-900 text-lg font-bold">
                           {item?.userName && item?.userName.includes(" ")
                             ? item?.userName.split(" ")[0][0].toUpperCase() +
-                            item?.userName.split(" ")[1][0].toUpperCase()
+                              item?.userName.split(" ")[1][0].toUpperCase()
                             : item?.userName[0].toUpperCase()}
                         </span>
                       )}
@@ -1626,13 +1696,13 @@ const Chat2 = () => {
                       <span className="text-xs text-gray-500">
                         {lastMessage
                           ? new Date(lastMessage.createdAt).toLocaleTimeString(
-                            [],
-                            {
-                              hour: "numeric",
-                              minute: "2-digit",
-                              hour12: true,
-                            }
-                          )
+                              [],
+                              {
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              }
+                            )
                           : ""}
                       </span>
                     </div>
@@ -1641,13 +1711,32 @@ const Chat2 = () => {
                     <div className="flex justify-between">
                       <div className="text-sm text-gray-500">
                         {item?.messages?.[0]?.content.content}
-                        {item?.messages?.[0]?.content?.type === "call" && item.messages && (
-                          <div className="flex gap-1 items-center">
-                            {item.messages[item.messages.length - 1].sender !== currentUser ? <VscCallIncoming className="self-center text-base" /> : <VscCallOutgoing className="self-center text-base" />}
-                            &nbsp;{item.messages[item.messages.length - 1].content.status == "missed" ? "No answer" : "Call ended"}
-                            {item.messages[item.messages.length - 1].content.duration && <span>&nbsp;|&nbsp;{item.messages[item.messages.length - 1].content.duration}</span>}
-                          </div>
-                        )}
+                        {item?.messages?.[0]?.content?.type === "call" &&
+                          item.messages && (
+                            <div className="flex gap-1 items-center">
+                              {item.messages[item.messages.length - 1]
+                                .sender !== currentUser ? (
+                                <VscCallIncoming className="self-center text-base" />
+                              ) : (
+                                <VscCallOutgoing className="self-center text-base" />
+                              )}
+                              &nbsp;
+                              {item.messages[item.messages.length - 1].content
+                                .status == "missed"
+                                ? "No answer"
+                                : "Call ended"}
+                              {item.messages[item.messages.length - 1].content
+                                .duration && (
+                                <span>
+                                  &nbsp;|&nbsp;
+                                  {
+                                    item.messages[item.messages.length - 1]
+                                      .content.duration
+                                  }
+                                </span>
+                              )}
+                            </div>
+                          )}
                         {item.hasPhoto && (
                           <span className="text-xs ml-1">[photo]</span>
                         )}
@@ -1658,22 +1747,22 @@ const Chat2 = () => {
                             message.receiver === currentUser &&
                             message.status !== "read"
                         ).length > 0 && (
-                            <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
-                              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                {item.messages?.filter(
-                                  (message) =>
-                                    message.receiver === currentUser &&
-                                    message.status !== "read"
-                                ).length > 99
-                                  ? "99+"
-                                  : item.messages?.filter(
+                          <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
+                            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                              {item.messages?.filter(
+                                (message) =>
+                                  message.receiver === currentUser &&
+                                  message.status !== "read"
+                              ).length > 99
+                                ? "99+"
+                                : item.messages?.filter(
                                     (message) =>
                                       message.receiver === currentUser &&
                                       message.status !== "read"
                                   ).length}
-                              </span>
-                            </div>
-                          )}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1681,80 +1770,111 @@ const Chat2 = () => {
               );
             })}
 
-          {callUsers && callUsers
-            .map((item) => ({
-              ...item,
-              lastMessageTimestamp: item.messages.length > 0
-                ? new Date(item.messages[item.messages.length - 1].content.timestamp)
-                : null
-            }))
-            .filter(item => item.lastMessageTimestamp) // Filter out users without messages
-            .sort((a, b) => b.lastMessageTimestamp - a.lastMessageTimestamp) // Sort by last message timestamp
-            .map((item) => (
-              <div
-                key={item._id}
-                className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""}`}
-                onClick={() => {
-                  setSelectedChat(item);
-                  if (window.innerWidth <= 425) {
-                    setShowLeftSidebar(false);
-                  }
-                }}
-              >
-                <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                  <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
-                    {item?.photo && item.photo !== "null" ? (
-                      <img
-                        src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
-                        alt="Profile"
-                        className="object-cover h-full w-full"
-                      />
-                    ) : (
-                      <span className="text-gray-900 text-lg font-bold">
-                        {item?.userName && item?.userName.includes(" ")
-                          ? item?.userName.split(" ")[0][0].toUpperCase() +
-                          item?.userName.split(" ")[1][0].toUpperCase()
-                          : item?.userName[0].toUpperCase()}
-                      </span>
+          {callUsers &&
+            callUsers
+              .map((item) => ({
+                ...item,
+                lastMessageTimestamp:
+                  item.messages.length > 0
+                    ? new Date(
+                        item.messages[
+                          item.messages.length - 1
+                        ].content.timestamp
+                      )
+                    : null,
+              }))
+              .filter((item) => item.lastMessageTimestamp) // Filter out users without messages
+              .sort((a, b) => b.lastMessageTimestamp - a.lastMessageTimestamp) // Sort by last message timestamp
+              .map((item) => (
+                <div
+                  key={item._id}
+                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${
+                    selectedChat?._id === item._id ? "bg-gray-100" : ""
+                  }`}
+                  onClick={() => {
+                    setSelectedChat(item);
+                    if (window.innerWidth <= 425) {
+                      setShowLeftSidebar(false);
+                    }
+                  }}
+                >
+                  <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
+                    <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
+                      {item?.photo && item.photo !== "null" ? (
+                        <img
+                          src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
+                          alt="Profile"
+                          className="object-cover h-full w-full"
+                        />
+                      ) : (
+                        <span className="text-gray-900 text-lg font-bold">
+                          {item?.userName && item?.userName.includes(" ")
+                            ? item?.userName.split(" ")[0][0].toUpperCase() +
+                              item?.userName.split(" ")[1][0].toUpperCase()
+                            : item?.userName[0].toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    {onlineUsers.includes(item._id) && (
+                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
                     )}
                   </div>
-                  {onlineUsers.includes(item._id) && (
-                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
-                  )}
-                </div>
-                <div className="ml-3 flex-1">
-                  <div className="flex justify-between">
-                    <span className="font-medium">
-                      {item._id === currentUser
-                        ? `${item.userName} (You)`
-                        : item.userName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {item.messages.length > 0 &&
-                        new Date(item.messages[item.messages.length - 1].content.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <div className="text-sm text-gray-500 ">
-                      {item.messages && item.messages.map((message, index) => (
-                        <div key={index} className="flex gap-1 item-center">
-                          {message.sender !== currentUser ? <VscCallIncoming className="self-center text-base" /> : <VscCallOutgoing className="self-center text-base" />}
-                          {new Date(message.content.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} {new Date(message.content.timestamp).toLocaleDateString("en-GB")}
-                        </div>
-                      ))}
+                  <div className="ml-3 flex-1">
+                    <div className="flex justify-between">
+                      <span className="font-medium">
+                        {item._id === currentUser
+                          ? `${item.userName} (You)`
+                          : item.userName}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {item.messages.length > 0 &&
+                          new Date(
+                            item.messages[
+                              item.messages.length - 1
+                            ].content.timestamp
+                          ).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                      </span>
                     </div>
-                    <div className="badge"></div>
+                    <div className="flex justify-between">
+                      <div className="text-sm text-gray-500 ">
+                        {item.messages &&
+                          item.messages.map((message, index) => (
+                            <div key={index} className="flex gap-1 item-center">
+                              {message.sender !== currentUser ? (
+                                <VscCallIncoming className="self-center text-base" />
+                              ) : (
+                                <VscCallOutgoing className="self-center text-base" />
+                              )}
+                              {new Date(
+                                message.content.timestamp
+                              ).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}{" "}
+                              {new Date(
+                                message.content.timestamp
+                              ).toLocaleDateString("en-GB")}
+                            </div>
+                          ))}
+                      </div>
+                      <div className="badge"></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
         </div>
       </div>
 
-
       {/* Right Sidebar */}
       {!(isReceiving || isVideoCalling || isVoiceCalling) && (
-        <div className={`${showLeftSidebar ? 'hidden md:block' : 'block'} flex-1 flex flex-col`}>
+        <div
+          className={`${
+            showLeftSidebar ? "hidden md:block" : "block"
+          } flex-1 flex flex-col`}
+        >
           {selectedChat ? (
             <>
               {/* Add back button for mobile */}
@@ -1763,42 +1883,66 @@ const Chat2 = () => {
                   className="p-2 text-gray-600 hover:text-gray-800"
                   onClick={() => setShowLeftSidebar(true)}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                 </button>
               )}
 
               <div className="flex items-center justify-between p-4 border-b">
                 <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center cursor-pointer"
+                  <div
+                    className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center cursor-pointer"
                     onClick={() => {
-                      if (selectedChat?.photo && selectedChat.photo !== "null") {
-                        handleProfileImageClick(`${IMG_URL}${selectedChat.photo.replace(/\\/g, "/")}`);
+                      if (
+                        selectedChat?.photo &&
+                        selectedChat.photo !== "null"
+                      ) {
+                        handleProfileImageClick(
+                          `${IMG_URL}${selectedChat.photo.replace(/\\/g, "/")}`
+                        );
                       }
                     }}
                   >
                     {selectedChat?.photo && selectedChat.photo !== "null" ? (
                       <img
-                        src={`${IMG_URL}${selectedChat.photo.replace(/\\/g, "/")}`}
+                        src={`${IMG_URL}${selectedChat.photo.replace(
+                          /\\/g,
+                          "/"
+                        )}`}
                         alt="Profile"
                         className="object-cover"
                       />
                     ) : (
                       <span className="text-white text-xl font-bold">
-                        {selectedChat?.userName && selectedChat?.userName.includes(' ')
-                          ? selectedChat?.userName.split(' ')[0][0] + selectedChat?.userName.split(' ')[1][0]
+                        {selectedChat?.userName &&
+                        selectedChat?.userName.includes(" ")
+                          ? selectedChat?.userName.split(" ")[0][0] +
+                            selectedChat?.userName.split(" ")[1][0]
                           : selectedChat?.userName[0]}
                       </span>
                     )}
                   </div>
-                  <div className="ml-3 cursor-pointer"
+                  <div
+                    className="ml-3 cursor-pointer"
                     onClick={() => {
                       // console.log("selectedChat", selectedChat);
                       if (selectedChat?.members) {
                         // console.log("selectedChat");
                         setIsGroupModalOpen(true);
                       } else {
+                        setIsUserProfileModalOpen(true);
                         // setIsModalOpen(true);
                       }
                     }}
@@ -1812,10 +1956,11 @@ const Chat2 = () => {
                       </div>
                     ) : (
                       <div
-                        className={`text-sm ${onlineUsers.includes(selectedChat?._id)
-                          ? "text-green-500"
-                          : "text-gray-500"
-                          }`}
+                        className={`text-sm ${
+                          onlineUsers.includes(selectedChat?._id)
+                            ? "text-green-500"
+                            : "text-gray-500"
+                        }`}
                       >
                         {onlineUsers.includes(selectedChat?._id)
                           ? "Active now"
@@ -1834,7 +1979,10 @@ const Chat2 = () => {
                     data-tooltip-duration="0"
                   />
                   {isSearchBoxOpen && (
-                    <div className="absolute top-12 right-[31%] bg-white shadow-lg p-4 z-10 flex items-center border-rounded" style={{ padding: "5px 25px", borderRadius: "30px" }}>
+                    <div
+                      className="absolute top-12 right-[31%] bg-white shadow-lg p-4 z-10 flex items-center border-rounded"
+                      style={{ padding: "5px 25px", borderRadius: "30px" }}
+                    >
                       <FaSearch className="text-gray-500 mr-2" />
                       <input
                         type="text"
@@ -1945,7 +2093,6 @@ const Chat2 = () => {
                     data-tooltip="Video Call"
                     data-tooltip-delay="0"
                     data-tooltip-duration="0"
-
                   />
                   <IoCallOutline
                     className=" w-6 h-6 cursor-pointer"
@@ -2013,23 +2160,26 @@ const Chat2 = () => {
                           const showTime =
                             !prevMessage ||
                             new Date(message?.createdAt).getMinutes() -
-                            new Date(prevMessage?.createdAt).getMinutes() >
-                            0 ||
+                              new Date(prevMessage?.createdAt).getMinutes() >
+                              0 ||
                             !issameUser;
 
-                          const name = allUsers.find(user => user._id === message.sender)?.userName;
-                          return (
-                            message.content?.type === "system") ? (
+                          const name = allUsers.find(
+                            (user) => user._id === message.sender
+                          )?.userName;
+                          return message.content?.type === "system" ? (
                             <div className="flex justify-center my-2">
                               <span className="bg-gray-100 text-gray-600 text-sm px-3 py-1 rounded-full">
-                                {message.content.content.split('**').map((part, index) => {
-                                  // Every odd index (1, 3, 5...) should be bold
-                                  return index % 2 === 1 ? (
-                                    <strong key={index}>{part}</strong>
-                                  ) : (
-                                    <span key={index}>{part}</span>
-                                  );
-                                })}
+                                {message.content.content
+                                  .split("**")
+                                  .map((part, index) => {
+                                    // Every odd index (1, 3, 5...) should be bold
+                                    return index % 2 === 1 ? (
+                                      <strong key={index}>{part}</strong>
+                                    ) : (
+                                      <span key={index}>{part}</span>
+                                    );
+                                  })}
                               </span>
                             </div>
                           ) : message.content?.type === "call" ? (
@@ -2037,13 +2187,28 @@ const Chat2 = () => {
                               // Render completed call with duration
                               <div className="flex justify-center my-2">
                                 <div className="flex items-center text-gray-600 text-sm px-3 py-2 rounded-md bg-gray-100">
-                                  <FaPhone className={message.sender === userId ? "rotate-90" : "-rotate-90"} />
+                                  <FaPhone
+                                    className={
+                                      message.sender === userId
+                                        ? "rotate-90"
+                                        : "-rotate-90"
+                                    }
+                                  />
                                   <div className="flex flex-col ml-2">
                                     <span>
-                                      {message.sender === userId ? "Outgoing call" : "Incoming call"} • {message.content.duration}
+                                      {message.sender === userId
+                                        ? "Outgoing call"
+                                        : "Incoming call"}{" "}
+                                      • {message.content.duration}
                                     </span>
                                     <span className="text-gray-500 text-xs">
-                                      {new Date(message.content.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true, })}
+                                      {new Date(
+                                        message.content.timestamp
+                                      ).toLocaleTimeString([], {
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                      })}
                                     </span>
                                   </div>
                                   <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
@@ -2051,7 +2216,8 @@ const Chat2 = () => {
                                       <MdPhoneEnabled
                                         className=" w-5 h-5 cursor-pointer text-black"
                                         onClick={() => handleMakeCall("voice")}
-                                      />) : (
+                                      />
+                                    ) : (
                                       <GoDeviceCameraVideo
                                         className="w-5 h-5 cursor-pointer text-black"
                                         onClick={() => handleMakeCall("video")}
@@ -2064,19 +2230,37 @@ const Chat2 = () => {
                               // Render missed call
                               <div className="flex justify-center my-2">
                                 <div className="flex items-center text-red-500 text-sm px-3 py-2 rounded-md bg-gray-100">
-                                  <FaPhone className={message.sender === userId ? "rotate-90" : "-rotate-90"} />
+                                  <FaPhone
+                                    className={
+                                      message.sender === userId
+                                        ? "rotate-90"
+                                        : "-rotate-90"
+                                    }
+                                  />
                                   <div className="flex flex-col ml-2">
-                                    <span >{message.sender === userId ? "Call not answered" : "Missed call"}</span>
+                                    <span>
+                                      {message.sender === userId
+                                        ? "Call not answered"
+                                        : "Missed call"}
+                                    </span>
                                     <span className="text-gray-500 text-xs">
-                                      {new Date(message.content.timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", hour12: true, })}
+                                      {new Date(
+                                        message.content.timestamp
+                                      ).toLocaleTimeString([], {
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                      })}
                                     </span>
                                   </div>
                                   <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
-                                    {(message.content.callType === "voice" || message.content.callType === "audio") ? (
+                                    {message.content.callType === "voice" ||
+                                    message.content.callType === "audio" ? (
                                       <MdPhoneEnabled
                                         className=" w-5 h-5 cursor-pointer text-black"
                                         onClick={() => handleMakeCall("audio")}
-                                      />) : (
+                                      />
+                                    ) : (
                                       <GoDeviceCameraVideo
                                         className="w-5 h-5 cursor-pointer text-black"
                                         onClick={() => handleMakeCall("video")}
@@ -2089,16 +2273,22 @@ const Chat2 = () => {
                           ) : (
                             <div
                               key={message._id}
-                              className={`flex relative ${message.sender === userId
-                                ? "justify-end items-end"
-                                : "justify-start items-start"
-                                } ${isConsecutive ? "mb-1" : "mb-4"
-                                } message-content`}
+                              className={`flex relative ${
+                                message.sender === userId
+                                  ? "justify-end items-end"
+                                  : "justify-start items-start"
+                              } ${
+                                isConsecutive ? "mb-1" : "mb-4"
+                              } message-content`}
                             >
                               <div className="flex flex-col relative group">
                                 {showTime && (
                                   <div className="text-xs text-gray-500 mt-3 text-right">
-                                    {(selectedChat?.members && message.sender != userId) ? `${name},` : ''} {currentTime}
+                                    {selectedChat?.members &&
+                                    message.sender != userId
+                                      ? `${name},`
+                                      : ""}{" "}
+                                    {currentTime}
                                   </div>
                                 )}
                                 {message.content?.type === "file" ? (
@@ -2111,10 +2301,8 @@ const Chat2 = () => {
                                       onContextMenu={(e) => {
                                         console.log("sdkfsbgdjhf");
 
-                                        handleContextMenu(e, message)
-                                      }
-
-                                      }
+                                        handleContextMenu(e, message);
+                                      }}
                                     >
                                       <img
                                         src={`${IMG_URL}${message.content.fileUrl.replace(
@@ -2122,10 +2310,11 @@ const Chat2 = () => {
                                           "/"
                                         )}`}
                                         alt={message.content.content}
-                                        className={`w-full object-contain ${message.sender === userId
-                                          ? "rounded-s-lg rounded-tr-lg"
-                                          : "rounded-e-lg rounded-tl-lg"
-                                          } `}
+                                        className={`w-full object-contain ${
+                                          message.sender === userId
+                                            ? "rounded-s-lg rounded-tr-lg"
+                                            : "rounded-e-lg rounded-tl-lg"
+                                        } `}
                                         onClick={() =>
                                           handleImageClick(
                                             `${IMG_URL}${message.content.fileUrl.replace(
@@ -2134,9 +2323,9 @@ const Chat2 = () => {
                                             )}`
                                           )
                                         }
-                                      // onContextMenu={(e) =>
-                                      //   handleContextMenu(e, message)
-                                      // }
+                                        // onContextMenu={(e) =>
+                                        //   handleContextMenu(e, message)
+                                        // }
                                       />
                                       <PiDotsThreeVerticalBold
                                         className={`absolute top-2 -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-gray-600`}
@@ -2146,12 +2335,15 @@ const Chat2 = () => {
                                         }}
                                       />
                                     </div>
-                                  ) : message.content?.fileType.includes("audio/") ? (
+                                  ) : message.content?.fileType.includes(
+                                      "audio/"
+                                    ) ? (
                                     <div
-                                      className={`p-4 max-w-[300px] ${message.sender === userId
-                                        ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
-                                        : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
-                                        }`}
+                                      className={`p-4 max-w-[300px] ${
+                                        message.sender === userId
+                                          ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
+                                          : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
+                                      }`}
                                       style={{ wordWrap: "break-word" }}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
@@ -2164,7 +2356,12 @@ const Chat2 = () => {
                                           handleDropdownToggle(message._id);
                                         }}
                                       />
-                                      <AudioPlayer audioUrl={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} />
+                                      <AudioPlayer
+                                        audioUrl={`${IMG_URL}${message.content.fileUrl.replace(
+                                          /\\/g,
+                                          "/"
+                                        )}`}
+                                      />
                                       {/* <audio controls>
                                         <source src={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} type={message.content.fileType} />
                                         Your browser does not support the audio element.
@@ -2178,54 +2375,68 @@ const Chat2 = () => {
                                         </div>
                                       </div>
                                     </div>
-                                  )
-
-                                    : (
-                                      <div
-                                        className={`p-4 max-w-[300px] ${message.sender === userId
+                                  ) : (
+                                    <div
+                                      className={`p-4 max-w-[300px] ${
+                                        message.sender === userId
                                           ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
                                           : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
-                                          }`}
-                                        style={{ wordWrap: "break-word" }}
-                                        onContextMenu={(e) =>
-                                          handleContextMenu(e, message)
-                                        }
-                                      >
-                                        <div className="flex items-center">
-                                          <a href={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`}
-                                            download={message.content.content}
-                                            className="ml-2 text-blue-500 hover:underline"
-                                          >
-                                            <FaDownload className="w-6 h-6" />
-                                          </a>
-                                          <div className="ml-3">
-                                            <div className="font-medium">
-                                              {message.content?.content}
-                                            </div>
-                                            <div className="text-sm text-gray-500">
-                                              {message.content?.size}
-                                            </div>
-                                          </div>
-                                        </div>
-
-                                      </div>
-                                    )
-                                ) : (
-                                  <div className="flex gap-1">
-                                    <div
-                                      className={`group flex-1 p-2  flex justify-between items-center relative ${message.sender === userId
-                                        ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""} `
-                                        : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""}`
-                                        }`}
+                                      }`}
+                                      style={{ wordWrap: "break-word" }}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
                                       }
                                     >
-                                      <p className="flex-1">{highlightText(message.content?.content, searchInputbox)}</p>
+                                      <div className="flex items-center">
+                                        <a
+                                          href={`${IMG_URL}${message.content.fileUrl.replace(
+                                            /\\/g,
+                                            "/"
+                                          )}`}
+                                          download={message.content.content}
+                                          className="ml-2 text-blue-500 hover:underline"
+                                        >
+                                          <FaDownload className="w-6 h-6" />
+                                        </a>
+                                        <div className="ml-3">
+                                          <div className="font-medium">
+                                            {message.content?.content}
+                                          </div>
+                                          <div className="text-sm text-gray-500">
+                                            {message.content?.size}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )
+                                ) : (
+                                  <div className="flex gap-1">
+                                    <div
+                                      className={`group flex-1 p-2  flex justify-between items-center relative ${
+                                        message.sender === userId
+                                          ? `bg-[#CCF7FF] rounded-s-lg ${
+                                              showTime ? "rounded-tr-lg" : ""
+                                            } `
+                                          : `bg-[#F1F1F1] rounded-e-lg ${
+                                              showTime ? "rounded-tl-lg" : ""
+                                            }`
+                                      }`}
+                                      onContextMenu={(e) =>
+                                        handleContextMenu(e, message)
+                                      }
+                                    >
+                                      <p className="flex-1">
+                                        {highlightText(
+                                          message.content?.content,
+                                          searchInputbox
+                                        )}
+                                      </p>
 
                                       {/* Add three dots icon */}
                                       <PiDotsThreeVerticalBold
-                                        className={`absolute  ${showTime ? "top-0" : "top-0"} -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity`}
+                                        className={`absolute  ${
+                                          showTime ? "top-0" : "top-0"
+                                        } -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity`}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleDropdownToggle(message._id);
@@ -2235,70 +2446,105 @@ const Chat2 = () => {
                                   </div>
                                 )}
 
-
                                 {/* Context Menu (Right Click) */}
-                                {contextMenu.visible && contextMenu.messageId === message._id && (
-                                  <div className="absolute right-0 top-10 mt-2 bg-white border rounded shadow-lg z-50">
-                                    {/* Only show Edit button if message is not an image or audio */}
-                                    {!message.content?.fileType?.includes("image/") &&
-                                      !message.content?.fileType?.includes("audio/") && (
-                                        <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                          onClick={() => handleEditMessage(contextMenu.message)}
-                                        >
-                                          <MdOutlineModeEdit className="mr-2" /> Edit
-                                        </button>
-                                      )}
-                                    {/* Only show Copy button if message is not an audio file */}
-                                    {!message.content?.fileType?.includes("audio/") && (
-                                      <button
-                                        className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                        onClick={() => handleCopyMessage(
-                                          message.content,
-                                          () => setActiveMessageId(null)
-                                        )}
-                                      >
-                                        <VscCopy className="mr-2" /> Copy
-                                      </button>
-                                    )}
-                                    <button
-                                      className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                      onClick={() => handleDeleteMessage(message._id)}
-                                    >
-                                      <CiSquareRemove className="mr-2" /> Remove
-                                    </button>
-                                  </div>
-                                )}
-
-                                {/* Three Dots Dropdown */}
-                                {activeMessageId === message._id && (
-                                  <div className="text-gray-500 mt-1" ref={dropdownRef}>
-                                    <div className="absolute top-[30px] right-0 mt-2 bg-white border rounded shadow-lg z-50">
+                                {contextMenu.visible &&
+                                  contextMenu.messageId === message._id && (
+                                    <div className="absolute right-0 top-10 mt-2 bg-white border rounded shadow-lg z-50">
                                       {/* Only show Edit button if message is not an image or audio */}
-                                      {!message.content?.fileType?.includes("image/") &&
-                                        !message.content?.fileType?.includes("audio/") && (
-                                          <button className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                            onClick={() => handleEditMessage(message)}
+                                      {!message.content?.fileType?.includes(
+                                        "image/"
+                                      ) &&
+                                        !message.content?.fileType?.includes(
+                                          "audio/"
+                                        ) && (
+                                          <button
+                                            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                            onClick={() =>
+                                              handleEditMessage(
+                                                contextMenu.message
+                                              )
+                                            }
                                           >
-                                            <MdOutlineModeEdit className="mr-2" /> Edit
+                                            <MdOutlineModeEdit className="mr-2" />{" "}
+                                            Edit
                                           </button>
                                         )}
                                       {/* Only show Copy button if message is not an audio file */}
-                                      {!message.content?.fileType?.includes("audio/") && (
+                                      {!message.content?.fileType?.includes(
+                                        "audio/"
+                                      ) && (
                                         <button
                                           className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                          onClick={() => handleCopyMessage(
-                                            message.content,
-                                            () => setActiveMessageId(null)
-                                          )}
+                                          onClick={() =>
+                                            handleCopyMessage(
+                                              message.content,
+                                              () => setActiveMessageId(null)
+                                            )
+                                          }
                                         >
                                           <VscCopy className="mr-2" /> Copy
                                         </button>
                                       )}
                                       <button
                                         className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                        onClick={() => handleDeleteMessage(message._id)}
+                                        onClick={() =>
+                                          handleDeleteMessage(message._id)
+                                        }
                                       >
-                                        <CiSquareRemove className="mr-2" /> Remove
+                                        <CiSquareRemove className="mr-2" />{" "}
+                                        Remove
+                                      </button>
+                                    </div>
+                                  )}
+
+                                {/* Three Dots Dropdown */}
+                                {activeMessageId === message._id && (
+                                  <div
+                                    className="text-gray-500 mt-1"
+                                    ref={dropdownRef}
+                                  >
+                                    <div className="absolute top-[30px] right-0 mt-2 bg-white border rounded shadow-lg z-50">
+                                      {/* Only show Edit button if message is not an image or audio */}
+                                      {!message.content?.fileType?.includes(
+                                        "image/"
+                                      ) &&
+                                        !message.content?.fileType?.includes(
+                                          "audio/"
+                                        ) && (
+                                          <button
+                                            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                            onClick={() =>
+                                              handleEditMessage(message)
+                                            }
+                                          >
+                                            <MdOutlineModeEdit className="mr-2" />{" "}
+                                            Edit
+                                          </button>
+                                        )}
+                                      {/* Only show Copy button if message is not an audio file */}
+                                      {!message.content?.fileType?.includes(
+                                        "audio/"
+                                      ) && (
+                                        <button
+                                          className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                          onClick={() =>
+                                            handleCopyMessage(
+                                              message.content,
+                                              () => setActiveMessageId(null)
+                                            )
+                                          }
+                                        >
+                                          <VscCopy className="mr-2" /> Copy
+                                        </button>
+                                      )}
+                                      <button
+                                        className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        onClick={() =>
+                                          handleDeleteMessage(message._id)
+                                        }
+                                      >
+                                        <CiSquareRemove className="mr-2" />{" "}
+                                        Remove
                                       </button>
                                     </div>
                                   </div>
@@ -2307,7 +2553,9 @@ const Chat2 = () => {
 
                               {message.sender === userId && (
                                 <div
-                                  className={`flex items-end mt-1  ${showTime ? "bottom-3" : "-bottom-2"}  right-0`}
+                                  className={`flex items-end mt-1  ${
+                                    showTime ? "bottom-3" : "-bottom-2"
+                                  }  right-0`}
                                 >
                                   {message.status === "sent" && (
                                     <IoCheckmarkCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
@@ -2386,23 +2634,29 @@ const Chat2 = () => {
                         />
                       );
                     } else if (file.type === "application/pdf") {
-                      fileIcon = <FaFilePdf className="w-20 h-20 text-gray-500" />; // PDF file icon
+                      fileIcon = (
+                        <FaFilePdf className="w-20 h-20 text-gray-500" />
+                      ); // PDF file icon
                     } else if (
                       file.type === "application/vnd.ms-excel" ||
                       file.type ===
-                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     ) {
-                      fileIcon = <FaFileExcel className="w-20 h-20 text-gray-500" />; // Excel file icon
+                      fileIcon = (
+                        <FaFileExcel className="w-20 h-20 text-gray-500" />
+                      ); // Excel file icon
                     } else if (
                       file.type === "application/msword" ||
                       file.type ===
-                      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     ) {
-                      fileIcon = <FaFileWord className="w-20 h-20 text-gray-500" />; // Word file icon
+                      fileIcon = (
+                        <FaFileWord className="w-20 h-20 text-gray-500" />
+                      ); // Word file icon
                     } else if (
                       file.type === "application/vnd.ms-powerpoint" ||
                       file.type ===
-                      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
                     ) {
                       fileIcon = (
                         <FaFilePowerpoint className="w-20 h-20 text-gray-500" />
@@ -2412,7 +2666,9 @@ const Chat2 = () => {
                         <FaFileArchive className="w-20 h-20 text-gray-500" />
                       ); // ZIP file icon
                     } else {
-                      fileIcon = <FaPaperclip className="w-20 h-20 text-gray-500" />; // Generic file icon
+                      fileIcon = (
+                        <FaPaperclip className="w-20 h-20 text-gray-500" />
+                      ); // Generic file icon
                     }
                     return (
                       <div
@@ -2499,20 +2755,22 @@ const Chat2 = () => {
                         accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
                         className="hidden"
                         onChange={handleInputChange}
-                      // onChange={(e) => {
-                      // e.preventDefault();
-                      // const files = e.target.files;
-                      // console.log(files);
-                      // if (files) {
-                      //     handleSubmit(e,files);
-                      // }
-                      // }}
+                        // onChange={(e) => {
+                        // e.preventDefault();
+                        // const files = e.target.files;
+                        // console.log(files);
+                        // if (files) {
+                        //     handleSubmit(e,files);
+                        // }
+                        // }}
                       />
                       <button
                         type="button"
                         className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                         aria-label="Attach file"
-                        onClick={() => document.getElementById("file-upload").click()}
+                        onClick={() =>
+                          document.getElementById("file-upload").click()
+                        }
                       >
                         {selectedFiles && selectedFiles.length > 0 ? (
                           <FaPlusCircle className="w-5 h-5 text-gray-500" />
@@ -2526,7 +2784,11 @@ const Chat2 = () => {
                         aria-label="Voice message"
                         onClick={handleVoiceMessage}
                       >
-                        <FaMicrophone className={`w-5 h-5 ${isRecording ? 'text-red-500' : 'text-gray-500'}`} />
+                        <FaMicrophone
+                          className={`w-5 h-5 ${
+                            isRecording ? "text-red-500" : "text-gray-500"
+                          }`}
+                        />
                       </button>
                       {(messageInput != "" || selectedFiles.length > 0) && (
                         <button
@@ -2582,48 +2844,84 @@ const Chat2 = () => {
 
       {/*========== screen share ==========*/}
 
-
       {/* {console.log("remoteStreams",remoteStreams)} */}
-      <div className={`flex-grow flex flex-col ${(isReceiving || isVideoCalling || incomingCall || isVoiceCalling) ? '' : 'hidden'}`}>
-        <div className="flex-1 grid grid-cols-2 gap-4 relative">
-          <div className={`relative border-2 border-red-500 ${isVideoCalling || isVoiceCalling ? '' : 'hidden'}`}>
+      <div
+        className={`flex-grow flex flex-col h-screen ${
+          isReceiving || isVideoCalling || incomingCall || isVoiceCalling
+            ? ""
+            : "hidden"
+        }`}
+      >
+        <div
+          className={`flex-1 relative ${
+            isReceiving
+              ? "flex items-center justify-center"
+              : `grid gap-4 ${getGridColumns(
+                  remoteStreams.size + (isVideoCalling ? 1 : 0)
+                )}`
+          }`}
+        >
+          {/* Local video */}
+          <div
+            className={`relative ${
+              isVideoCalling || isVoiceCalling ? "" : "hidden"
+            } ${isReceiving ? "hidden" : ""}`}
+          >
             <video
               ref={localVideoRef}
               autoPlay
               playsInline
               muted
-              className="w-full rounded h-full object-cover"
+              className="w-full h-full object-cover rounded-lg"
             />
             <div className="absolute bottom-2 left-2 text-red-500 text-xl bg-black bg-opacity-50 px-2 py-1 rounded">
               You
             </div>
           </div>
-          {Array.from(remoteStreams).map(([participantId, stream]) => (
-            <div key={participantId} className="relative border-2 border-blue-500">
+
+          {/* Remote videos */}
+          {isReceiving ? (
+            <div className="w-full h-full">
               <video
+                ref={remoteVideoRef}
                 autoPlay
                 playsInline
                 className="w-full h-full object-cover rounded-lg"
-                ref={el => {
-                  if (el) {
-                    el.srcObject = stream;
-                  }
-                }}
               />
-              <div className="absolute bottom-2 left-2 text-red-500 text-xl bg-black bg-opacity-50 px-2 py-1 rounded">
-                {allUsers.find(user => user._id === participantId)?.userName || 'Participant'}
-              </div>
             </div>
-          ))}
+          ) : (
+            <>
+              {Array.from(remoteStreams).map(([participantId, stream]) => (
+                <div key={participantId} className="relative w-full h-full">
+                  <video
+                    autoPlay
+                    playsInline
+                    className="w-full object-contain rounded-lg"
+                    ref={(el) => {
+                      if (el) {
+                        el.srcObject = stream;
+                      }
+                    }}
+                  />
+                  <div className="absolute bottom-2 left-2 text-red-500 text-xl bg-black bg-opacity-50 px-2 py-1 rounded">
+                    {allUsers.find((user) => user._id === participantId)
+                      ?.userName || "Participant"}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* Controls */}
           {(isSharing || isReceiving || isVideoCalling || isVoiceCalling) && (
             <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
               <button
                 onClick={() => {
-                  if (!callAccept
-                    && selectedChat
-                  ) {
+                  if (!callAccept && selectedChat) {
                     if (isVideoCalling || isVoiceCalling) {
-                      isVideoCalling ? rejectVoiceCall(selectedChat._id, "video") : rejectVoiceCall(selectedChat._id, "voice");
+                      isVideoCalling
+                        ? rejectVoiceCall(selectedChat._id, "video")
+                        : rejectVoiceCall(selectedChat._id, "voice");
                     }
                   } else {
                     if (isVideoCalling || isVoiceCalling) {
@@ -2640,17 +2938,27 @@ const Chat2 = () => {
                 <>
                   <button
                     onClick={toggleCamera}
-                    className={`w-10 grid place-content-center  rounded-full h-10 ${isCameraOn ? "bg-blue-500" : "bg-gray-400"
-                      } text-white ${isVideoCalling ? "" : "hidden"}`}
+                    className={`w-10 grid place-content-center  rounded-full h-10 ${
+                      isCameraOn ? "bg-blue-500" : "bg-gray-400"
+                    } text-white ${isVideoCalling ? "" : "hidden"}`}
                   >
-                    {isCameraOn ? <FiCamera className="text-xl " /> : <FiCameraOff className="text-xl " />}
+                    {isCameraOn ? (
+                      <FiCamera className="text-xl " />
+                    ) : (
+                      <FiCameraOff className="text-xl " />
+                    )}
                   </button>
                   <button
                     onClick={toggleMicrophone}
-                    className={`w-10 grid place-content-center  rounded-full h-10 ${isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
-                      } text-white`}
+                    className={`w-10 grid place-content-center  rounded-full h-10 ${
+                      isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
+                    } text-white`}
                   >
-                    {isMicrophoneOn ? <BsFillMicFill className="text-xl " /> : <BsFillMicMuteFill className="text-xl " />}
+                    {isMicrophoneOn ? (
+                      <BsFillMicFill className="text-xl " />
+                    ) : (
+                      <BsFillMicMuteFill className="text-xl " />
+                    )}
                   </button>
                   <button
                     onClick={() => setParticipantOpen(true)}
@@ -2665,16 +2973,20 @@ const Chat2 = () => {
         </div>
       </div>
 
-
       {/* ========= incoming call ========= */}
       {incomingCall && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-black rounded-lg p-6 w-72 text-center">
             <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden">
               {/* Profile image or default avatar */}
-              {allUsers.find(user => user._id === incomingCall.fromEmail)?.photo && allUsers.find(user => user._id === incomingCall.fromEmail)?.photo !== "null" ? (
+              {allUsers.find((user) => user._id === incomingCall.fromEmail)
+                ?.photo &&
+              allUsers.find((user) => user._id === incomingCall.fromEmail)
+                ?.photo !== "null" ? (
                 <img
-                  src={`${IMG_URL}${allUsers.find(user => user._id === incomingCall.fromEmail)?.photo.replace(/\\/g, "/")}`} // Replace with actual user profile image
+                  src={`${IMG_URL}${allUsers
+                    .find((user) => user._id === incomingCall.fromEmail)
+                    ?.photo.replace(/\\/g, "/")}`} // Replace with actual user profile image
                   alt="Caller"
                   className="w-full h-full object-cover"
                 />
@@ -2685,15 +2997,22 @@ const Chat2 = () => {
               )}
             </div>
             <h3 className="text-2xl text-white mb-2">
-              {allUsers.find(user => user._id === incomingCall.fromEmail)?.userName}
+              {
+                allUsers.find((user) => user._id === incomingCall.fromEmail)
+                  ?.userName
+              }
             </h3>
-            <p className="text-gray-400 mb-8 animate-pulse">Incoming {incomingCall.type} call...</p>
+            <p className="text-gray-400 mb-8 animate-pulse">
+              Incoming {incomingCall.type} call...
+            </p>
             <div className="flex justify-center gap-8">
               {/* {console.log(incomingCall.type)} */}
 
               <button
                 onClick={
-                  incomingCall.type === "video" ? acceptVideoCall : acceptVoiceCall
+                  incomingCall.type === "video"
+                    ? acceptVideoCall
+                    : acceptVoiceCall
                 }
                 className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 animate-bounce"
               >
@@ -2713,18 +3032,21 @@ const Chat2 = () => {
       {incomingShare && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
           <div className="bg-black rounded-lg p-6 w-72 text-center">
-            <h3 className="text-2xl text-gray-300 mb-2 ">Incoming Screen <br /> Request...</h3>
+            <h3 className="text-2xl text-gray-300 mb-2 ">
+              Incoming Screen <br /> Request...
+            </h3>
             <p className="text-gray-400 mb-8">
-              {allUsers.find(user => user._id === incomingShare.fromEmail)?.userName}
+              {
+                allUsers.find((user) => user._id === incomingShare.fromEmail)
+                  ?.userName
+              }
             </p>
             <div className="flex justify-center gap-8">
               <button
                 onClick={() => acceptScreenShare()}
                 className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center hover:bg-blue-600 animate-bounce"
               >
-                <LuScreenShare
-                  className="w-6 h-6 cursor-pointer"
-                />
+                <LuScreenShare className="w-6 h-6 cursor-pointer" />
               </button>
               <button
                 onClick={() => {
@@ -2830,18 +3152,17 @@ const Chat2 = () => {
         </div>
       )}
 
-
       {/* Profile Modal */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white rounded-lg w-96 modal_background"
-          // style={{
-          //   background: "#CCF7FF",
-          //   background:
-          //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
-          //     "#CDE0EC",
-          // }}
+            // style={{
+            //   background: "#CCF7FF",
+            //   background:
+            //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
+            //     "#CDE0EC",
+            // }}
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Profile</h2>
@@ -2973,8 +3294,9 @@ const Chat2 = () => {
                   />
                 ) : (
                   <span
-                    className={`text-gray-800 cursor-pointer ${!user?.dob ? "text-sm" : ""
-                      } `}
+                    className={`text-gray-800 cursor-pointer ${
+                      !user?.dob ? "text-sm" : ""
+                    } `}
                     onClick={() => setIsEditingDob(true)}
                   >
                     {new Date(user?.dob).toLocaleDateString() || "Add dob"}
@@ -3018,13 +3340,178 @@ const Chat2 = () => {
                   </span>
                 ) : (
                   <span
-                    className={`text-gray-800 cursor-pointer ${!user?.phone ? "text-sm" : ""
-                      } `}
+                    className={`text-gray-800 cursor-pointer ${
+                      !user?.phone ? "text-sm" : ""
+                    } `}
                     onClick={() => setIsEditingPhone(true)}
                   >
                     {user?.phone || "Add phone number"}
                   </span>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/*Other User Profile Modal */}
+      {isUserProfileModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-96 modal_background">
+            <div className="flex justify-between items-center pb-2 p-4">
+              <h2 className="text-lg font-bold">{selectedChat?.userName}</h2>
+              <button
+                onClick={() => setIsUserProfileModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <ImCross />
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <div className="relative w-24 h-24  rounded-full bg-gray-300 mt-4 group">
+                {selectedChat?.photo && selectedChat.photo !== "null" ? (
+                  <img
+                    src={`${IMG_URL}${selectedChat?.photo}`}
+                    alt="Profile"
+                    className="object-cover w-24 h-24  rounded-full"
+                  />
+                ) : (
+                  <div
+                    className="w-24 h-24 text-center rounded-full text-gray-600 grid place-content-center"
+                    style={{
+                      background:
+                        "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(189,214,230,1) 48%, rgba(34,129,195,1) 100%)",
+                    }}
+                  >
+                    <IoCameraOutline className="text-3xl cursor-pointer" />
+                  </div>
+                )}
+              </div>
+              <div className="flex mt-2 items-center justify-between gap-4">
+                <h3 className="text-xl font-semibold">
+                  {selectedChat?.userName}
+                </h3>
+              </div>
+            </div>
+            <div className="mt-4 px-4 py-2">
+              <div className="flex items-center justify-between p-2 border-b ">
+                <span className="text-gray-600 font-bold">Skype Name</span>
+                <span className="text-gray-800">{selectedChat?.userName}</span>
+              </div>
+              <div className="flex items-center justify-between p-2 border-b ">
+                <span className="text-gray-600 font-bold">Email</span>
+                <span className="text-gray-800">{selectedChat?.email}</span>
+              </div>
+              <div className="flex items-center justify-between p-2 border-b ">
+                <span className="text-gray-600 font-bold">Phone Number</span>
+                <span className="text-gray-800">
+                  {selectedChat?.phone || "--"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between p-2 border-b ">
+                <span className="text-gray-600 font-bold">Birthday</span>
+                <span className="text-gray-800">
+                  {selectedChat?.dob
+                    ? new Date(selectedChat?.dob).toLocaleDateString()
+                    : "--"}
+                </span>
+              </div>
+            </div>
+            <div className="px-4 py-2">
+              <h3 className="text-md text-gray-600 font-bold mb-4 ml-2">
+                Shared Media
+              </h3>
+              <div className="max-h-[250px] justify-center overflow-y-auto pr-2 modal_scroll">
+                <div className="grid grid-cols-3 gap-2 items-center">
+                  {messages.filter(
+                    (message) => message.content?.type === "file"
+                  ).length > 0 ? (
+                    messages
+                      .filter((message) => message.content?.type === "file")
+                      .map((message, index) => {
+                        if (message.content?.fileType?.includes("image/")) {
+                          // Display images in square format
+                          return (
+                            <div
+                              key={index}
+                              className="relative group aspect-square"
+                            >
+                              <img
+                                src={`${IMG_URL}${message.content.fileUrl.replace(
+                                  /\\/g,
+                                  "/"
+                                )}`}
+                                alt={message.content.content}
+                                className="w-full h-full object-cover rounded-lg cursor-pointer"
+                                onClick={() =>
+                                  handleImageClick(
+                                    `${IMG_URL}${message.content.fileUrl.replace(
+                                      /\\/g,
+                                      "/"
+                                    )}`
+                                  )
+                                }
+                              />
+                              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                                {message.content.content}
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          // Display other file types in square format
+                          return (
+                            <div
+                              key={index}
+                              className="relative bg-gray-100 rounded-lg aspect-square p-3 flex flex-col items-center justify-center group"
+                            >
+                              {/* File type icon based on extension */}
+                              <div className="flex-1 flex items-center justify-center">
+                                {message.content.fileType.includes("pdf") ? (
+                                  <FaFilePdf className="w-12 h-12 text-red-500" />
+                                ) : message.content.fileType.includes(
+                                    "word"
+                                  ) ? (
+                                  <FaFileWord className="w-12 h-12 text-blue-500" />
+                                ) : message.content.fileType.includes(
+                                    "excel"
+                                  ) ? (
+                                  <FaFileExcel className="w-12 h-12 text-green-500" />
+                                ) : message.content.fileType.includes(
+                                    "audio"
+                                  ) ? (
+                                  <FaFileAudio className="w-12 h-12 text-purple-500" />
+                                ) : (
+                                  <FaFile className="w-12 h-12 text-gray-500" />
+                                )}
+                              </div>
+
+                              <div className="w-full px-2 text-center">
+                                <p className="text-xs font-medium break-words line-clamp-2 hover:line-clamp-none group-hover:text-blue-600">
+                                  {message.content.content}
+                                </p>
+                              </div>
+
+                              <a
+                                href={`${IMG_URL}${message.content.fileUrl.replace(
+                                  /\\/g,
+                                  "/"
+                                )}`}
+                                download={message.content.content}
+                                className="absolute top-2 right-2 text-blue-500 hover:text-blue-600 bg-white rounded-full p-1 shadow-sm"
+                              >
+                                <FaDownload className="w-4 h-4" />
+                              </a>
+                            </div>
+                          );
+                        }
+                      })
+                  ) : (
+                    <div className="col-span-3 text-center text-gray-600">
+                      No media
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -3066,15 +3553,15 @@ const Chat2 = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white rounded-lg w-96 modal_background "
-          // style={{
-          //   background: "#CCF7FF",
-          //   background:
-          //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
-          //     "#CDE0EC",
-          // }}
+            // style={{
+            //   background: "#CCF7FF",
+            //   background:
+            //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
+            //     "#CDE0EC",
+            // }}
           >
             <div className="flex justify-between items-center pb-2 p-4">
-              <h2 className="text-lg font-bold">Profileaa</h2>
+              <h2 className="text-lg font-bold">Profile</h2>
               <button
                 onClick={() => setIsGroupModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -3083,7 +3570,6 @@ const Chat2 = () => {
               </button>
             </div>
             <div className="flex flex-col items-center">
-
               <div className="relative w-24 h-24 rounded-full bg-gray-300 overflow-hidden mt-4">
                 {selectedChat?.photo && selectedChat.photo !== "null" ? (
                   <img
@@ -3250,9 +3736,9 @@ const Chat2 = () => {
                   return (
                     <div key={index} className="flex items-center p-2 group">
                       <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
-                        {user.userName.charAt(0).toUpperCase()}
+                        {user?.userName?.charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-gray-800">{user.userName}</span>
+                      <span className="text-gray-800">{user?.userName}</span>
                       <button
                         className="ml-auto text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs border border-red-500 rounded-full px-2 py-1"
                         onClick={() => {
@@ -3306,12 +3792,12 @@ const Chat2 = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white rounded-lg w-96 modal_background"
-          // style={{
-          //   background: "#CCF7FF",
-          //   background:
-          //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
-          //     "#CDE0EC",
-          // }}
+            // style={{
+            //   background: "#CCF7FF",
+            //   background:
+            //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
+            //     "#CDE0EC",
+            // }}
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Create Group</h2>
@@ -3370,59 +3856,66 @@ const Chat2 = () => {
                 <span className="text-gray-800 ">{groupUsers.length || 0}</span>
               </div>
               <div className="flex flex-col max-h-48 overflow-y-auto cursor-pointer modal_scroll">
-                {allUsers.filter(user => user._id !== currentUser).map((user, index) => {
-                  const isChecked = groupUsers.includes(user._id); // Check if user is already selected
-                  return (
-                    <div
-                      key={index}
-                      className={`flex items-center justify-between p-2 mx-1 hover:bg-gray-100 rounded ${isChecked ? 'order-first' : ''}`}
-                      onClick={() => {
-                        if (!isChecked) {
-                          setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
-                        } else {
-                          setGroupUsers((prev) =>
-                            prev.filter((id) => id !== user._id)
-                          ); // Remove user ID from groupUsers state
-                        }
-                      }}
-                    >
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full mr-2 bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
-                          {user?.photo && user.photo !== "null" ? (
-                            <img
-                              src={`${IMG_URL}${user.photo.replace(/\\/g, "/")}`}
-                              alt={`${user.userName}`}
-                              className="object-cover h-full w-full"
-                            />
-                          ) : (
-                            <span className="text-gray-900 text-lg font-bold">
-                              {user.userName
-                                .split(" ")
-                                .map((n) => n[0].toUpperCase())
-                                .join("")}
-                            </span>
-                          )}
-                        </div>
-                        <span>{user.userName}</span>
-                      </div>
-                      <input
-                        id={`checkbox-${user._id}`}
-                        type="checkbox"
-                        checked={isChecked} // Set checkbox state based on selection
-                        readOnly // Make checkbox read-only to prevent direct interaction
-                        className="form-checkbox rounded-full"
-                        style={{
-                          width: "20px",
-                          height: "20px",
-                          borderRadius: "50%",
-                          border: "2px solid #ccc",
-                          backgroundColor: "#fff",
-                          cursor: "pointer",
+                {allUsers
+                  .filter((user) => user._id !== currentUser)
+                  .map((user, index) => {
+                    const isChecked = groupUsers.includes(user._id); // Check if user is already selected
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-2 hover:bg-gray-100 rounded ${
+                          isChecked ? "order-first" : ""
+                        }`}
+                        onClick={() => {
+                          if (!isChecked) {
+                            setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
+                          } else {
+                            setGroupUsers((prev) =>
+                              prev.filter((id) => id !== user._id)
+                            ); // Remove user ID from groupUsers state
+                          }
                         }}
-                      />
-                    </div>
-                  );
-                })}
+                      >
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-full mr-2 bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
+                            {user?.photo && user.photo !== "null" ? (
+                              <img
+                                src={`${IMG_URL}${user.photo.replace(
+                                  /\\/g,
+                                  "/"
+                                )}`}
+                                alt={`${user.userName}`}
+                                className="object-cover h-full w-full"
+                              />
+                            ) : (
+                              <span className="text-gray-900 text-lg font-bold">
+                                {user.userName
+                                  .split(" ")
+                                  .map((n) => n[0].toUpperCase())
+                                  .join("")}
+                              </span>
+                            )}
+                          </div>
+                          <span>{user.userName}</span>
+                        </div>
+                        <input
+                          id={`checkbox-${user._id}`}
+                          type="checkbox"
+                          checked={isChecked} // Set checkbox state based on selection
+                          readOnly // Make checkbox read-only to prevent direct interaction
+                          className="form-checkbox rounded-full"
+                          style={{
+                            width: "20px",
+                            height: "20px",
+                            borderRadius: "50%",
+                            border: "2px solid #ccc",
+                            backgroundColor: "#fff",
+                            cursor: "pointer",
+                          }}
+                        />
+                      </div>
+                    );
+                  })}
               </div>
               <div className="mt-4 flex justify-center">
                 <button
@@ -3448,8 +3941,11 @@ const Chat2 = () => {
             </div>
             <div className="max-h-96 overflow-y-auto">
               {allUsers
-                .filter(user => !callParticipants.has(user._id) && user._id !== userId)
-                .map(user => (
+                .filter(
+                  (user) =>
+                    !callParticipants.has(user._id) && user._id !== userId
+                )
+                .map((user) => (
                   <div
                     key={user._id}
                     className="flex items-center justify-between p-2 hover:bg-gray-100 rounded cursor-pointer"
@@ -3491,7 +3987,6 @@ const Chat2 = () => {
         }}
       />
 
-
       {isProfileImageModalOpen && selectedProfileImage && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="relative w-full h-full flex items-center justify-center p-8">
@@ -3529,28 +4024,32 @@ const Chat2 = () => {
       )} */}
 
       {/* Image Modal */}
-      {
-        isImageModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-            <div className="relative w-full h-full flex items-center justify-center p-8">
-              <img src={selectedImage} alt="Full Size" className="w-full h-full object-contain " />
-              <button
-                onClick={() => setIsImageModalOpen(false)}
-                className="absolute top-4 right-4 text-white text-2xl"
-              >
-                <ImCross />
-              </button>
-            </div>
+      {isImageModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="relative w-full h-full flex items-center justify-center p-8">
+            <img
+              src={selectedImage}
+              alt="Full Size"
+              className="w-full h-full object-contain "
+            />
+            <button
+              onClick={() => setIsImageModalOpen(false)}
+              className="absolute top-4 right-4 text-white text-2xl"
+            >
+              <ImCross />
+            </button>
           </div>
-        )
-      }
+        </div>
+      )}
 
       {/* delete message modal */}
       {isClearChatModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-96">
             <h3 className="text-xl font-semibold mb-4">Clear Chat</h3>
-            <p className="text-gray-600 mb-6 font-semibold">Are you sure you want to clear this chat?</p>
+            <p className="text-gray-600 mb-6 font-semibold">
+              Are you sure you want to clear this chat?
+            </p>
             <div className="flex justify-center space-x-4">
               <button
                 onClick={() => setIsClearChatModalOpen(false)}
@@ -3568,9 +4067,8 @@ const Chat2 = () => {
           </div>
         </div>
       )}
-    </div >
+    </div>
   );
 };
-
 
 export default Chat2;
