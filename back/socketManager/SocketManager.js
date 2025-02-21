@@ -288,6 +288,22 @@ function handleParticipantJoined(socket, data) {
   }
 }
 
+function handleParticipantLeft(socket, data) {
+  const { leavingUser, to, duration } = data;
+  
+  // Get socket ID of the participant to notify
+  const targetSocketId = onlineUsers.get(to);
+  
+  if (targetSocketId) {
+    // Notify the participant about who left
+    socket.to(targetSocketId).emit("participant-left", {
+      leavingUser,
+      duration
+    });
+  }
+}
+
+
 
 
 function handleVideoCallAccept(socket, data) {
@@ -623,6 +639,7 @@ function initializeSocket(io) {
     socket.on("end-video-call", (data) => handleVideoCallEnd(socket, data));
     socket.on("video-call-invite", (data) => handleVideoCallInvite(socket, data));
     socket.on("participant-join", (data) => handleParticipantJoined(socket, data));
+    socket.on("participant-left", (data) => handleParticipantLeft(socket, data));
 
     // ===========================save call message=============================
 

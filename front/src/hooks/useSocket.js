@@ -618,9 +618,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       });
     });
 
-    socketRef.current.on(
-      "participant-joined",
-      async ({ newParticipantId, from, participants }) => {
+    socketRef.current.on("participant-joined",async ({ newParticipantId, from, participants }) => {
         if (newParticipantId !== userId && streamRef.current) {
           console.log(
             "participant-joined",
@@ -657,6 +655,28 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     socketRef.current.on("video-call-signal", ({ signal, from }) => {
       if (peersRef.current[from]) {
         peersRef.current[from].signal(signal);
+      }
+    });
+
+    socketRef.current.on("participant-left", ({ leavingUser }) => {
+      // Remove the leaving participant's remote stream
+      setRemoteStreams((prev) => {
+        const newStreams = new Map(prev);
+        newStreams.delete(leavingUser);
+        return newStreams;
+      });
+  
+      // Remove the leaving participant from the participants list
+      setCallParticipants((prev) => {
+        const newParticipants = new Set(prev);
+        newParticipants.delete(leavingUser);
+        return newParticipants;
+      });
+  
+      // Clean up peer connection for the leaving participant
+      if (peersRef.current[leavingUser]) {
+        peersRef.current[leavingUser].destroy();
+        delete peersRef.current[leavingUser];
       }
     });
 
@@ -731,6 +751,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         socketRef.current.off("voice-call-ended");
         socketRef.current.off("video-call-invite");
         socketRef.current?.off("participant-joined");
+        socketRef.current?.off("participant-left");
       }
     };
   }, [socketRef.current, userId]);
@@ -809,13 +830,13 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       try {
         // Try to get media stream but don't block if devices aren't available
         // console.log("hasWebcam", hasWebcam, "hasMicrophone", hasMicrophone);
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: hasWebcam,
-          audio: hasMicrophone,
-        });
-        // stream = await navigator.mediaDevices.getDisplayMedia({
-        //   video: true,
+        // stream = await navigator.mediaDevices.getUserMedia({
+        //   video: hasWebcam,
+        //   audio: hasMicrophone,
         // });
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+        });
       } catch (err) {
         console.warn("Could not get media devices:", err);
         // Continue without media stream
@@ -878,7 +899,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     }
   };
 
-  console.log("remote stream", remoteStreams);
+  // console.log("remote stream", remoteStreams);
 
   // New function to invite additional participants
   const inviteToCall = async (newParticipantId) => {
@@ -990,13 +1011,13 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       let stream = null;
       try {
         // Try to get media stream but don't block if devices aren't available
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: hasWebcam,
-          audio: hasMicrophone,
-        });
-        // stream = await navigator.mediaDevices.getDisplayMedia({
-        //   video: true,
+        // stream = await navigator.mediaDevices.getUserMedia({
+        //   video: hasWebcam,
+        //   audio: hasMicrophone,
         // });
+        stream = await navigator.mediaDevices.getDisplayMedia({
+          video: true,
+        });
       } catch (err) {
         console.warn("Could not get media devices:", err);
         // Continue without media stream
@@ -1010,9 +1031,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
           localVideoRef.current.srcObject = stream;
         }
       }
-
-      setCallStartTime(new Date());
-      startCallDurationTimer();
 
       // Create peer for the caller
       const peer = new Peer({
@@ -1103,13 +1121,29 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       : 0;
 
     // Clear timer
-    if (callTimerRef.current) {
-      clearInterval(callTimerRef.current);
-    }
+    // if (callTimerRef.current) {
+    //   clearInterval(callTimerRef.current);
+    // }
 
-    // Save call ended message with duration if call was connected
-    Array.from(callParticipants).forEach((participantId) => {
-      if (participantId !== userId) {
+    console.log("callParticipants", callParticipants,callParticipants.size);
+
+    if (callParticipants.size > 2){
+  // Notify other participants about this user leaving
+      Array.from(callParticipants).forEach((participantId) => {
+        if (participantId !== userId) {
+      if (socketRef.current) {
+        socketRef.current.emit("participant-left", {
+          leavingUser: userId,
+          to: participantId,
+          duration: finalDuration,
+        });
+      }
+    }
+  });
+    }else {
+      // Save call ended message with duration if call was connected
+      Array.from(callParticipants).forEach((participantId) => {
+        if (participantId !== userId) {
         if (socketRef.current) {
           socketRef.current.emit("end-video-call", {
             to: participantId,
@@ -1119,6 +1153,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         }
       }
     });
+  }
 
     Array.from(callParticipants).forEach((participantId) => {
       if (participantId !== userId) {
@@ -1127,7 +1162,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
             senderId: userId,
             receiverId: participantId,
             callType: "video",
-            status: "ended",
+            status:  "ended",
             duration: finalDuration,
             timestamp: new Date(),
           });
@@ -1143,14 +1178,23 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
-    if (peersRef.current) {
-      Object.values(peersRef.current).forEach((peer) => {
-        if (peer && typeof peer.destroy === "function") {
-          peer.destroy();
-        }
-      });
-      peersRef.current = {};
-    }
+    // if (peersRef.current) {
+    //   Object.values(peersRef.current).forEach((peer) => {
+    //     if (peer && typeof peer.destroy === "function") {
+    //       peer.destroy();
+    //     }
+    //   });
+    //   peersRef.current = {};
+    // }
+      // Clean up only this participant's peer connections
+  if (peersRef.current) {
+    Object.entries(peersRef.current).forEach(([peerId, peer]) => {
+      if (peer && typeof peer.destroy === "function") {
+        peer.destroy();
+        delete peersRef.current[peerId];
+      }
+    });
+  }
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = null;
     }
