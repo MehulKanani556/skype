@@ -1668,68 +1668,73 @@ const Chat2 = () => {
               );
             })}
 
-          {callUsers && callUsers.map((item) => (
-            <div
-              key={item._id}
-              className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""}`}
-              onClick={() => {
-                setSelectedChat(item);
-                if (window.innerWidth <= 425) {
-                  setShowLeftSidebar(false);
-                }
-              }}
-            >
-              <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
-                  {item?.photo && item.photo !== "null" ? (
-                    <img
-                      src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
-                      alt="Profile"
-                      className="object-cover h-full w-full"
-                    />
-                  ) : (
-                    <span className="text-gray-900 text-lg font-bold">
-                      {item?.userName && item?.userName.includes(" ")
-                        ? item?.userName.split(" ")[0][0].toUpperCase() +
-                        item?.userName.split(" ")[1][0].toUpperCase()
-                        : item?.userName[0].toUpperCase()}
-                    </span>
+          {callUsers && callUsers
+            .map((item) => ({
+              ...item,
+              lastMessageTimestamp: item.messages.length > 0 
+                ? new Date(item.messages[item.messages.length - 1].content.timestamp) 
+                : null
+            }))
+            .filter(item => item.lastMessageTimestamp) // Filter out users without messages
+            .sort((a, b) => b.lastMessageTimestamp - a.lastMessageTimestamp) // Sort by last message timestamp
+            .map((item) => (
+              <div
+                key={item._id}
+                className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""}`}
+                onClick={() => {
+                  setSelectedChat(item);
+                  if (window.innerWidth <= 425) {
+                    setShowLeftSidebar(false);
+                  }
+                }}
+              >
+                <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
+                  <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
+                    {item?.photo && item.photo !== "null" ? (
+                      <img
+                        src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
+                        alt="Profile"
+                        className="object-cover h-full w-full"
+                      />
+                    ) : (
+                      <span className="text-gray-900 text-lg font-bold">
+                        {item?.userName && item?.userName.includes(" ")
+                          ? item?.userName.split(" ")[0][0].toUpperCase() +
+                            item?.userName.split(" ")[1][0].toUpperCase()
+                          : item?.userName[0].toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  {onlineUsers.includes(item._id) && (
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
                   )}
                 </div>
-                {onlineUsers.includes(item._id) && (
-                  <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
-                )}
-              </div>
-              <div className="ml-3 flex-1">
-                <div className="flex justify-between">
-                  <span className="font-medium">
-                    {item._id === currentUser
-                      ? `${item.userName} (You)`
-                      : item.userName}
-                  </span>
-                  <span className="text-xs text-gray-500">
-
-                  </span>
-                </div>
-                {/* {item.email} */}
-
-                <div className="flex justify-between">
-                  <div className="text-sm text-gray-500 ">
-
-                    {item.messages && item.messages.map((message, index) => (
-                      <div key={index} className="flex gap-1 item-center">
-                        {message.sender !== currentUser ? <VscCallIncoming className="self-center text-base" /> : <VscCallOutgoing className="self-center text-base" />}
-                        {new Date(message.content.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} {new Date(message.content.timestamp).toLocaleDateString("en-GB")}
-                      </div>
-                    ))}
+                <div className="ml-3 flex-1">
+                  <div className="flex justify-between">
+                    <span className="font-medium">
+                      {item._id === currentUser
+                        ? `${item.userName} (You)`
+                        : item.userName}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {item.messages.length > 0 && 
+                        new Date(item.messages[item.messages.length - 1].content.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
-                  <div className="badge">
-
+                  <div className="flex justify-between">
+                    <div className="text-sm text-gray-500 ">
+                      {item.messages && item.messages.map((message, index) => (
+                        <div key={index} className="flex gap-1 item-center">
+                          {message.sender !== currentUser ? <VscCallIncoming className="self-center text-base" /> : <VscCallOutgoing className="self-center text-base" />}
+                          {new Date(message.content.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} {new Date(message.content.timestamp).toLocaleDateString("en-GB")}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="badge"></div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </div>
 
