@@ -160,7 +160,6 @@ const Chat2 = () => {
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [editedPhone, setEditedPhone] = useState(user?.phone || "");
   const [visibleDate, setVisibleDate] = useState(null);
-  const [participantOpen, setParticipantOpen] = useState(false);
 
   const searchRef = useRef(null); // Define searchRef
 
@@ -203,9 +202,6 @@ const Chat2 = () => {
     startVoiceCall,
     acceptVoiceCall,
     endVoiceCall,
-    inviteToCall,
-    callParticipants,
-    remoteStreams,
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
 
   // console.log(onlineUsers);
@@ -1191,9 +1187,6 @@ const Chat2 = () => {
 
   // Add useEffect to handle initial sidebar state based on screen width and selected chat
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
     const handleResize = () => {
       if (window.innerWidth <= 425) {
         setShowLeftSidebar(!selectedChat);
@@ -1205,9 +1198,6 @@ const Chat2 = () => {
     handleResize(); // Set initial state
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-
-    
-
   }, [selectedChat]);
 
   const handleFilter = (text) => {
@@ -2482,8 +2472,6 @@ const Chat2 = () => {
                           setMessageInput("");
                         }
                       }}
-                      
-                      autoFocus // Automatically focus the input when a user is selected for chatting
                     />
                     <div className="flex items-center gap-1">
                       <input
@@ -2577,7 +2565,7 @@ const Chat2 = () => {
       {/*========== screen share ==========*/}
 
 
-      {console.log("remoteStreams",remoteStreams)}
+      {/* {console.log(isVideoCalling)} */}
       <div className={`flex-grow flex flex-col ${(isReceiving || isVideoCalling || incomingCall || isVoiceCalling) ? '' : 'hidden'}`}>
         {/* <div className="flex-1 grid grid-row-2 gap-4 relative">
           <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling || isVoiceCalling ? '' : 'hidden'}`}> */}
@@ -2591,25 +2579,17 @@ const Chat2 = () => {
               muted
               className="w-full bg-gray-100 rounded"
               style={{ maxHeight: "20vh" }}
-            />aaaaaa
+            />
           </div>
-          {Array.from(remoteStreams).map(([participantId, stream]) => (
-        <div key={participantId} className="relative">
-          <video
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover rounded-lg"
-            ref={el => {
-              if (el) {
-                el.srcObject = stream;
-              }
-            }}
-          />
-          <div className="absolute bottom-2 left-2 text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
-            {allUsers.find(user => user._id === participantId)?.userName || 'Participant'}
+          <div className="space-y-2">
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              className="w-full bg-gray-100 rounded"
+              style={{ maxHeight: "90vh", }}
+            />
           </div>
-        </div>
-      ))}
           {(isSharing || isReceiving || isVideoCalling || isVoiceCalling) && (
             <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
               <button
@@ -2638,12 +2618,6 @@ const Chat2 = () => {
                       } text-white`}
                   >
                     {isMicrophoneOn ? <BsFillMicFill className="text-xl " /> : <BsFillMicMuteFill className="text-xl " />}
-                  </button>
-                  <button
-                    onClick={() => setParticipantOpen(true)}
-                    className="w-10 grid place-content-center rounded-full h-10 bg-blue-500 text-white hover:bg-blue-600"
-                  >
-                    <MdGroupAdd className="text-xl" />
                   </button>
                 </>
               )}
@@ -3423,42 +3397,6 @@ const Chat2 = () => {
           </div>
         </div>
       )}
-
-      {/* Add Participant to call Modal */}
-    {participantOpen && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-4 w-96">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Add Participants</h2>
-            <button onClick={() => setParticipantOpen(false)}>
-              <ImCross />
-            </button>
-          </div>
-          <div className="max-h-96 overflow-y-auto">
-            {allUsers
-              .filter(user => !callParticipants.has(user._id) && user._id !== userId)
-              .map(user => (
-                <div
-                  key={user._id}
-                  className="flex items-center justify-between p-2 hover:bg-gray-100 rounded cursor-pointer"
-                  onClick={() => {
-                    console.log("user", user);
-                    inviteToCall(user._id);
-                    setParticipantOpen(false);
-                  }}
-                >
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                      {user.userName.charAt(0)}
-                    </div>
-                    <span className="ml-2">{user.userName}</span>
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-      </div>
-    )}
 
 
       {/* Add a hidden file input for photo upload */}
