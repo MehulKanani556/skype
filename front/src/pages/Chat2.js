@@ -2420,21 +2420,23 @@ const Chat2 = () => {
       {/*========== screen share ==========*/}
 
 
-      {console.log("remoteStreams",remoteStreams)}
+      {/* {console.log("remoteStreams",remoteStreams)} */}
       <div className={`flex-grow flex flex-col ${(isReceiving || isVideoCalling || incomingCall || isVoiceCalling) ? '' : 'hidden'}`}>
-        <div className="flex-1 grid grid-row-2 gap-4 relative">
-          <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling || isVoiceCalling ? '' : 'hidden'}`}>
+        <div className="flex-1 grid grid-cols-2 gap-4 relative">
+          <div className={`relative border-2 border-red-500 ${isVideoCalling || isVoiceCalling ? '' : 'hidden'}`}>
             <video
               ref={localVideoRef}
               autoPlay
               playsInline
               muted
-              className="w-full bg-gray-100 rounded "
-              style={{ maxHeight: "20vh" }}
-            />aaaaaa
+              className="w-full rounded h-full object-cover"
+            />
+            <div className="absolute bottom-2 left-2 text-red-500 text-xl bg-black bg-opacity-50 px-2 py-1 rounded">
+              You
+          </div>
           </div>
           {Array.from(remoteStreams).map(([participantId, stream]) => (
-        <div key={participantId} className="relative">
+          <div key={participantId} className="relative border-2 border-blue-500">
           <video
             autoPlay
             playsInline
@@ -2445,7 +2447,7 @@ const Chat2 = () => {
               }
             }}
           />
-          <div className="absolute bottom-2 left-2 text-white text-sm bg-black bg-opacity-50 px-2 py-1 rounded">
+          <div className="absolute bottom-2 left-2 text-red-500 text-xl bg-black bg-opacity-50 px-2 py-1 rounded">
             {allUsers.find(user => user._id === participantId)?.userName || 'Participant'}
           </div>
         </div>

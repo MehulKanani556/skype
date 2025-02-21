@@ -256,12 +256,14 @@ function handleVideoCallRequest(socket, data) {
       fromEmail: data.fromEmail,
       signal: data.signal,
       type: data.type,
+      participants: data.participants,
+      isGroupCall: data.isGroupCall,
     });
   }
 }
 
 function handleVideoCallInvite(socket, data) {
-  console.log("video-call-invite", data);
+  // console.log("video-call-invite", data);
   const targetSocketId = onlineUsers.get(data.toEmail);
   if (targetSocketId) {
       socket.to(targetSocketId).emit("video-call-invite", {
@@ -269,9 +271,24 @@ function handleVideoCallInvite(socket, data) {
       signal: data.signal,
       participants: data.participants,
       type: data.type,
+      isGroupCall: data.isGroupCall,
     });
   }
 }
+
+function handleParticipantJoined(socket, data) {
+  console.log("participant-joined", data);
+  const targetSocketId = onlineUsers.get(data.to);
+  if (targetSocketId) {
+    socket.to(targetSocketId).emit("participant-joined", {
+      newParticipantId: data.newParticipantId,
+      from: data.from,
+      participants: data.participants
+    });
+  }
+}
+
+
 
 function handleVideoCallAccept(socket, data) {
   const targetSocketId = onlineUsers.get(data.fromEmail);
@@ -284,10 +301,12 @@ function handleVideoCallAccept(socket, data) {
 }
 
 function handleVideoCallSignal(socket, data) {
-  const targetSocketId = onlineUsers.get(data.toEmail);
+  console.log("video-call-signal", data);
+  const targetSocketId = onlineUsers.get(data.to);
   if (targetSocketId) {
     socket.to(targetSocketId).emit("video-call-signal", {
       signal: data.signal,
+      from: data.from
     });
   }
 }
@@ -603,6 +622,7 @@ function initializeSocket(io) {
     socket.on("video-call-signal", (data) => handleVideoCallSignal(socket, data));
     socket.on("end-video-call", (data) => handleVideoCallEnd(socket, data));
     socket.on("video-call-invite", (data) => handleVideoCallInvite(socket, data));
+    socket.on("participant-join", (data) => handleParticipantJoined(socket, data));
 
     // ===========================save call message=============================
 
