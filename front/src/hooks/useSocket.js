@@ -15,9 +15,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const socketRef = useRef(null);
-  const peerConnectionRef = useRef(null);
-  const [iceCandidatesQueue, setIceCandidatesQueue] = useState([]);
-  const [peer, setPeer] = useState(null);
   const peerRef = useRef(null);
   const [peerEmail, setPeerEmail] = useState("");
   const [isReceiving, setIsReceiving] = useState(false);
@@ -32,6 +29,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicrophoneOn, setIsMicrophoneOn] = useState(false);
   const streamRef = useRef(null);
+  const [callAccept, setCallAccept] = useState(false);
 
 
   // Add state for call duration
@@ -631,6 +629,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
     socketRef.current.on("voice-call-accepted", ({ signal, fromEmail }) => {
       console.log("Voice call accepted by:", fromEmail);
+      setCallAccept(true);
       if (peerRef.current) {
         peerRef.current.signal(signal);
         setIsVoiceCalling(true);
@@ -642,6 +641,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     // Handle incoming video signals
     socketRef.current.on("video-call-signal", ({ signal, fromEmail }) => {
       console.log("Received video call signal from:", fromEmail);
+      setCallAccept(true);
       if (peerRef.current) {
         peerRef.current.signal(signal);
       } else {
@@ -652,12 +652,16 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     socketRef.current.on("video-call-ended", ({ to, from, duration }) => {
       // console.log("Video call ended between:", to, from, "Duration:", duration);
       endVideoCall();
+      setIsVoiceCalling(false);
+      setIsVideoCalling(false);
       // Add any additional logic you need here
     });
 
     socketRef.current.on("voice-call-ended", ({ to, from, duration }) => {
       // console.log("Video call ended between:", to, from, "Duration:", duration);
       endVoiceCall();
+      setIsVoiceCalling(false);
+      setIsVideoCalling(false);
       // Add any additional logic you need here
     });
 
@@ -958,18 +962,27 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     // setCurrentCall(null);
   };
 
-  const rejectVideoCall = () => {
-    if (!incomingCall) return;
+  const rejectVideoCall = (type) => {
 
+    if (!incomingCall) return;
     // Save missed call message
     socketRef.current.emit("save-call-message", {
       senderId: incomingCall.fromEmail,
       receiverId: userId,
-      callType: "video",
+      callType: type,
       status: "missed",
       timestamp: new Date(),
     });
+    if (socketRef.current) {
+      socketRef.current.emit("end-video-call", {
+        to: incomingCall.fromEmail,
+        from: userId,
+        duration: null
+      })
+    }
 
+    setIsVoiceCalling(false);
+    setIsVideoCalling(false);
     setIncomingCall(null);
   };
 
@@ -980,7 +993,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       setError("Please enter peer email first");
       return;
     }
-  
+
+    setCallAccept(false);
     console.log("startVoiceCall", receiverId);
     try {
       let stream = null;
@@ -1062,6 +1076,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
     try {
       // Set call start time when call is accepted
+
       setCallStartTime(new Date());
       startCallDurationTimer();
 
@@ -1122,7 +1137,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
   const endVoiceCall = () => {
     // Calculate final call duration
-    console.log("endVoiceCall", peerEmail,userId);
+    console.log("endVoiceCall", peerEmail, userId);
     const finalDuration = callStartTime
       ? Math.floor((new Date() - callStartTime) / 1000)
       : 0;
@@ -1140,7 +1155,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       });
     }
 
-  
+
     if (callStartTime) {
       socketRef.current.emit("save-call-message", {
         senderId: userId,
@@ -1175,6 +1190,22 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     setCallDuration(null);
     setCallStartTime(null);
     setPeerEmail(null);
+  };
+  const rejectVoiceCall = (receiverId, type) => {
+    if (!receiverId) return;
+    // alert(type)
+
+    // Save missed call message
+    socketRef.current.emit("save-call-message", {
+      senderId: userId,
+      receiverId: receiverId,
+      callType: type,
+      status: "missed",
+      timestamp: new Date(),
+    });
+
+    setIsVoiceCalling(null);
+    setIsVideoCalling(null);
   };
   // ==================group message=============================
   // Send group message
@@ -1299,6 +1330,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     toggleMicrophone,
     markMessageAsRead,
     rejectVideoCall,
+    rejectVoiceCall,
     incomingShare,
     setIncomingShare,
     acceptScreenShare,
@@ -1306,5 +1338,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     acceptVoiceCall,
     endVoiceCall,
     isVoiceCalling,
+    callAccept
   };
 };

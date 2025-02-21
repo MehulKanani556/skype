@@ -186,6 +186,7 @@ const Chat2 = () => {
     startVideoCall,
     acceptVideoCall,
     rejectVideoCall,
+    rejectVoiceCall,
     endVideoCall,
     isSharing,
     setIsSharing,
@@ -202,9 +203,11 @@ const Chat2 = () => {
     startVoiceCall,
     acceptVoiceCall,
     endVoiceCall,
+    callAccept
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
 
   // console.log(onlineUsers);
+  console.log("call status", callAccept)
 
   //===========get all users===========
   useEffect(() => {
@@ -1022,7 +1025,7 @@ const Chat2 = () => {
                   size: `${(audioBlob.size / (1024 * 1024)).toFixed(2)} MB`,
                 });
               }
-              
+
             } catch (error) {
               console.error("Error uploading audio message:", error);
             }
@@ -1635,6 +1638,13 @@ const Chat2 = () => {
                     <div className="flex justify-between">
                       <div className="text-sm text-gray-500">
                         {item?.messages?.[0]?.content.content}
+                        {item?.messages?.[0]?.content?.type === "call" && item.messages && (
+                          <div className="flex gap-1 items-center">
+                            {item.messages[item.messages.length - 1].sender !== currentUser ? <VscCallIncoming className="self-center text-base" /> : <VscCallOutgoing className="self-center text-base" />}
+                            &nbsp;{item.messages[item.messages.length - 1].content.status == "missed" ? "No answer" : "Call ended"}
+                            {item.messages[item.messages.length - 1].content.duration && <span>&nbsp;|&nbsp;{item.messages[item.messages.length - 1].content.duration}</span>}
+                          </div>
+                        )}
                         {item.hasPhoto && (
                           <span className="text-xs ml-1">[photo]</span>
                         )}
@@ -1671,8 +1681,8 @@ const Chat2 = () => {
           {callUsers && callUsers
             .map((item) => ({
               ...item,
-              lastMessageTimestamp: item.messages.length > 0 
-                ? new Date(item.messages[item.messages.length - 1].content.timestamp) 
+              lastMessageTimestamp: item.messages.length > 0
+                ? new Date(item.messages[item.messages.length - 1].content.timestamp)
                 : null
             }))
             .filter(item => item.lastMessageTimestamp) // Filter out users without messages
@@ -1700,7 +1710,7 @@ const Chat2 = () => {
                       <span className="text-gray-900 text-lg font-bold">
                         {item?.userName && item?.userName.includes(" ")
                           ? item?.userName.split(" ")[0][0].toUpperCase() +
-                            item?.userName.split(" ")[1][0].toUpperCase()
+                          item?.userName.split(" ")[1][0].toUpperCase()
                           : item?.userName[0].toUpperCase()}
                       </span>
                     )}
@@ -1717,7 +1727,7 @@ const Chat2 = () => {
                         : item.userName}
                     </span>
                     <span className="text-xs text-gray-500">
-                      {item.messages.length > 0 && 
+                      {item.messages.length > 0 &&
                         new Date(item.messages[item.messages.length - 1].content.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -2059,7 +2069,7 @@ const Chat2 = () => {
                                     </span>
                                   </div>
                                   <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
-                                    {message.content.callType === "audio" ? (
+                                    {(message.content.callType === "voice" || message.content.callType === "audio") ? (
                                       <MdPhoneEnabled
                                         className=" w-5 h-5 cursor-pointer text-black"
                                         onClick={() => handleMakeCall("audio")}
@@ -2599,9 +2609,18 @@ const Chat2 = () => {
             <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
               <button
                 onClick={() => {
-                  if (isVideoCalling || isVoiceCalling) {
-                    isVideoCalling ? endVideoCall() : endVoiceCall();
+                  if (!callAccept
+                    && selectedChat
+                  ) {
+                    if (isVideoCalling || isVoiceCalling) {
+                      isVideoCalling ? rejectVoiceCall(selectedChat._id, "video") : rejectVoiceCall(selectedChat._id, "voice");
+                    }
+                  } else {
+                    if (isVideoCalling || isVoiceCalling) {
+                      isVideoCalling ? endVideoCall() : endVoiceCall();
+                    }
                   }
+                  console.log("-----",callAccept,selectedChat)
                   cleanupConnection();
                 }}
                 className="bg-red-500 h-10 w-10  text-white  grid place-content-center rounded-full hover:bg-red-600 transition-colors "
@@ -2666,7 +2685,7 @@ const Chat2 = () => {
                 <FaPhone className="text-xl" />
               </button>
               <button
-                onClick={rejectVideoCall}
+                onClick={() => rejectVideoCall(incomingCall.type)}
                 className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
               >
                 <MdCallEnd className="text-xl" />
