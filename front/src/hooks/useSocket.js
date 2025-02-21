@@ -700,6 +700,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     // Handle when video call is accepted
     socketRef.current.on("video-call-accepted", ({ signal, fromEmail }) => {
       console.log("Video call accepted by:", fromEmail,signal);
+      setCallAccept(true);
       if (peersRef.current) {
         peersRef.current[fromEmail].signal(signal);
         setIsVideoCalling(true);
@@ -735,6 +736,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       endVideoCall();
       setIsVoiceCalling(false);
       setIsVideoCalling(false);
+      setIncomingCall(null);
       // Add any additional logic you need here
     });
 
@@ -743,6 +745,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       endVoiceCall();
       setIsVoiceCalling(false);
       setIsVideoCalling(false);
+      setIncomingCall(null);
+
       // Add any additional logic you need here
     });
 
@@ -1220,6 +1224,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
   const rejectVideoCall = (type) => {
 
+ 
     if (!incomingCall) return;
     // Save missed call message
     socketRef.current.emit("save-call-message", {
@@ -1458,6 +1463,13 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       status: "missed",
       timestamp: new Date(),
     });
+    if (socketRef.current) {
+      socketRef.current.emit("end-video-call", {
+        to: receiverId,
+        from: userId,
+        duration: null
+      })
+    }
 
     setIsVoiceCalling(null);
     setIsVideoCalling(null);

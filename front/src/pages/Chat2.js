@@ -3375,7 +3375,7 @@ const Chat2 = () => {
                   return (
                     <div
                       key={index}
-                      className={`flex items-center justify-between p-2 hover:bg-gray-100 rounded ${isChecked ? 'order-first' : ''}`}
+                      className={`flex items-center justify-between p-2 mx-1 hover:bg-gray-100 rounded ${isChecked ? 'order-first' : ''}`}
                       onClick={() => {
                         if (!isChecked) {
                           setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
