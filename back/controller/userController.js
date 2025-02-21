@@ -329,6 +329,9 @@ exports.getAllMessageUsers = async (req, res) => {
           email: "$userData.email",
           photo:"$userData.photo",
           createdAt: "$userData.createdAt",
+          phone:"$userData.phone",
+          dob:"$userData.dob",
+
         },
       },
 
@@ -349,6 +352,8 @@ exports.getAllMessageUsers = async (req, res) => {
                 email: 1,
                 photo:1,
                 createdAt: 1,
+                phone:1,
+                dob:1,
               },
             },
           ],
@@ -363,6 +368,8 @@ exports.getAllMessageUsers = async (req, res) => {
           email: { $first: "$email" },
           photo: { $first: "$photo" },
           createdAt: { $first: "$createdAt" },
+          phone: { $first: "$phone" },
+          dob: { $first: "$dob" },
         },
       },
 
@@ -469,6 +476,8 @@ exports.getAllMessageUsers = async (req, res) => {
           email: 1,
           photo:1,
           createdAt: 1,
+          phone:1,
+          dob:1,
           group: {
             groupId: { $ifNull: ["$groupData._id", null] },
             groupName: { $ifNull: ["$groupData.userName", null] },
@@ -510,6 +519,8 @@ exports.getAllMessageUsers = async (req, res) => {
             userName: user.userName,
             email: user.email,
             photo: user.photo,
+            phone:user.phone,
+            dob:user.dob,
             createdAt: user.createdAt,
             messages: user.messages,
             groups: [user.group]
