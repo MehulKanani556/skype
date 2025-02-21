@@ -2619,8 +2619,16 @@ const Chat2 = () => {
             <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
               <button
                 onClick={() => {
-                  if (isVideoCalling || isVoiceCalling) {
-                    isVideoCalling ? endVideoCall() : endVoiceCall();
+                  if (!callAccept
+                    && selectedChat
+                  ) {
+                    if (isVideoCalling || isVoiceCalling) {
+                      isVideoCalling ? rejectVoiceCall(selectedChat._id, "video") : rejectVoiceCall(selectedChat._id, "voice");
+                    }
+                  } else {
+                    if (isVideoCalling || isVoiceCalling) {
+                      isVideoCalling ? endVideoCall() : endVoiceCall();
+                    }
                   }
                   cleanupConnection();
                 }}

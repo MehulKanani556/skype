@@ -856,7 +856,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         if (localVideoRef?.current) {
           localVideoRef.current.srcObject = stream;
           console.log("Local video stream set successfully");
-
           try {
             await localVideoRef.current.play();
             // console.log(localVideoRef.current)
@@ -896,7 +895,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         setRemoteStreams((prev) => new Map(prev).set(receiverId, remoteStream));
       });
 
-      peersRef.current = peer;
+      peersRef.current[receiverId] = peer;
       setIsVideoCalling(true);
       setPeerEmail(receiverId);
       setCallParticipants(new Set([userId, receiverId]));
