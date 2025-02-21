@@ -32,6 +32,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
   const [callAccept, setCallAccept] = useState(false);
 
 
+
   // Add state for call duration
   const [callStartTime, setCallStartTime] = useState(null);
   const [callDuration, setCallDuration] = useState(null);
@@ -1137,7 +1138,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
   const endVoiceCall = () => {
     // Calculate final call duration
-    console.log("endVoiceCall", peerEmail, userId);
+    console.log("endVoiceCall", peerEmail,userId);
     const finalDuration = callStartTime
       ? Math.floor((new Date() - callStartTime) / 1000)
       : 0;
@@ -1154,7 +1155,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         duration: finalDuration
       });
     }
-
 
     if (callStartTime) {
       socketRef.current.emit("save-call-message", {
@@ -1317,7 +1317,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     hasWebcam,
     hasMicrophone,
     isCameraOn,
-    isMicrophoneOn,
+      
     startSharing,
     startVideoCall,
     acceptVideoCall,
