@@ -74,6 +74,7 @@ import axios from "axios";
 import Front from "../component/Front";
 import { MdOutlineDeleteSweep } from "react-icons/md";
 import AudioPlayer from "../component/AudioPlayer";
+import ChatItem from "../component/ChatItem"; // Import the new ChatItem component
 
 const Chat2 = () => {
   const {
@@ -170,8 +171,8 @@ const Chat2 = () => {
     rejectVideoCall,
     rejectVoiceCall,
     endVideoCall,
-    isSharing,  
-    isReceiving,    
+    isSharing,
+    isReceiving,
     toggleCamera,
     toggleMicrophone,
     markMessageAsRead,
@@ -189,8 +190,6 @@ const Chat2 = () => {
     voiceCallData
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
 
-  // console.log(onlineUsers);
-  console.log("call status", callAccept);
 
   //===========get all users===========
   useEffect(() => {
@@ -493,7 +492,7 @@ const Chat2 = () => {
   const handleMakeCall = async (type) => {
     if (!selectedChat) return;
 
-   
+
 
     if (type == "video") {
       const success = await startVideoCall(selectedChat._id);
@@ -556,7 +555,7 @@ const Chat2 = () => {
   }, []);
 
   // ==================group chat=================
-  
+
   const handleCreateGroup = async () => {
     const data = {
       userName: groupName,
@@ -813,7 +812,7 @@ const Chat2 = () => {
   }, [selectedChat]);
 
   // Function to scroll to the current search result
-  
+
   const scrollToSearchResult = (index) => {
     if (!searchInputbox.trim()) return;
 
@@ -1235,8 +1234,8 @@ const Chat2 = () => {
               <div className="flex border-b">
                 <button
                   className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "All"
-                      ? "text-gray-700 border-b-2 border-blue-500"
-                      : "text-gray-500 hover:text-gray-700"
+                    ? "text-gray-700 border-b-2 border-blue-500"
+                    : "text-gray-500 hover:text-gray-700"
                     }`}
                   onClick={() => setActiveSearchTab("All")}
                 >
@@ -1244,8 +1243,8 @@ const Chat2 = () => {
                 </button>
                 <button
                   className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "People"
-                      ? "text-gray-700 border-b-2 border-blue-500"
-                      : "text-gray-500 hover:text-gray-700"
+                    ? "text-gray-700 border-b-2 border-blue-500"
+                    : "text-gray-500 hover:text-gray-700"
                     }`}
                   onClick={() => setActiveSearchTab("People")}
                 >
@@ -1253,8 +1252,8 @@ const Chat2 = () => {
                 </button>
                 <button
                   className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "Groups"
-                      ? "text-gray-700 border-b-2 border-blue-500"
-                      : "text-gray-500 hover:text-gray-700"
+                    ? "text-gray-700 border-b-2 border-blue-500"
+                    : "text-gray-500 hover:text-gray-700"
                     }`}
                   onClick={() => setActiveSearchTab("Groups")}
                 >
@@ -1522,138 +1521,30 @@ const Chat2 = () => {
                 )[0]
                 : null;
 
-              if (!lastMessageA && !lastMessageB) return 0;
-              if (!lastMessageA) return 1;
-              if (!lastMessageB) return -1;
+              // New sorting logic for no messages
+              if (!lastMessageA && !lastMessageB) {
+                return new Date(b.createdAt) - new Date(a.createdAt); // Sort by createdAt if both have no messages
+              }
+              if (!lastMessageA) return 1; // If A has no messages, B comes first
+              if (!lastMessageB) return -1; // If B has no messages, A comes first
 
               return (
                 new Date(lastMessageB.createdAt) -
                 new Date(lastMessageA.createdAt)
               );
             })
-            .map((item) => {
-              const lastMessage = Array.isArray(item.messages)
-                ? [...item.messages] // Create a shallow copy of the array
-                  .sort(
-                    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
-                  )[0]
-                : null;
-              return (
-                <div
-                  key={item._id}
-                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""
-                    }`}
-                  onClick={() => {
-                    setSelectedChat(item);
-                    if (window.innerWidth <= 425) {
-                      setShowLeftSidebar(false);
-                    }
-                  }}
-                >
-                  <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                    <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
-                      {item?.photo && item.photo !== "null" ? (
-                        <img
-                          src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
-                          alt="Profile"
-                          className="object-cover h-full w-full"
-                        />
-                      ) : (
-                        <span className="text-gray-900 text-lg font-bold">
-                          {item?.userName && item?.userName.includes(" ")
-                            ? item?.userName.split(" ")[0][0].toUpperCase() +
-                            item?.userName.split(" ")[1][0].toUpperCase()
-                            : item?.userName[0].toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    {onlineUsers.includes(item._id) && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
-                    )}
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <div className="flex justify-between">
-                      <span className="font-medium">
-                        {item._id === currentUser
-                          ? `${item.userName} (You)`
-                          : item.userName}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {lastMessage
-                          ? new Date(lastMessage.createdAt).toLocaleTimeString(
-                            [],
-                            {
-                              hour: "numeric",
-                              minute: "2-digit",
-                              hour12: true,
-                            }
-                          )
-                          : ""}
-                      </span>
-                    </div>
-                    {/* {item.email} */}
-
-                    <div className="flex justify-between">
-                      <div className="text-sm text-gray-500">
-                        {item?.messages?.[0]?.content.content}
-                        {item?.messages?.[0]?.content?.type === "call" &&
-                          item.messages && (
-                            <div className="flex gap-1 items-center">
-                              {item.messages[item.messages.length - 1]
-                                .sender !== currentUser ? (
-                                <VscCallIncoming className="self-center text-base" />
-                              ) : (
-                                <VscCallOutgoing className="self-center text-base" />
-                              )}
-                              &nbsp;
-                              {item.messages[item.messages.length - 1].content
-                                .status == "missed"
-                                ? "No answer"
-                                : "Call ended"}
-                              {item.messages[item.messages.length - 1].content
-                                .duration && (
-                                  <span>
-                                    &nbsp;|&nbsp;
-                                    {
-                                      item.messages[item.messages.length - 1]
-                                        .content.duration
-                                    }
-                                  </span>
-                                )}
-                            </div>
-                          )}
-                        {item.hasPhoto && (
-                          <span className="text-xs ml-1">[photo]</span>
-                        )}
-                      </div>
-                      <div className="badge">
-                        {item.messages?.filter(
-                          (message) =>
-                            message.receiver === currentUser &&
-                            message.status !== "read"
-                        ).length > 0 && (
-                            <div className="inline-flex relative w-6 h-6 items-center rounded-full bg-[#1d4fd8b4] text-white text-center text-xs font-medium ring-1 ring-gray-500/10 ring-inset">
-                              <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                                {item.messages?.filter(
-                                  (message) =>
-                                    message.receiver === currentUser &&
-                                    message.status !== "read"
-                                ).length > 99
-                                  ? "99+"
-                                  : item.messages?.filter(
-                                    (message) =>
-                                      message.receiver === currentUser &&
-                                      message.status !== "read"
-                                  ).length}
-                              </span>
-                            </div>
-                          )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            .map((item) => (
+              <ChatItem
+                key={item._id}
+                item={item}
+                currentUser={currentUser}
+                onlineUsers={onlineUsers}
+                setSelectedChat={setSelectedChat}
+                setShowLeftSidebar={setShowLeftSidebar}
+                IMG_URL={IMG_URL}
+                selectedChat={selectedChat} // Pass selectedChat as a prop
+              />
+            ))}
 
           {callUsers &&
             callUsers
@@ -1671,83 +1562,16 @@ const Chat2 = () => {
               .filter((item) => item.lastMessageTimestamp) // Filter out users without messages
               .sort((a, b) => b.lastMessageTimestamp - a.lastMessageTimestamp) // Sort by last message timestamp
               .map((item) => (
-                <div
+                <ChatItem
                   key={item._id}
-                  className={`flex items-center p-3 hover:bg-gray-100 cursor-pointer ${selectedChat?._id === item._id ? "bg-gray-100" : ""
-                    }`}
-                  onClick={() => {
-                    setSelectedChat(item);
-                    if (window.innerWidth <= 425) {
-                      setShowLeftSidebar(false);
-                    }
-                  }}
-                >
-                  <div className="w-10 h-10 rounded-full font-bold bg-gray-300 flex items-center justify-center relative">
-                    <div className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
-                      {item?.photo && item.photo !== "null" ? (
-                        <img
-                          src={`${IMG_URL}${item.photo.replace(/\\/g, "/")}`}
-                          alt="Profile"
-                          className="object-cover h-full w-full"
-                        />
-                      ) : (
-                        <span className="text-gray-900 text-lg font-bold">
-                          {item?.userName && item?.userName.includes(" ")
-                            ? item?.userName.split(" ")[0][0].toUpperCase() +
-                            item?.userName.split(" ")[1][0].toUpperCase()
-                            : item?.userName[0].toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    {onlineUsers.includes(item._id) && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full"></div>
-                    )}
-                  </div>
-                  <div className="ml-3 flex-1">
-                    <div className="flex justify-between">
-                      <span className="font-medium">
-                        {item._id === currentUser
-                          ? `${item.userName} (You)`
-                          : item.userName}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {item.messages.length > 0 &&
-                          new Date(
-                            item.messages[
-                              item.messages.length - 1
-                            ].content.timestamp
-                          ).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <div className="text-sm text-gray-500 ">
-                        {item.messages &&
-                          item.messages.map((message, index) => (
-                            <div key={index} className="flex gap-1 item-center">
-                              {message.sender !== currentUser ? (
-                                <VscCallIncoming className="self-center text-base" />
-                              ) : (
-                                <VscCallOutgoing className="self-center text-base" />
-                              )}
-                              {new Date(
-                                message.content.timestamp
-                              ).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}{" "}
-                              {new Date(
-                                message.content.timestamp
-                              ).toLocaleDateString("en-GB")}
-                            </div>
-                          ))}
-                      </div>
-                      <div className="badge"></div>
-                    </div>
-                  </div>
-                </div>
+                  item={item}
+                  currentUser={currentUser}
+                  onlineUsers={onlineUsers}
+                  setSelectedChat={setSelectedChat}
+                  setShowLeftSidebar={setShowLeftSidebar}
+                  IMG_URL={IMG_URL}
+                  selectedChat={selectedChat} // Pass selectedChat as a prop
+                />
               ))}
         </div>
       </div>
@@ -1840,8 +1664,8 @@ const Chat2 = () => {
                     ) : (
                       <div
                         className={`text-sm ${onlineUsers.includes(selectedChat?._id)
-                            ? "text-green-500"
-                            : "text-gray-500"
+                          ? "text-green-500"
+                          : "text-gray-500"
                           }`}
                       >
                         {onlineUsers.includes(selectedChat?._id)
@@ -2155,8 +1979,8 @@ const Chat2 = () => {
                             <div
                               key={message._id}
                               className={`flex relative ${message.sender === userId
-                                  ? "justify-end items-end"
-                                  : "justify-start items-start"
+                                ? "justify-end items-end"
+                                : "justify-start items-start"
                                 } ${isConsecutive ? "mb-1" : "mb-4"
                                 } message-content`}
                             >
@@ -2190,8 +2014,8 @@ const Chat2 = () => {
                                         )}`}
                                         alt={message.content.content}
                                         className={`w-full object-contain ${message.sender === userId
-                                            ? "rounded-s-lg rounded-tr-lg"
-                                            : "rounded-e-lg rounded-tl-lg"
+                                          ? "rounded-s-lg rounded-tr-lg"
+                                          : "rounded-e-lg rounded-tl-lg"
                                           } `}
                                         onClick={() =>
                                           handleImageClick(
@@ -2218,10 +2042,10 @@ const Chat2 = () => {
                                   ) ? (
                                     <div
                                       className={`p-4 max-w-[300px] ${message.sender === userId
-                                          ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
-                                          : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
+                                        ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
+                                        : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
                                         }`}
-                                      style={{ wordWrap: "break-word" }}
+                                      style={{ wordWrap: "break-word", wordBreak: 'break-all' }}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
                                       }
@@ -2239,7 +2063,7 @@ const Chat2 = () => {
                                           "/"
                                         )}`}
                                       />
-                                     
+
                                       <div className="ml-3">
                                         <div className="font-medium">
                                           {message.content?.content}
@@ -2252,10 +2076,10 @@ const Chat2 = () => {
                                   ) : (
                                     <div
                                       className={`p-4 max-w-[300px] ${message.sender === userId
-                                          ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
-                                          : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
+                                        ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
+                                        : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
                                         }`}
-                                      style={{ wordWrap: "break-word" }}
+                                      style={{ wordWrap: "break-word", wordBreak: 'break-all' }}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
                                       }
@@ -2286,10 +2110,10 @@ const Chat2 = () => {
                                   <div className="flex gap-1">
                                     <div
                                       className={`group flex-1 p-2  flex justify-between items-center relative ${message.sender === userId
-                                          ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""
-                                          } `
-                                          : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""
-                                          }`
+                                        ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""
+                                        } `
+                                        : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""
+                                        }`
                                         }`}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
@@ -2605,7 +2429,7 @@ const Chat2 = () => {
                         accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
                         className="hidden"
                         onChange={handleInputChange}
-                     
+
                       />
                       <button
                         type="button"
@@ -2686,27 +2510,25 @@ const Chat2 = () => {
 
       {/*========== screen share ==========*/}
 
-     
+
       <div
-        className={`flex-grow flex flex-col max-h-screen ${
-          isReceiving || isVideoCalling  || isVoiceCalling
-            ? ""
-            : "hidden"
+        className={`flex-grow flex flex-col max-h-[80vh] ${isReceiving || isVideoCalling || isVoiceCalling
+          ? ""
+          : "hidden"
           }`}
       >
         <div
           className={`flex-1 relative ${isReceiving
-              ? "flex items-center justify-center"
-              : `grid gap-4 ${getGridColumns(
-                  parseInt(remoteStreams.size) + (isVideoCalling ? 1 : 0)
-                )}`
-          }`}
+            ? "flex items-center justify-center"
+            : `grid gap-4 ${getGridColumns(
+              parseInt(remoteStreams.size) + (isVideoCalling ? 1 : 0)
+            )}`
+            }`}
         >
           {/* Local video */}
           <div
-            className={` ${
-              isVideoCalling || isVoiceCalling ? "" : "hidden"
-            } ${isReceiving ? "hidden" : ""} ${remoteStreams.size === 1 ? "max-w-30 absolute top-2 right-2 z-10" : "relative"}`}
+            className={` ${isVideoCalling || isVoiceCalling ? "" : "hidden"
+              } ${isReceiving ? "hidden" : ""} ${remoteStreams.size === 1 ? "max-w-30 absolute top-2 right-2 z-10" : "relative"}`}
           >
             <video
               ref={localVideoRef}
@@ -2728,7 +2550,7 @@ const Chat2 = () => {
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
-                className="w-full h-full object-contain"
+                className="w-full h-full max-h-[80vh] object-contain"
               />
             </div>
           ) : (
@@ -2738,7 +2560,7 @@ const Chat2 = () => {
                   <video
                     autoPlay
                     playsInline
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain  max-h-[80vh]"
                     ref={(el) => {
                       if (el) {
                         el.srcObject = stream;
@@ -2904,8 +2726,8 @@ const Chat2 = () => {
 
       {/*========== Group Modal ==========*/}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white rounded-lg w-96 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center" >
+          <div className="bg-white rounded-lg w-96 p-4 modal_background">
             <div className="flex justify-between items-center border-b pb-2">
               <h2 className="text-lg font-bold">Add to Group</h2>
               <button
@@ -2917,13 +2739,13 @@ const Chat2 = () => {
               </button>
             </div>
             <div className="mt-4">
-              <input
+              {/* <input
                 type="text"
                 placeholder="Search"
                 className="w-full p-2 border rounded mb-4"
-              />
+              /> */}
               {/* {console.log(groupUsers)} */}
-              <div className="space-y-2 h-80 overflow-y-auto">
+              <div className=" flex flex-col cursor-pointer space-y-2 h-80 overflow-y-auto modal_scroll">
                 {allUsers
                   .filter((user) => !groupUsers.includes(user._id)) // Filter out already selected users
                   .map((user, index) => {
@@ -2931,7 +2753,7 @@ const Chat2 = () => {
                     return (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-2 hover:bg-gray-100 rounded"
+                        className={`flex items-center justify-between p-2 mx-1 hover:bg-gray-100 rounded ${isChecked ? "order-first" : ""}`}
                         onClick={() => {
                           if (!isChecked) {
                             setGroupNewUsers((prev) => [...prev, user._id]);
@@ -2943,11 +2765,24 @@ const Chat2 = () => {
                         }}
                       >
                         <div className="flex items-center">
-                          <div className="w-8 h-8 bg-pink-200 rounded-full flex items-center justify-center mr-2">
-                            {user.userName
-                              .split(" ")
-                              .map((n) => n[0].toUpperCase())
-                              .join("")}
+                          <div className="w-8 h-8 rounded-full mr-2 bg-pink-200 overflow-hidden flex items-center justify-center ">
+                            {user?.photo && user.photo !== "null" ? (
+                              <img
+                                src={`${IMG_URL}${user.photo.replace(
+                                  /\\/g,
+                                  "/"
+                                )}`}
+                                alt={`${user.userName}`}
+                                className="object-cover h-full w-full"
+                              />
+                            ) : (
+                              <span className="text-gray-900 text-lg font-bold">
+                                {user.userName
+                                  .split(" ")
+                                  .map((n) => n[0].toUpperCase())
+                                  .join("")}
+                              </span>
+                            )}
                           </div>
                           <span>{user.userName}</span>
                         </div>
@@ -2997,7 +2832,7 @@ const Chat2 = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white rounded-lg w-96 modal_background"
-         
+
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Profile</h2>
@@ -3386,7 +3221,7 @@ const Chat2 = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white rounded-lg w-96 modal_background "
-          
+
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Profile</h2>
@@ -3414,7 +3249,7 @@ const Chat2 = () => {
                       .join("")}
                   </div>
                 )}
-                
+
                 <input
                   type="file"
                   id="fileInput"
@@ -3531,7 +3366,7 @@ const Chat2 = () => {
                 </span>
               </div>
               <div className="flex flex-col max-h-48 overflow-y-auto modal_scroll">
-               
+
                 <div
                   className="flex items-center p-2 cursor-pointer"
                   onClick={() => {
@@ -3551,8 +3386,24 @@ const Chat2 = () => {
                   const user = allUsers.find((user) => user._id === member);
                   return (
                     <div key={index} className="flex items-center p-2 group">
-                      <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center mr-2">
-                        {user?.userName?.charAt(0).toUpperCase()}
+                      <div className="w-8 h-8 rounded-full mr-2 bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
+                        {user?.photo && user.photo !== "null" ? (
+                          <img
+                            src={`${IMG_URL}${user.photo.replace(
+                              /\\/g,
+                              "/"
+                            )}`}
+                            alt={`${user.userName}`}
+                            className="object-cover h-full w-full"
+                          />
+                        ) : (
+                          <span className="text-gray-900 text-lg font-bold">
+                            {user.userName
+                              .split(" ")
+                              .map((n) => n[0].toUpperCase())
+                              .join("")}
+                          </span>
+                        )}
                       </div>
                       <span className="text-gray-800">{user?.userName}</span>
                       <button
@@ -3608,7 +3459,7 @@ const Chat2 = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white rounded-lg w-96 modal_background"
-        
+
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Create Group</h2>
@@ -3674,8 +3525,7 @@ const Chat2 = () => {
                     return (
                       <div
                         key={index}
-                        className={`flex items-center justify-between p-2 hover:bg-gray-100 rounded ${isChecked ? "order-first" : ""
-                          }`}
+                        className={`flex items-center justify-between p-2 mx-1 hover:bg-gray-100 rounded ${isChecked ? "order-first" : ""}`}
                         onClick={() => {
                           if (!isChecked) {
                             setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
@@ -3815,7 +3665,7 @@ const Chat2 = () => {
         </div>
       )}
 
-      
+
 
       {/* Image Modal */}
       {isImageModalOpen && (
