@@ -29,6 +29,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
   const [hasMicrophone, setHasMicrophone] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicrophoneOn, setIsMicrophoneOn] = useState(false);
+  const [voiceCallData, setVoiceCallData] = useState(null);
   const streamRef = useRef(null);
   const [callAccept, setCallAccept] = useState(false);
   const [callParticipants, setCallParticipants] = useState(new Set());
@@ -608,6 +609,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     socketRef.current.on("voice-call-request", async (data) => {
       console.log("Incoming voice call from:", data.fromEmail);
       setIncomingCall({ fromEmail: data.fromEmail, signal: data.signal, type: data.type });
+      setVoiceCallData(data);
     });
 
     socketRef.current.on("participant-joined",async ({ newParticipantId, from, participants }) => {
@@ -1398,7 +1400,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
   const endVoiceCall = () => {
     // Calculate final call duration
-    console.log("endVoiceCall", peerEmail,userId);
+    console.log("endVoiceCall", peerEmail, userId);
     const finalDuration = callStartTime
       ? Math.floor((new Date() - callStartTime) / 1000)
       : 0;
@@ -1450,6 +1452,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     setCallDuration(null);
     setCallStartTime(null);
     setPeerEmail(null);
+    setVoiceCallData(null);
   };
   const rejectVoiceCall = (receiverId, type) => {
     if (!receiverId) return;
@@ -1608,6 +1611,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     remoteStreams,
     inviteToCall,
     callParticipants,
-    isMicrophoneOn
+    isMicrophoneOn,
+    voiceCallData,
+    setVoiceCallData
   };
 };
