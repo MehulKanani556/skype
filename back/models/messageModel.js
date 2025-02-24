@@ -12,15 +12,29 @@ const messageSchema = mongoose.Schema(
       ref: "user",
       required: true,
     },
+    replyTo: {
+      messageId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "message",
+      },
+      content: Object,
+      sender: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+      },
+    },
+    forwardedFrom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      default: null,
+    },
     content: {
       type: {
         type: String,
         enum: ["text", "file", "system", "call"],
         required: true,
       },
-      content: {
-        type: String,
-      },
+      content: String,
       fileUrl: String,
       fileType: String,
       size: String,

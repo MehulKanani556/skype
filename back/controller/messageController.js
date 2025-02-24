@@ -3,11 +3,13 @@ const Message = require("../models/messageModel");
 
 exports.saveMessage = async (messageData) => {
   try {
-    // console.log("messageData");
+    console.log("messageData", messageData);
     const message = new Message({
       sender: messageData.senderId,
       receiver: messageData.receiverId,
       content: messageData.content,
+      forwardedFrom: messageData.forwardedFrom,
+      replyTo: messageData.replyTo,
     });
     await message.save();
     return message;

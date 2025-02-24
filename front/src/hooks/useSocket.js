@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Peer from "simple-peer";
-import {
-  getAllMessageUsers,
-  setOnlineuser,
-} from "../redux/slice/user.slice";
+import { getAllMessageUsers, setOnlineuser } from "../redux/slice/user.slice";
 import { useDispatch } from "react-redux";
 
 const SOCKET_SERVER_URL = "http://localhost:4000"; // Move to environment variable in production
@@ -37,6 +34,11 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
   const [callStartTime, setCallStartTime] = useState(null);
   const [callDuration, setCallDuration] = useState(null);
   const callTimerRef = useRef(null);
+
+  // Add to existing state declarations
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [forwardingMessage, setForwardingMessage] = useState(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -158,10 +160,13 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         return;
       }
 
+      console.log("messageeeeeeeeeeeeeeeee", message);
+
       const messageData = {
         senderId: userId,
         receiverId,
-        content: message,
+        content: message.data,
+        replyTo: message.replyTo,
       };
 
       console.log("Sending message:", messageData);
@@ -255,7 +260,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       }
     };
   };
-
 
   // ===========================screen share=============================
 
@@ -404,11 +408,17 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
     socketRef.current.on("voice-call-request", async (data) => {
       console.log("Incoming voice call from:", data.fromEmail);
-      setIncomingCall({ fromEmail: data.fromEmail, signal: data.signal, type: data.type });
+      setIncomingCall({
+        fromEmail: data.fromEmail,
+        signal: data.signal,
+        type: data.type,
+      });
       setVoiceCallData(data);
     });
 
-    socketRef.current.on("participant-joined",async ({ newParticipantId, from, participants }) => {
+    socketRef.current.on(
+      "participant-joined",
+      async ({ newParticipantId, from, participants }) => {
         if (newParticipantId !== userId && streamRef.current) {
           console.log(
             "participant-joined",
@@ -455,14 +465,14 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         newStreams.delete(leavingUser);
         return newStreams;
       });
-  
+
       // Remove the leaving participant from the participants list
       setCallParticipants((prev) => {
         const newParticipants = new Set(prev);
         newParticipants.delete(leavingUser);
         return newParticipants;
       });
-  
+
       // Clean up peer connection for the leaving participant
       if (peersRef.current[leavingUser]) {
         peersRef.current[leavingUser].destroy();
@@ -472,7 +482,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
     socketRef.current.on("screen-share-request", async (data) => {
       console.log("Incoming screen share from:", data.fromEmail);
-      setIncomingShare(data)
+      setIncomingShare(data);
     });
 
     // Handle incoming signals
@@ -497,7 +507,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
     // Handle when video call is accepted
     socketRef.current.on("video-call-accepted", ({ signal, fromEmail }) => {
-      console.log("Video call accepted by:", fromEmail,signal);
+      console.log("Video call accepted by:", fromEmail, signal);
       setCallAccept(true);
       if (peersRef.current) {
         peersRef.current[fromEmail].signal(signal);
@@ -517,8 +527,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         console.error("No peer connection found for:", fromEmail);
       }
     });
-
-    
 
     socketRef.current.on("video-call-ended", ({ to, from, duration }) => {
       // console.log("Video call ended between:", to, from, "Duration:", duration);
@@ -611,15 +619,16 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       setIncomingShare(null);
     } catch (err) {
       console.error("Error starting screen share:", err);
-      setError("Failed to start screen share: " + (err.message || "Unknown error"));
+      setError(
+        "Failed to start screen share: " + (err.message || "Unknown error")
+      );
       cleanupConnection();
     }
   };
 
   //==========================video call=============================
 
-  const startVideoCall = async (receiverId,isGroupCall= false) => {
-
+  const startVideoCall = async (receiverId, isGroupCall = false) => {
     if (!receiverId) {
       setError("Please enter peer email first");
       return;
@@ -851,7 +860,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     }
   };
 
-
   // Add function to start call duration timer
   const startCallDurationTimer = () => {
     callTimerRef.current = setInterval(() => {
@@ -873,35 +881,35 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     //   clearInterval(callTimerRef.current);
     // }
 
-    console.log("callParticipants", callParticipants,callParticipants.size);
+    console.log("callParticipants", callParticipants, callParticipants.size);
 
-    if (callParticipants.size > 2){
-  // Notify other participants about this user leaving
+    if (callParticipants.size > 2) {
+      // Notify other participants about this user leaving
       Array.from(callParticipants).forEach((participantId) => {
         if (participantId !== userId) {
-      if (socketRef.current) {
-        socketRef.current.emit("participant-left", {
-          leavingUser: userId,
-          to: participantId,
-          duration: finalDuration,
-        });
-      }
-    }
-  });
-    }else {
+          if (socketRef.current) {
+            socketRef.current.emit("participant-left", {
+              leavingUser: userId,
+              to: participantId,
+              duration: finalDuration,
+            });
+          }
+        }
+      });
+    } else {
       // Save call ended message with duration if call was connected
       Array.from(callParticipants).forEach((participantId) => {
         if (participantId !== userId) {
-        if (socketRef.current) {
-          socketRef.current.emit("end-video-call", {
-            to: participantId,
-            from: userId,
-            duration: finalDuration,
-          });
+          if (socketRef.current) {
+            socketRef.current.emit("end-video-call", {
+              to: participantId,
+              from: userId,
+              duration: finalDuration,
+            });
+          }
         }
-      }
-    });
-  }
+      });
+    }
 
     Array.from(callParticipants).forEach((participantId) => {
       if (participantId !== userId) {
@@ -910,7 +918,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
             senderId: userId,
             receiverId: participantId,
             callType: "video",
-            status:  "ended",
+            status: "ended",
             duration: finalDuration,
             timestamp: new Date(),
           });
@@ -926,16 +934,16 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
-   
-      // Clean up only this participant's peer connections
-  if (peersRef.current) {
-    Object.entries(peersRef.current).forEach(([peerId, peer]) => {
-      if (peer && typeof peer.destroy === "function") {
-        peer.destroy();
-        delete peersRef.current[peerId];
-      }
-    });
-  }
+
+    // Clean up only this participant's peer connections
+    if (peersRef.current) {
+      Object.entries(peersRef.current).forEach(([peerId, peer]) => {
+        if (peer && typeof peer.destroy === "function") {
+          peer.destroy();
+          delete peersRef.current[peerId];
+        }
+      });
+    }
     if (localVideoRef.current) {
       localVideoRef.current.srcObject = null;
     }
@@ -953,8 +961,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
   };
 
   const rejectVideoCall = (type) => {
-
- 
     if (!incomingCall) return;
     // Save missed call message
     socketRef.current.emit("save-call-message", {
@@ -968,8 +974,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       socketRef.current.emit("end-video-call", {
         to: incomingCall.fromEmail,
         from: userId,
-        duration: null
-      })
+        duration: null,
+      });
     }
 
     setIsVoiceCalling(false);
@@ -993,7 +999,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         // Only request audio stream for voice call
         stream = await navigator.mediaDevices.getUserMedia({
           audio: hasMicrophone,
-          video: false
+          video: false,
         });
       } catch (err) {
         console.warn("Could not get audio device:", err);
@@ -1075,7 +1081,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           audio: hasMicrophone,
-          video: false
+          video: false,
         });
       } catch (err) {
         console.warn("Could not get audio device:", err);
@@ -1142,7 +1148,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       socketRef.current.emit("end-voice-call", {
         to: peerEmail,
         from: userId,
-        duration: finalDuration
+        duration: finalDuration,
       });
     }
 
@@ -1198,8 +1204,8 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       socketRef.current.emit("end-video-call", {
         to: receiverId,
         from: userId,
-        duration: null
-      })
+        duration: null,
+      });
     }
 
     setIsVoiceCalling(null);
@@ -1228,8 +1234,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       resolve();
     });
   };
-
-
 
   const cleanupConnection = () => {
     if (streamRef.current) {
@@ -1283,6 +1287,27 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     };
   }, [socketRef.current]);
 
+  // Add new socket event handlers
+  const forwardMessage = (receiverId, message) => {
+    return new Promise((resolve, reject) => {
+      if (!socketRef.current?.connected) {
+        reject(new Error("Socket not connected"));
+        return;
+      }
+
+      const messageData = {
+        senderId: userId,
+        receiverId,
+        content:message.content,
+        forwardedFrom: message.sender,
+      };
+      console.log("messageData", messageData);
+
+      socketRef.current.emit("forward-message", messageData);
+      resolve();
+    });
+  };
+
   return {
     socket: socketRef.current,
     isConnected,
@@ -1299,7 +1324,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     setPeerEmail,
     hasWebcam,
     hasMicrophone,
-    isCameraOn,      
+    isCameraOn,
     startSharing,
     startVideoCall,
     acceptVideoCall,
@@ -1326,6 +1351,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     callParticipants,
     isMicrophoneOn,
     voiceCallData,
-    setVoiceCallData
+    setVoiceCallData,
+    forwardMessage,
   };
 };
