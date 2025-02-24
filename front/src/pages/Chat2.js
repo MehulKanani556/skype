@@ -1587,7 +1587,7 @@ const Chat2 = () => {
               {/* Add back button for mobile */}
               {window.innerWidth <= 425 && (
                 <button
-                  className="p-2 text-gray-600 hover:text-gray-800"
+                  className="p-2 text-gray-600 hover:text-gray-800 absolute top-[17px] left-[-11px]"
                   onClick={() => setShowLeftSidebar(true)}
                 >
                   <svg
@@ -1823,7 +1823,7 @@ const Chat2 = () => {
                     ([date, dateMessages]) => (
                       <div key={date} className="flex flex-col">
                         <div
-                          className="flex justify-center items-center gap-2 my-4 text-gray-500 date-header px-2"
+                          className="flex justify-center items-center gap-2 my-4 text-gray-500 date-header px-2"  
                           data-date={date}
                         >
                           <div className="sm:block flex-1 h-[1px] bg-gray-400 max-w-[300px]" />
