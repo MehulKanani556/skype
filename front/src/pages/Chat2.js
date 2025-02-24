@@ -1251,8 +1251,8 @@ const Chat2 = () => {
 
   const getGridColumns = (count) => {
     if (count <= 1) return "grid-cols-1";
-    if (count === 2) return "grid-cols-2";
-    if (count === 3) return "grid-cols-2 md:grid-cols-3";
+    if (count === 2) return "grid-cols-1";
+    if (count === 3) return "grid-cols-2";
     if (count === 4) return "grid-cols-2";
     if (count <= 6) return "grid-cols-2 md:grid-cols-3";
     if (count <= 8) return "grid-cols-2 md:grid-cols-4";
@@ -2833,8 +2833,8 @@ const Chat2 = () => {
 
       {/* {console.log("remoteStreams",remoteStreams)} */}
       <div
-        className={`flex-grow flex flex-col h-screen ${
-          isReceiving || isVideoCalling || incomingCall || isVoiceCalling
+        className={`flex-grow flex flex-col max-h-screen ${
+          isReceiving || isVideoCalling  || isVoiceCalling
             ? ""
             : "hidden"
         }`}
@@ -2844,24 +2844,25 @@ const Chat2 = () => {
             isReceiving
               ? "flex items-center justify-center"
               : `grid gap-4 ${getGridColumns(
-                  remoteStreams.size + (isVideoCalling ? 1 : 0)
+                  parseInt(remoteStreams.size) + (isVideoCalling ? 1 : 0)
                 )}`
           }`}
         >
           {/* Local video */}
           <div
-            className={`relative ${
+            className={` ${
               isVideoCalling || isVoiceCalling ? "" : "hidden"
-            } ${isReceiving ? "hidden" : ""}`}
+            } ${isReceiving ? "hidden" : ""} ${remoteStreams.size === 1 ? "max-w-30 absolute top-2 right-2 z-10" : "relative"}`}
           >
             <video
               ref={localVideoRef}
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover rounded-lg"
+              className="w-full h-full object-contain"
+              style={{ maxHeight: `${remoteStreams.size === 1 ? "20vh" : "100%"}` }}
             />
-            <div className="absolute bottom-2 left-2 text-red-500 text-xl bg-black bg-opacity-50 px-2 py-1 rounded">
+            <div className="absolute bottom-2 left-2 text-white text-xl bg-blue-500  px-3 py-1 rounded-full text-center">
               You
             </div>
           </div>
@@ -2873,26 +2874,26 @@ const Chat2 = () => {
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
-                className="w-full h-full object-cover rounded-lg"
+                className="w-full h-full object-contain"
               />
             </div>
           ) : (
             <>
               {Array.from(remoteStreams).map(([participantId, stream]) => (
-                <div key={participantId} className="relative w-full h-full">
+                <div key={participantId} className="relative w-full">
                   <video
                     autoPlay
                     playsInline
-                    className="w-full object-contain rounded-lg"
+                    className="w-full h-full object-contain"
                     ref={(el) => {
                       if (el) {
                         el.srcObject = stream;
                       }
                     }}
                   />
-                  <div className="absolute bottom-2 left-2 text-red-500 text-xl bg-black bg-opacity-50 px-2 py-1 rounded">
+                  <div className="absolute bottom-2 left-2 text-white text-xl bg-blue-500  px-3 py-1 rounded-full text-center">
                     {allUsers.find((user) => user._id === participantId)
-                      ?.userName || "Participant"}
+                      ?.userName.charAt(0).toUpperCase() + allUsers.find((user) => user._id === participantId)?.userName.slice(1) || "Participant"}
                   </div>
                 </div>
               ))}
