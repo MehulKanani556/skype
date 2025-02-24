@@ -1,5 +1,5 @@
 import './App.css';
-import Chat from './pages/Chat';
+import Chat11 from './pages/Chat11';
 import Login from './pages/Login';
 import { Provider } from 'react-redux';
 import { Route, Routes } from 'react-router-dom';
@@ -15,7 +15,7 @@ function App() {
         <Route path="/login" element={<Login />}></Route>
         <Route path="/" element={<Login />}></Route>
         <Route path="/chat" element={<Chat2 />}></Route>
-        <Route path="/chat2" element={<Chat />}></Route>
+        <Route path="/chat2" element={<Chat11 />}></Route>
         <Route path="/front" element={<Front />}></Route>
       </Routes>
     </Provider>
