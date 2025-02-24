@@ -519,245 +519,6 @@ const userSlice = createSlice({
       window.localStorage.clear();
       window.sessionStorage.clear();
     },
-    extraReducers: (builder) => {
-      builder
-        .addCase(login.fulfilled, (state, action) => {
-          state.user = action.payload.user;
-          state.isAuthenticated = true;
-          state.loading = false;
-          state.error = null;
-          state.message = action.payload?.message || "Login successfully";
-          // if (action.payload?.message) {
-          //     enqueueSnackbar(action.payload?.message, { variant: 'success' });
-          // }
-        })
-        .addCase(login.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Login Failed";
-          // enqueueSnackbar(state.message, { variant: 'error' });
-        })
-        .addCase(register.fulfilled, (state, action) => {
-          state.user = action.payload.user;
-          state.isAuthenticated = true;
-          state.loading = false;
-          state.error = null;
-          state.message = action.payload?.message || "Register successfully";
-          // if (action.payload?.message) {
-          //     enqueueSnackbar(action.payload?.message, { variant: 'success' });
-          // }
-        })
-        .addCase(register.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "User Already Exist";
-          // enqueueSnackbar(state.message, { variant: 'error' });
-        })
-        .addCase(forgotPassword.fulfilled, (state, action) => {
-          state.loading = false;
-          state.message = action.payload; // Assuming the API returns a success message
-          // enqueueSnackbar(state.message, { variant: 'success' });
-        })
-        .addCase(forgotPassword.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Forgot Password Failed";
-          // enqueueSnackbar(state.message, { variant: 'error' });
-        })
-        .addCase(verifyOtp.fulfilled, (state, action) => {
-          state.loading = false;
-          state.message = action.payload.message; // Assuming the API returns a success message
-          // enqueueSnackbar(state.message, { variant: 'success' });
-        })
-        .addCase(verifyOtp.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload.data?.message || "Verify OTP Failed";
-          // enqueueSnackbar(state.message, { variant: 'error' });
-        })
-        .addCase(resetPassword.fulfilled, (state, action) => {
-          state.loading = false;
-          state.message = action.payload; // Assuming the API returns a success message
-          // enqueueSnackbar(state.message, { variant: 'success' });
-        })
-        .addCase(resetPassword.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Reset Password Failed";
-          // enqueueSnackbar(state.message, { variant: 'error' });
-        })
-        .addCase(googleLogin.fulfilled, (state, action) => {
-          state.user = action.payload.user;
-          state.isAuthenticated = true;
-          state.loading = false;
-          state.error = null;
-          state.message = action.payload?.message || "Google Login successful";
-          // if (action.payload?.message) {
-          //     enqueueSnackbar(action.payload?.message, { variant: 'success' });
-          // }
-        })
-        .addCase(googleLogin.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Google Login Failed";
-          // enqueueSnackbar(state.message, { variant: 'error' });
-        })
-        .addCase(getUser.fulfilled, (state, action) => {
-          state.user = action.payload.users; // Assuming the API returns the user data
-          state.loading = false;
-          state.error = null;
-          state.message = "User retrieved successfully";
-          // enqueueSnackbar(state.message, { variant: 'success' });
-        })
-        .addCase(getUser.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Failed to retrieve user";
-          // enqueueSnackbar(state.message, { variant: 'error' });
-        })
-        .addCase(updateUser.fulfilled, (state, action) => {
-          console.log(action.payload)
-          state.user = action.payload.users; // Assuming the API returns the updated user data
-          state.loading = false;
-          state.error = null;
-          state.message = "User updated successfully";
-          // enqueueSnackbar(state.message, { variant: 'success' });
-        })
-        .addCase(updateUser.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Failed to update user";
-          // enqueueSnackbar(state.message, { variant: 'error' });
-        })
-        .addCase(createPlan.fulfilled, (state, action) => {
-          state.loading = false;
-          state.error = null;
-          state.message =
-            action.payload?.message || "Plan created successfully";
-          // enqueueSnackbar(state.message, { variant: 'success' });
-        })
-        .addCase(createPlan.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Failed to create plan";
-          // enqueueSnackbar(state.message, { variant: 'error' });
-        })
-        .addCase(getAllUsers.fulfilled, (state, action) => {
-          state.allUsers = action.payload;
-          state.loading = false;
-          state.error = null;
-          state.message = "Users retrieved successfully";
-        })
-        .addCase(getAllUsers.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Failed to retrieve users";
-        })
-        .addCase(getOnlineUsers.fulfilled, (state, action) => {
-          state.onlineUser = action.payload;
-          state.loading = false;
-          state.error = null;
-          state.message = "Online users retrieved successfully";
-        })
-        .addCase(getOnlineUsers.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message =
-            action.payload?.message || "Failed to retrieve online users";
-        })
-        .addCase(getAllMessages.fulfilled, (state, action) => {
-          state.messages = action.payload;
-          state.loading = false;
-          state.error = null;
-          state.message = "Messages retrieved successfully";
-        })
-        .addCase(getAllMessages.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message =
-            action.payload?.message || "Failed to retrieve messages";
-        })
-        .addCase(getAllMessages.pending, (state, action) => {
-          state.loading = true;
-          state.error = null;
-          state.message = "Retrieving messages...";
-        })
-        .addCase(deleteMessage.fulfilled, (state, action) => {
-          state.loading = false;
-          state.error = null;
-          state.message =
-            action.payload?.message || "Message deleted successfully";
-        })
-        .addCase(deleteMessage.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Failed to delete message";
-        })
-        .addCase(updateMessage.fulfilled, (state, action) => {
-          state.loading = false;
-          state.error = null;
-          state.message = "Message updated successfully";
-        })
-        .addCase(updateMessage.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message = action.payload?.message || "Failed to update message";
-        })
-        .addCase(getAllMessageUsers.fulfilled, (state, action) => {
-          state.allMessageUsers = action.payload;
-          state.loading = false;
-          state.error = null;
-          state.message = "Message users retrieved successfully";
-        })
-        .addCase(getAllMessageUsers.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload.message;
-          state.message =
-            action.payload?.message || "Failed to retrieve message users";
-        })
-        .addCase(getAllGroups.fulfilled, (state, action) => {
-          state.groups = action.payload;
-          state.loading = false;
-          state.error = null;
-          state.message = "Groups retrieved successfully";
-        })
-        .addCase(getAllGroups.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload;
-          state.message =
-            action.payload?.message || "Failed to retrieve groups";
-        })
-        .addCase(updateGroup.fulfilled, (state, action) => {
-          state.loading = false;
-          state.error = null;
-          state.message = "Group updated successfully";
-        })
-        .addCase(updateGroup.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload;
-          state.message = action.payload?.message || "Failed to update group";
-        })
-        .addCase(leaveGroup.fulfilled, (state, action) => {
-          state.loading = false;
-          state.error = null;
-          state.message = "Group left successfully";
-        })
-        .addCase(leaveGroup.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload;
-          state.message = action.payload?.message || "Failed to leave group";
-        })
-        .addCase(addParticipants.fulfilled, (state, action) => {
-          state.loading = false;
-          state.error = null;
-          state.message = "Participants added successfully";
-        })
-        .addCase(addParticipants.rejected, (state, action) => {
-          state.loading = false;
-          state.error = action.payload;
-          state.message = action.payload?.message || "Failed to add participants";
-        });
-    },
     setOnlineuser: (state, action) => {
       state.onlineUser = action.payload;
     },
@@ -770,15 +531,11 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = null;
         state.message = action.payload?.message || "Login successfully";
-        // if (action.payload?.message) {
-        //     enqueueSnackbar(action.payload?.message, { variant: 'success' });
-        // }
       })
       .addCase(login.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload?.message || "Login Failed";
-        // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(register.fulfilled, (state, action) => {
         state.user = action.payload.user;
@@ -786,48 +543,38 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = null;
         state.message = action.payload?.message || "Register successfully";
-        // if (action.payload?.message) {
-        //     enqueueSnackbar(action.payload?.message, { variant: 'success' });
-        // }
       })
       .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload?.message || "User Already Exist";
-        // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(forgotPassword.fulfilled, (state, action) => {
         state.loading = false;
         state.message = action.payload; // Assuming the API returns a success message
-        // enqueueSnackbar(state.message, { variant: 'success' });
       })
       .addCase(forgotPassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload?.message || "Forgot Password Failed";
-        // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(verifyOtp.fulfilled, (state, action) => {
         state.loading = false;
         state.message = action.payload.message; // Assuming the API returns a success message
-        // enqueueSnackbar(state.message, { variant: 'success' });
       })
       .addCase(verifyOtp.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload.data?.message || "Verify OTP Failed";
-        // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(resetPassword.fulfilled, (state, action) => {
         state.loading = false;
         state.message = action.payload; // Assuming the API returns a success message
-        // enqueueSnackbar(state.message, { variant: 'success' });
       })
       .addCase(resetPassword.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload?.message || "Reset Password Failed";
-        // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(googleLogin.fulfilled, (state, action) => {
         state.user = action.payload.user;
@@ -835,53 +582,43 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = null;
         state.message = action.payload?.message || "Google Login successful";
-        // if (action.payload?.message) {
-        //     enqueueSnackbar(action.payload?.message, { variant: 'success' });
-        // }
       })
       .addCase(googleLogin.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload?.message || "Google Login Failed";
-        // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(getUser.fulfilled, (state, action) => {
         state.user = action.payload.users; // Assuming the API returns the user data
         state.loading = false;
         state.error = null;
         state.message = "User retrieved successfully";
-        // enqueueSnackbar(state.message, { variant: 'success' });
       })
       .addCase(getUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload?.message || "Failed to retrieve user";
-        // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(updateUser.fulfilled, (state, action) => {
         state.user = action.payload.users; // Assuming the API returns the updated user data
         state.loading = false;
         state.error = null;
         state.message = "User updated successfully";
-        // enqueueSnackbar(state.message, { variant: 'success' });
       })
       .addCase(updateUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload?.message || "Failed to update user";
-        // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(createPlan.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
         state.message = action.payload?.message || "Plan created successfully";
-        // enqueueSnackbar(state.message, { variant: 'success' });
       })
       .addCase(createPlan.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
         state.message = action.payload?.message || "Failed to create plan";
-        // enqueueSnackbar(state.message, { variant: 'error' });
       })
       .addCase(getAllUsers.fulfilled, (state, action) => {
         state.allUsers = action.payload;
@@ -894,17 +631,17 @@ const userSlice = createSlice({
         state.error = action.payload.message;
         state.message = action.payload?.message || "Failed to retrieve users";
       })
-      // .addCase(getOnlineUsers.fulfilled, (state, action) => {
-      //     // state.onlineUser = action.payload;
-      //     state.loading = false;
-      //     state.error = null;
-      //     state.message = "Online users retrieved successfully";
-      // })
-      // .addCase(getOnlineUsers.rejected, (state, action) => {
-      //     state.loading = false;
-      //     state.error = action.payload.message;
-      //     state.message = action.payload?.message || "Failed to retrieve online users";
-      // })
+      .addCase(getOnlineUsers.fulfilled, (state, action) => {
+        state.onlineUser = action.payload;
+        state.loading = false;
+        state.error = null;
+        state.message = "Online users retrieved successfully";
+      })
+      .addCase(getOnlineUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload.message;
+        state.message = action.payload?.message || "Failed to retrieve online users";
+      })
       .addCase(getAllMessages.fulfilled, (state, action) => {
         state.messages = action.payload;
         state.loading = false;
@@ -914,10 +651,9 @@ const userSlice = createSlice({
       .addCase(getAllMessages.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
-        state.message =
-          action.payload?.message || "Failed to retrieve messages";
+        state.message = action.payload?.message || "Failed to retrieve messages";
       })
-      .addCase(getAllMessages.pending, (state, action) => {
+      .addCase(getAllMessages.pending, (state) => {
         state.loading = true;
         state.error = null;
         state.message = "Retrieving messages...";
@@ -925,8 +661,7 @@ const userSlice = createSlice({
       .addCase(deleteMessage.fulfilled, (state, action) => {
         state.loading = false;
         state.error = null;
-        state.message =
-          action.payload?.message || "Message deleted successfully";
+        state.message = action.payload?.message || "Message deleted successfully";
       })
       .addCase(deleteMessage.rejected, (state, action) => {
         state.loading = false;
@@ -952,8 +687,7 @@ const userSlice = createSlice({
       .addCase(getAllMessageUsers.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload.message;
-        state.message =
-          action.payload?.message || "Failed to retrieve message users";
+        state.message = action.payload?.message || "Failed to retrieve message users";
       })
       .addCase(getAllGroups.fulfilled, (state, action) => {
         state.groups = action.payload;

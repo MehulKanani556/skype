@@ -7,7 +7,6 @@ import {
   FaCommentDots,
   FaPhone,
   FaUsers,
-  FaBell,
   FaDownload,
   FaPaperclip,
   FaMicrophone,
@@ -19,12 +18,10 @@ import {
   FaFilePowerpoint,
   FaFileArchive,
   FaArrowDown,
-  FaPhoneSlash,
   FaUserPlus,
   FaFile,
   FaFileAudio,
 } from "react-icons/fa";
-import { HiOutlineReply } from "react-icons/hi";
 import { PiDotsThreeVerticalBold, PiDotsThreeBold } from "react-icons/pi";
 import { VscCallIncoming, VscCallOutgoing, VscCopy } from "react-icons/vsc";
 import {
@@ -32,7 +29,6 @@ import {
   MdOutlineModeEdit,
   MdPhoneEnabled,
   MdGroupAdd,
-  MdOutlinePhoneEnabled,
 } from "react-icons/md";
 import { CiSquareRemove } from "react-icons/ci";
 import { RiShutDownLine } from "react-icons/ri";
@@ -64,14 +60,12 @@ import {
   getAllMessages,
   getAllMessageUsers,
   getAllUsers,
-  getOnlineUsers,
   leaveGroup,
   getUser,
   updateGroup,
   updateUser,
   updateMessage,
   clearChat,
-  sendAudioMessage,
   addParticipants,
   getAllCallUsers,
 } from "../redux/slice/user.slice";
@@ -83,8 +77,6 @@ import AudioPlayer from "../component/AudioPlayer";
 
 const Chat2 = () => {
   const {
-    onlineUser,
-    isLoading,
     allUsers,
     messages,
     allMessageUsers,
@@ -93,20 +85,14 @@ const Chat2 = () => {
     allCallUsers,
   } = useSelector((state) => state.user);
   const [selectedTab, setSelectedTab] = useState("All");
-  const [recentChats, setRecentChats] = useState([]);
-  const [messagesA, setMessages] = useState([]);
-  const [showDialpad, setShowDialpad] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [selectedChat, setSelectedChat] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState([]);
-  const [message, setMessage] = useState("");
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const emojiPickerRef = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentUser] = useState(sessionStorage.getItem("userId")); // Replace with actual user data
-  const typingTimeoutRef = useRef(null);
   const [typingUsers, setTypingUsers] = useState({});
-  const [showCallModal, setShowCallModal] = useState(false);
   const localVideoRef = useRef(null);
   const [callUsers, setCallUsers] = useState([]);
   const remoteVideoRef = useRef(null);
@@ -120,11 +106,9 @@ const Chat2 = () => {
   const [editingMessage, setEditingMessage] = useState(null);
   const [messageInput, setMessageInput] = useState("");
   const inputRef = useRef(null);
-  const peerConnectionRef = useRef(null);
   const [userId, setUserId] = useState(sessionStorage.getItem("userId"));
   const [groupUsers, setGroupUsers] = useState([]);
   const [groupNewUsers, setGroupNewUsers] = useState([]);
-  const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const [searchInput, setSearchInput] = useState("");
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -133,28 +117,24 @@ const Chat2 = () => {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedUserName, setEditedUserName] = useState(user?.userName || "");
-  const [editedGroupName, setEditedGroupName] = useState("");
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeMessageId, setActiveMessageId] = useState(null);
   const [isGroupCreateModalOpen, setIsGroupCreateModalOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupPhoto, setGroupPhoto] = useState(null);
-  const [groupMembers, setGroupMembers] = useState([]);
   const dispatch = useDispatch();
   const dropdownRef = useRef(null);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [isSearchBoxOpen, setIsSearchBoxOpen] = useState(false);
   const [searchInputbox, setSearchInputbox] = useState("");
-  const [searchIndex, setSearchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [currentSearchIndex, setCurrentSearchIndex] = useState(0);
   const [isProfileImageModalOpen, setIsProfileImageModalOpen] = useState(false);
   const [selectedProfileImage, setSelectedProfileImage] = useState(null);
   //changes
   const [activeSearchTab, setActiveSearchTab] = useState("All");
-  const [filteredPeople, setFilteredPeople] = useState([]);
   const [filteredGroups, setFilteredGroups] = useState([]);
   //changes end
   const [isClearChatModalOpen, setIsClearChatModalOpen] = useState(false);
@@ -181,12 +161,7 @@ const Chat2 = () => {
     sendGroupMessage,
     isVideoCalling,
     incomingCall,
-    setIncomingCall,
     cleanupConnection,
-    peerEmail,
-    setPeerEmail,
-    hasWebcam,
-    hasMicrophone,
     isCameraOn,
     isMicrophoneOn,
     startSharing,
@@ -195,10 +170,8 @@ const Chat2 = () => {
     rejectVideoCall,
     rejectVoiceCall,
     endVideoCall,
-    isSharing,
-    setIsSharing,
-    isReceiving,
-    setIsReceiving,
+    isSharing,  
+    isReceiving,    
     toggleCamera,
     toggleMicrophone,
     markMessageAsRead,
@@ -206,7 +179,6 @@ const Chat2 = () => {
     setIncomingShare,
     acceptScreenShare,
     isVoiceCalling,
-    setIsVoiceCalling,
     startVoiceCall,
     acceptVoiceCall,
     endVoiceCall,
@@ -317,21 +289,7 @@ const Chat2 = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isProfileDropdownOpen]);
 
-  //===========Add cleanup effect  localStreamRef remoteVideoRef peerConnectionRef===========
-  // useEffect(() => {
-  //   return () => {
-  //     if (localStreamRef.current) {
-  //       localStreamRef.current.getTracks().forEach((track) => track.stop());
-  //     }
-  //     if (remoteVideoRef.current) {
-  //       remoteVideoRef.current.srcObject = null;
-  //     }
-  //     if (peerConnectionRef.current) {
-  //       peerConnectionRef.current.close();
-  //       peerConnectionRef.current = null;
-  //     }
-  //   };
-  // }, []);
+
 
   //===========get all messages ===========
   useEffect(() => {
@@ -408,11 +366,7 @@ const Chat2 = () => {
 
   //===========handle send message ===========
 
-  // const handleSendMessage = (text) => {
-  //     if (text.trim() === '') return;
-  //     const newMessage = { id: messages.length + 1, text, time: new Date().toLocaleTimeString(), sender: 'me' };
-  //     setMessages([...messages, newMessage]);
-  // };
+
   const handleSendMessage = async (data) => {
     if (editingMessage) {
       try {
@@ -535,12 +489,11 @@ const Chat2 = () => {
   // =========================== video call=============================
 
   // Add call handling functions
-  const [callReceiverId, setCallReceiverId] = useState(null);
 
   const handleMakeCall = async (type) => {
     if (!selectedChat) return;
 
-    setCallReceiverId(selectedChat._id); // Store the initial selected user's ID
+   
 
     if (type == "video") {
       const success = await startVideoCall(selectedChat._id);
@@ -603,27 +556,7 @@ const Chat2 = () => {
   }, []);
 
   // ==================group chat=================
-
-  // const handleCreateGroup = async () => {
-  //   try{
-  //   const data = {
-  //     userName: groupName,
-  //     members: groupUsers,
-  //     createdBy: userId,
-  //     photo: groupPhoto,
-  //   };
-  //   // console.log(data);
-  //   const result = await dispatch(createGroup(data)).unwrap();
-
-  //   console.log(result);
-  //      // Wait for the group creation to complete
-  //   // socket.emit("create-group",  data );
-  //   setGroupUsers([]);
-  //   setGroupPhoto(null);
-  //   setGroupName("");
-  //   setIsGroupCreateModalOpen(false);
-  //   dispatch(getAllMessageUsers()); // Call getAllMessageUsers after the socket event
-  // };
+  
   const handleCreateGroup = async () => {
     const data = {
       userName: groupName,
@@ -701,6 +634,7 @@ const Chat2 = () => {
 
   // Scroll event listener to show/hide the button
   useEffect(() => {
+    scrollToBottom();
     const handleScroll = () => {
       if (messagesContainerRef.current) {
         const { scrollTop, scrollHeight, clientHeight } =
@@ -722,10 +656,6 @@ const Chat2 = () => {
     };
   }, [messages]);
 
-  // Scroll when messages change
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
 
   // Scroll when chat is selected
   useEffect(() => {
@@ -800,22 +730,12 @@ const Chat2 = () => {
     };
   }, [dropdownRef]);
 
-  // ================== reply message ==================
-  const handleReplyMessage = (message) => {
-    console.log("Replying to message:", message);
-    // Add your reply logic here
-  };
-
   const handleImageClick = (imageUrl) => {
     setSelectedImage(imageUrl);
     setIsImageModalOpen(true);
   };
 
-  // console.log("isReceiving", isReceiving);
-  // console.log("isVideoCalling", isVideoCalling);
-  // console.log("incomingCall", incomingCall);
-  // console.log("isSharing", isSharing);
-  // console.log("isCameraOn", (!isReceiving || !isVideoCalling));
+
   // ============================Log out ============================
 
   const handleLogout = () => {
@@ -893,37 +813,7 @@ const Chat2 = () => {
   }, [selectedChat]);
 
   // Function to scroll to the current search result
-  // const scrollToSearchResult = (index) => {
-  //   if (!searchInputbox.trim()) return;
-
-  //   let currentMatchIndex = 0;
-  //   let targetElement = null;
-
-  //   // Find all message elements that contain the search text
-  //   const messageElements = document.querySelectorAll(".message-content");
-  //   messageElements.forEach((element) => {
-  //     const messageText = element.textContent;
-  //     if (messageText.toLowerCase().includes(searchInputbox.toLowerCase())) {
-  //       if (currentMatchIndex === index) {
-  //         targetElement = element;
-  //       }
-  //       currentMatchIndex++;
-  //     }
-  //   });
-
-  //   // Scroll to the target element if found
-  //   if (targetElement) {
-  //     targetElement.scrollIntoView({
-  //       behavior: "smooth",
-  //       block: "center",
-  //     });
-  //     // Add temporary highlight effect
-  //     targetElement.classList.add("active-search-result");
-  //     setTimeout(() => {
-  //       targetElement.classList.remove("active-search-result");
-  //     }, 2000);
-  //   }
-  // };
+  
   const scrollToSearchResult = (index) => {
     if (!searchInputbox.trim()) return;
 
@@ -1983,7 +1873,6 @@ const Chat2 = () => {
                         value={searchInputbox}
                         onChange={(e) => {
                           setSearchInputbox(e.target.value);
-                          setSearchIndex(0); // Reset index on new search
                           setCurrentSearchIndex(0); // Reset current search index
                         }}
                       />
@@ -2350,10 +2239,7 @@ const Chat2 = () => {
                                           "/"
                                         )}`}
                                       />
-                                      {/* <audio controls>
-                                        <source src={`${IMG_URL}${message.content.fileUrl.replace(/\\/g, "/")}`} type={message.content.fileType} />
-                                        Your browser does not support the audio element.
-                                      </audio> */}
+                                     
                                       <div className="ml-3">
                                         <div className="font-medium">
                                           {message.content?.content}
@@ -2719,14 +2605,7 @@ const Chat2 = () => {
                         accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
                         className="hidden"
                         onChange={handleInputChange}
-                      // onChange={(e) => {
-                      // e.preventDefault();
-                      // const files = e.target.files;
-                      // console.log(files);
-                      // if (files) {
-                      //     handleSubmit(e,files);
-                      // }
-                      // }}
+                     
                       />
                       <button
                         type="button"
@@ -2807,7 +2686,7 @@ const Chat2 = () => {
 
       {/*========== screen share ==========*/}
 
-      {/* {console.log("remoteStreams",remoteStreams)} */}
+     
       <div
         className={`flex-grow flex flex-col max-h-screen ${
           isReceiving || isVideoCalling  || isVoiceCalling
@@ -3118,12 +2997,7 @@ const Chat2 = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white rounded-lg w-96 modal_background"
-          // style={{
-          //   background: "#CCF7FF",
-          //   background:
-          //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
-          //     "#CDE0EC",
-          // }}
+         
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Profile</h2>
@@ -3512,12 +3386,7 @@ const Chat2 = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white rounded-lg w-96 modal_background "
-          // style={{
-          //   background: "#CCF7FF",
-          //   background:
-          //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
-          //     "#CDE0EC",
-          // }}
+          
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Profile</h2>
@@ -3545,16 +3414,7 @@ const Chat2 = () => {
                       .join("")}
                   </div>
                 )}
-                {/* <img
-                  src={
-                    selectedChat?.photo
-                      ? `${IMG_URL}${selectedChat?.photo}`
-                      : require("../img/group.png")
-                  }
-                  alt="Profile"
-                  className="cursor-pointer object-cover w-full h-full rounded-full"
-                  onClick={() => document.getElementById("fileInput").click()}
-                /> */}
+                
                 <input
                   type="file"
                   id="fileInput"
@@ -3671,10 +3531,7 @@ const Chat2 = () => {
                 </span>
               </div>
               <div className="flex flex-col max-h-48 overflow-y-auto modal_scroll">
-                {/* <div className="flex items-center justify-between p-2 ">
-                  <span className="text-gray-600 font-bold">Add participants</span>
-                  <button className="text-blue-500 hover:underline">+</button>
-                </div> */}
+               
                 <div
                   className="flex items-center p-2 cursor-pointer"
                   onClick={() => {
@@ -3751,12 +3608,7 @@ const Chat2 = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white rounded-lg w-96 modal_background"
-          // style={{
-          //   background: "#CCF7FF",
-          //   background:
-          //     // "linear-gradient(180deg, rgba(34,129,195,1) 0%, rgba(189,214,230,1) 48%, rgba(255,255,255,1) 100%)",
-          //     "#CDE0EC",
-          // }}
+        
           >
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Create Group</h2>
@@ -3963,23 +3815,7 @@ const Chat2 = () => {
         </div>
       )}
 
-      {/* {isProfileImageModalOpen && selectedProfileImage && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="relative w-full h-full flex items-center justify-center p-8">
-            <img
-              src={selectedProfileImage}
-              alt="Profile"
-              className="max-w-full max-h-full object-contain"
-            />
-            <button
-              onClick={() => setIsProfileImageModalOpen(false)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300"
-            >
-              <ImCross className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-      )} */}
+      
 
       {/* Image Modal */}
       {isImageModalOpen && (

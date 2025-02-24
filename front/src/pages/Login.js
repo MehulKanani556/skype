@@ -8,8 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { LuEye, LuEyeClosed } from 'react-icons/lu';
 import { ImCross } from 'react-icons/im';
-// import React, { useState, useEffect } from "react";
-// import { Formik, Form, Field, ErrorMessage } from "formik";
 import { BiSolidErrorAlt } from "react-icons/bi";
 const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleVerifyOTP, handleBack, email }) => {
   const [otp, setOtp] = useState(new Array(length).fill(''));
@@ -171,26 +169,16 @@ const Login = () => {
     }
   }, [message])
 
-  // useEffect(() => {
-  //   if (modalVisible) {
-  //     const timer = setTimeout(() => {
-  //       setModalVisible(false);
-  //     }, 2000);
+  useEffect(() => {
+    if (modalVisible) {
+      const timer = setTimeout(() => {
+        setModalVisible(false);
+      }, 2000);
 
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [modalVisible]);
+      return () => clearTimeout(timer);
+    }
+  }, [modalVisible]);
 
-  // useEffect(() => {
-  //   if (resendTimer > 0) {
-  //     timerRef.current = setInterval(() => {
-  //       setResendTimer(prevTimer => prevTimer - 1);
-  //     }, 1000);
-  //   } else if (timerRef.current) {
-  //     clearInterval(timerRef.current);
-  //   }
-  //   return () => clearInterval(timerRef.current);
-  // }, [resendTimer]);
 
   const togglePanel = () => {
     setForgotPasswordStep(0);
