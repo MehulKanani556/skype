@@ -1049,7 +1049,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       peer.on("error", (err) => {
         console.error("Peer error:", err);
         setError("Voice call connection error occurred");
-        endVoiceCall();
+        // endVoiceCall();
       });
 
       peerRef.current = peer;

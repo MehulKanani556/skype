@@ -1815,7 +1815,7 @@ const Chat2 = () => {
               <div
                 className="flex-1 overflow-y-auto p-4 modal_scroll"
                 ref={messagesContainerRef}
-                style={{ height: "calc(100vh - 180px)" }}
+                style={{ height: selectedFiles.length > 0 ? "calc(100vh -  275px)" : "calc(100vh - 180px)" }}
               >
                 {visibleDate && <FloatingDateIndicator />}
                 {messages && messages.length > 0 ? (
@@ -1995,7 +1995,7 @@ const Chat2 = () => {
                                   </div>
                                 )}
                                 {message.content?.type === "file" ? (
-                                  message.content?.fileType.includes(
+                                  message.content?.fileType?.includes(
                                     "image/"
                                   ) ? (
                                     <div
@@ -3635,14 +3635,12 @@ const Chat2 = () => {
         style={{ display: "none" }}
         accept="image/*"
         onChange={(e) => {
-          // console.log("aaaa")
+        
 
           const file = e.target.files[0];
           if (file) {
             // Handle the file upload logic here
             dispatch(updateUser({ id: currentUser, values: { photo: file } }));
-            // console.log('Selected file:', file);
-            // You can update the profile picture state here
           }
         }}
       />
