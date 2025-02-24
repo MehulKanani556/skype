@@ -154,3 +154,25 @@
   justify-content: center !important;
 }
 
+
+
+.reply-preview {
+  border-left: 4px solid #3b82f6;
+  margin-bottom: -1px;
+}
+
+.message .reply-content {
+  border-left: 3px solid #3b82f6;
+  opacity: 0.8;
+}
+
+.message-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.reply-indicator {
+  font-size: 0.8rem;
+  color: #3b82f6;
+  margin-bottom: 2px;
+}

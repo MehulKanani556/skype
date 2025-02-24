@@ -69,8 +69,7 @@ function getSocketByUserId(userId) {
 }
 
 async function handlePrivateMessage(socket, data) {
-  const { senderId, receiverId, content } = data;
-  // console.log("Handling private message:", data);
+  const { senderId, receiverId, content,  replyTo } = data;
 
   try {
     // Save message to database with initial status 'sent'
@@ -78,38 +77,32 @@ async function handlePrivateMessage(socket, data) {
       senderId,
       receiverId,
       content: content,
+      replyTo: replyTo,
       status: "sent", // Add initial status
     });
 
     const receiverSocketId = onlineUsers.get(receiverId);
-    // console.log("Receiver socket ID:", receiverSocketId);
-
     if (receiverSocketId) {
-      // Send to receiver
       socket.to(receiverSocketId).emit("receive-message", {
         _id: savedMessage._id,
         sender: senderId,
-        content: content,
+        content: savedMessage.content,
         createdAt: savedMessage.createdAt,
-        status: "delivered", // Set status to delivered for online users
+        status: "delivered"
       });
 
-      // Update message status to delivered in database
       await Message.findByIdAndUpdate(savedMessage._id, {
-        status: "delivered",
+        status: "delivered"
       });
 
-      // Confirm delivery to sender
       socket.emit("message-sent-status", {
         messageId: savedMessage._id,
-        status: "delivered",
+        status: "delivered"
       });
     } else {
-      // console.log("Receiver is offline:", receiverId);
-      // Receiver is offline - message stays as 'sent'
       socket.emit("message-sent-status", {
         messageId: savedMessage._id,
-        status: "sent",
+        status: "sent"
       });
     }
   } catch (error) {
@@ -117,7 +110,7 @@ async function handlePrivateMessage(socket, data) {
     socket.emit("message-sent-status", {
       messageId: Date.now(),
       status: "failed",
-      error: error.message,
+      error: error.message
     });
   }
 }
@@ -593,6 +586,50 @@ async function handleGetGroupMembers(socket, groupId) {
   }
 }
 
+async function handleForwardMessage(socket, data) {
+  const { senderId, receiverId, content, forwardedFrom } = data;
+
+  try {
+
+    console.log("content", data);
+    // Save forwarded message to database
+    const savedMessage = await saveMessage({
+      senderId,
+      receiverId,
+      content: content  ,
+      forwardedFrom: forwardedFrom,
+      status: "sent",
+    });
+   
+
+    const receiverSocketId = onlineUsers.get(receiverId);
+    if (receiverSocketId) {
+      socket.to(receiverSocketId).emit("receive-message", savedMessage);
+      
+      await Message.findByIdAndUpdate(savedMessage._id, {
+        status: "delivered",
+      });
+
+      socket.emit("message-sent-status", {
+        messageId: savedMessage._id,
+        status: "delivered",
+      });
+    } else {
+      socket.emit("message-sent-status", {
+        messageId: savedMessage._id,
+        status: "sent",
+      });
+    }
+  } catch (error) {
+    console.error("Error handling forward message:", error);
+    socket.emit("message-sent-status", {
+      messageId: Date.now(),
+      status: "failed",
+      error: error.message,
+    });
+  }
+}
+
 function initializeSocket(io) {
   io.on("connection", (socket) => {
     console.log("New socket connection:", socket.id);
@@ -664,6 +701,9 @@ function initializeSocket(io) {
     socket.on("get-group-members", (groupId) =>
       handleGetGroupMembers(socket, groupId)
     );
+
+    // Add to socket.on handlers
+    socket.on("forward-message", (data) => handleForwardMessage(socket, data));
   });
 }
 

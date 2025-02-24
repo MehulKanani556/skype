@@ -75,16 +75,63 @@ import Front from "../component/Front";
 import { MdOutlineDeleteSweep } from "react-icons/md";
 import AudioPlayer from "../component/AudioPlayer";
 import ChatItem from "../component/ChatItem"; // Import the new ChatItem component
+import { BiReply, BiShare } from "react-icons/bi";
+
+// Forward Modal Component
+const ForwardModal = ({ show, onClose, onSubmit, users }) => {
+  const [selectedUsers, setSelectedUsers] = useState([]);
+
+  return (
+    show && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-96">
+          <h2 className="text-xl font-semibold mb-4">Forward Message</h2>
+          <div className="max-h-60 overflow-y-auto">
+            {users.map((user) => (
+              <div key={user._id} className="flex items-center mb-2">
+                <input
+                  type="checkbox"
+                  id={user._id}
+                  checked={selectedUsers.includes(user._id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedUsers([...selectedUsers, user._id]);
+                    } else {
+                      setSelectedUsers(
+                        selectedUsers.filter((id) => id !== user._id)
+                      );
+                    }
+                  }}
+                  className="mr-2"
+                />
+                <label htmlFor={user._id}>{user.userName}</label>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-end mt-4 gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => onSubmit(selectedUsers)}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              disabled={selectedUsers.length === 0}
+            >
+              Forward
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  );
+};
 
 const Chat2 = () => {
-  const {
-    allUsers,
-    messages,
-    allMessageUsers,
-    groups,
-    user,
-    allCallUsers,
-  } = useSelector((state) => state.user);
+  const { allUsers, messages, allMessageUsers, groups, user, allCallUsers } =
+    useSelector((state) => state.user);
   const [selectedTab, setSelectedTab] = useState("All");
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [selectedChat, setSelectedChat] = useState(null);
@@ -187,7 +234,8 @@ const Chat2 = () => {
     remoteStreams,
     inviteToCall,
     callParticipants,
-    voiceCallData
+    voiceCallData,
+    forwardMessage,
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
 
 
@@ -288,8 +336,6 @@ const Chat2 = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isProfileDropdownOpen]);
 
-
-
   //===========get all messages ===========
   useEffect(() => {
     if (selectedChat) {
@@ -365,7 +411,6 @@ const Chat2 = () => {
 
   //===========handle send message ===========
 
-
   const handleSendMessage = async (data) => {
     if (editingMessage) {
       try {
@@ -393,15 +438,46 @@ const Chat2 = () => {
       )
         return;
 
+      console.log("data", data);
+
       try {
-        const status = await sendPrivateMessage(selectedChat._id, data);
+        const messageData = {
+          data,
+          replyTo: replyingTo,
+        };
+        const status = await sendPrivateMessage(selectedChat._id, messageData);
         dispatch(getAllMessages({ selectedId: selectedChat._id }));
         dispatch(getAllMessageUsers());
+        setReplyingTo(null);
       } catch (error) {
         console.error("Failed to send message:", error);
       }
     }
     setMessageInput("");
+  };
+
+  //===========reply  preview===========
+  const ReplyPreview = ({ replyData, onCancel }) => {
+    const repliedUser = allUsers.find((user) => user._id === replyData.sender);
+
+    return (
+      <div className="reply-preview bg-gray-100 dark:bg-gray-700 p-2 rounded-t-lg flex items-start">
+        <div className="flex-1">
+          <div className="text-sm font-medium text-blue-500 dark:text-blue-400">
+            Replying to {repliedUser?.userName || "User"}
+          </div>
+          <div className="text-sm text-gray-600 dark:text-gray-300 truncate">
+            {replyData.content}
+          </div>
+        </div>
+        <button
+          onClick={onCancel}
+          className="ml-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+        >
+          <RxCross2 size={20} />
+        </button>
+      </div>
+    );
   };
 
   //===========handle send group message===========
@@ -491,8 +567,6 @@ const Chat2 = () => {
 
   const handleMakeCall = async (type) => {
     if (!selectedChat) return;
-
-
 
     if (type == "video") {
       const success = await startVideoCall(selectedChat._id);
@@ -655,7 +729,6 @@ const Chat2 = () => {
     };
   }, [messages]);
 
-
   // Scroll when chat is selected
   useEffect(() => {
     if (selectedChat) {
@@ -733,7 +806,6 @@ const Chat2 = () => {
     setSelectedImage(imageUrl);
     setIsImageModalOpen(true);
   };
-
 
   // ============================Log out ============================
 
@@ -1148,12 +1220,47 @@ const Chat2 = () => {
     return "grid-cols-3 md:grid-cols-4";
   };
 
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [forwardingMessage, setForwardingMessage] = useState(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+
+  const handleReplyMessage = (message) => {
+    setReplyingTo(message);
+    // console.log("message", message);
+    // setContextMenu({ visible: false, x: 0, y: 0, messageId: null });
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const handleForwardMessage = (message) => {
+    setForwardingMessage(message);
+    setShowForwardModal(true);
+    setContextMenu({ visible: false, x: 0, y: 0, messageId: null });
+  };
+
+  const handleForwardSubmit = async (selectedUsers) => {
+    try {
+      for (const userId of selectedUsers) {
+        await forwardMessage(userId, forwardingMessage);
+      }
+      setShowForwardModal(false);
+      setForwardingMessage(null);
+    } catch (error) {
+      console.error("Error forwarding message:", error);
+    }
+  };
+
   return (
     <div className="flex h-screen bg-white">
       {/* Left Sidebar */}
       <div
-        className={`${showLeftSidebar ? "block" : "hidden"
-          } w-full md:w-80 border-r flex flex-col`}
+        className={`${
+          showLeftSidebar ? "block" : "hidden"
+        } w-full md:w-80 border-r flex flex-col`}
       >
         <div className="relative profile-dropdown">
           <div
@@ -1172,7 +1279,7 @@ const Chat2 = () => {
                 <span className="text-white text-2xl font-bold">
                   {user?.userName && user?.userName.includes(" ")
                     ? user?.userName.split(" ")[0][0] +
-                    user?.userName.split(" ")[1][0]
+                      user?.userName.split(" ")[1][0]
                     : user?.userName[0]}
                 </span>
               )}
@@ -1233,28 +1340,31 @@ const Chat2 = () => {
               {/* Tabs */}
               <div className="flex border-b">
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "All"
-                    ? "text-gray-700 border-b-2 border-blue-500"
-                    : "text-gray-500 hover:text-gray-700"
-                    }`}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    activeSearchTab === "All"
+                      ? "text-gray-700 border-b-2 border-blue-500"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
                   onClick={() => setActiveSearchTab("All")}
                 >
                   All
                 </button>
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "People"
-                    ? "text-gray-700 border-b-2 border-blue-500"
-                    : "text-gray-500 hover:text-gray-700"
-                    }`}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    activeSearchTab === "People"
+                      ? "text-gray-700 border-b-2 border-blue-500"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
                   onClick={() => setActiveSearchTab("People")}
                 >
                   People
                 </button>
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "Groups"
-                    ? "text-gray-700 border-b-2 border-blue-500"
-                    : "text-gray-500 hover:text-gray-700"
-                    }`}
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${
+                    activeSearchTab === "Groups"
+                      ? "text-gray-700 border-b-2 border-blue-500"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
                   onClick={() => setActiveSearchTab("Groups")}
                 >
                   Groups
@@ -1314,7 +1424,7 @@ const Chat2 = () => {
                       {/* Show View All button only in All tab and if there are more than 4 users */}
                       {activeSearchTab === "All" &&
                         filteredUsers.filter((user) => !user.members).length >
-                        4 && (
+                          4 && (
                           <div
                             className="p-2 text-center text-blue-500 hover:text-blue-600 cursor-pointer font-medium"
                             onClick={() => {
@@ -1448,16 +1558,18 @@ const Chat2 = () => {
 
         <div className="flex justify-around p-4 border-b">
           <div
-            className={`${filteredUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
-              } flex flex-col items-center cursor-pointer`}
+            className={`${
+              filteredUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
+            } flex flex-col items-center cursor-pointer`}
             onClick={() => handleFilter("chat")}
           >
             <FaCommentDots className="w-6 h-6" />
             <span className="text-xs mt-1">Chat</span>
           </div>
           <div
-            className={`${callUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
-              } flex flex-col items-center  cursor-pointer`}
+            className={`${
+              callUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
+            } flex flex-col items-center  cursor-pointer`}
             onClick={() => handleFilter("call")}
           >
             <FaPhone className="w-6 h-6" />
@@ -1479,22 +1591,25 @@ const Chat2 = () => {
         {callUsers.length == 0 && (
           <div className="flex px-10 space-x-4 border-b justify-between">
             <button
-              className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
-                }`}
+              className={`py-2 ${
+                selectedTab === "All" ? "border-b-2 border-blue-500" : ""
+              }`}
               onClick={() => setSelectedTab("All")}
             >
               All
             </button>
             <button
-              className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
-                }`}
+              className={`py-2 ${
+                selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
+              }`}
               onClick={() => setSelectedTab("Chats")}
             >
               Chats
             </button>
             <button
-              className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
-                }`}
+              className={`py-2 ${
+                selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
+              }`}
               onClick={() => setSelectedTab("Unread")}
             >
               Unread
@@ -1512,13 +1627,13 @@ const Chat2 = () => {
 
               const lastMessageA = Array.isArray(a.messages)
                 ? [...a.messages].sort(
-                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
-                )[0]
+                    (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                  )[0]
                 : null;
               const lastMessageB = Array.isArray(b.messages)
                 ? [...b.messages].sort(
-                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
-                )[0]
+                    (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                  )[0]
                 : null;
 
               // New sorting logic for no messages
@@ -1553,10 +1668,10 @@ const Chat2 = () => {
                 lastMessageTimestamp:
                   item.messages.length > 0
                     ? new Date(
-                      item.messages[
-                        item.messages.length - 1
-                      ].content.timestamp
-                    )
+                        item.messages[
+                          item.messages.length - 1
+                        ].content.timestamp
+                      )
                     : null,
               }))
               .filter((item) => item.lastMessageTimestamp) // Filter out users without messages
@@ -1579,8 +1694,9 @@ const Chat2 = () => {
       {/* Right Sidebar */}
       {!(isReceiving || isVideoCalling || isVoiceCalling) && (
         <div
-          className={`${showLeftSidebar ? "hidden md:block" : "block"
-            } flex-1 flex flex-col`}
+          className={`${
+            showLeftSidebar ? "hidden md:block" : "block"
+          } flex-1 flex flex-col`}
         >
           {selectedChat ? (
             <>
@@ -1634,9 +1750,9 @@ const Chat2 = () => {
                     ) : (
                       <span className="text-white text-xl font-bold">
                         {selectedChat?.userName &&
-                          selectedChat?.userName.includes(" ")
+                        selectedChat?.userName.includes(" ")
                           ? selectedChat?.userName.split(" ")[0][0] +
-                          selectedChat?.userName.split(" ")[1][0]
+                            selectedChat?.userName.split(" ")[1][0]
                           : selectedChat?.userName[0]}
                       </span>
                     )}
@@ -1663,10 +1779,11 @@ const Chat2 = () => {
                       </div>
                     ) : (
                       <div
-                        className={`text-sm ${onlineUsers.includes(selectedChat?._id)
-                          ? "text-green-500"
-                          : "text-gray-500"
-                          }`}
+                        className={`text-sm ${
+                          onlineUsers.includes(selectedChat?._id)
+                            ? "text-green-500"
+                            : "text-gray-500"
+                        }`}
                       >
                         {onlineUsers.includes(selectedChat?._id)
                           ? "Active now"
@@ -1823,7 +1940,7 @@ const Chat2 = () => {
                     ([date, dateMessages]) => (
                       <div key={date} className="flex flex-col">
                         <div
-                          className="flex justify-center items-center gap-2 my-4 text-gray-500 date-header px-2"  
+                          className="flex justify-center items-center gap-2 my-4 text-gray-500 date-header px-2"
                           data-date={date}
                         >
                           <div className="sm:block flex-1 h-[1px] bg-gray-400 max-w-[300px]" />
@@ -1865,8 +1982,8 @@ const Chat2 = () => {
                           const showTime =
                             !prevMessage ||
                             new Date(message?.createdAt).getMinutes() -
-                            new Date(prevMessage?.createdAt).getMinutes() >
-                            0 ||
+                              new Date(prevMessage?.createdAt).getMinutes() >
+                              0 ||
                             !issameUser;
 
                           const name = allUsers.find(
@@ -1960,7 +2077,7 @@ const Chat2 = () => {
                                   </div>
                                   <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
                                     {message.content.callType === "voice" ||
-                                      message.content.callType === "audio" ? (
+                                    message.content.callType === "audio" ? (
                                       <MdPhoneEnabled
                                         className=" w-5 h-5 cursor-pointer text-black"
                                         onClick={() => handleMakeCall("audio")}
@@ -1978,22 +2095,50 @@ const Chat2 = () => {
                           ) : (
                             <div
                               key={message._id}
-                              className={`flex relative ${message.sender === userId
-                                ? "justify-end items-end"
-                                : "justify-start items-start"
-                                } ${isConsecutive ? "mb-1" : "mb-4"
-                                } message-content`}
+                              className={`flex relative ${
+                                message.sender === userId
+                                  ? "justify-end items-end"
+                                  : "justify-start items-start"
+                              } ${
+                                isConsecutive ? "mb-1" : "mb-4"
+                              } message-content`}
                             >
                               <div className="flex flex-col relative group">
-                                {showTime && (
-                                  <div className="text-xs text-gray-500 mt-3 text-right">
-                                    {selectedChat?.members &&
-                                      message.sender != userId
-                                      ? `${name},`
-                                      : ""}{" "}
-                                    {currentTime}
+                                <div className="flex mt-3 justify-between">
+                                  {/* ==========reply to message========== */}
+                                  {message.replyTo && (
+                                    <div className="reply-preview bg-gray-100 p-2 rounded mb-1 text-sm">
+                                      <p className="text-gray-600">
+                                        Replying to:
+                                      </p>
+                                      <p>
+                                        {message?.replyTo?.content?.content}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Show forwarded label if message is forwarded */}
+                                  <div>
+                                    {message?.forwardedFrom && (
+                                      <div className="forwarded-label text-gray-500 text-sm mb-1">
+                                        <BiShare className="inline mr-1" />
+                                        Forwarded
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                  {showTime && (
+                                    <div className="text-xs text-gray-500 text-right">
+                                      {selectedChat?.members &&
+                                      message.sender != userId
+                                        ? `${name},`
+                                        : ""}{" "}
+                                      {currentTime}
+                                    </div>
+                                  )}
+                                </div>
+                                {/* {console.log("message", message)} */}
+
+                                {/* ==========message content========== */}
                                 {message.content?.type === "file" ? (
                                   message.content?.fileType?.includes(
                                     "image/"
@@ -2003,7 +2148,6 @@ const Chat2 = () => {
                                       style={{ wordWrap: "break-word" }}
                                       onContextMenu={(e) => {
                                         console.log("sdkfsbgdjhf");
-
                                         handleContextMenu(e, message);
                                       }}
                                     >
@@ -2025,9 +2169,9 @@ const Chat2 = () => {
                                             )}`
                                           )
                                         }
-                                      // onContextMenu={(e) =>
-                                      //   handleContextMenu(e, message)
-                                      // }
+                                        // onContextMenu={(e) =>
+                                        //   handleContextMenu(e, message)
+                                        // }
                                       />
                                       <PiDotsThreeVerticalBold
                                         className={`absolute top-2 -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-gray-600`}
@@ -2037,9 +2181,9 @@ const Chat2 = () => {
                                         }}
                                       />
                                     </div>
-                                  ) : message.content?.fileType.includes(
-                                    "audio/"
-                                  ) ? (
+                                  ) : message.content?.fileType?.includes(
+                                      "audio/"
+                                    ) ? (
                                     <div
                                       className={`p-4 max-w-[300px] ${message.sender === userId
                                         ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
@@ -2058,7 +2202,7 @@ const Chat2 = () => {
                                         }}
                                       />
                                       <AudioPlayer
-                                        audioUrl={`${IMG_URL}${message.content.fileUrl.replace(
+                                        audioUrl={`${IMG_URL}${message?.content?.fileUrl?.replace(
                                           /\\/g,
                                           "/"
                                         )}`}
@@ -2086,21 +2230,21 @@ const Chat2 = () => {
                                     >
                                       <div className="flex items-center">
                                         <a
-                                          href={`${IMG_URL}${message.content.fileUrl.replace(
+                                          href={`${IMG_URL}${message?.content?.fileUrl?.replace(
                                             /\\/g,
                                             "/"
                                           )}`}
-                                          download={message.content.content}
+                                          download={message?.content?.content}
                                           className="ml-2 text-blue-500 hover:underline"
                                         >
                                           <FaDownload className="w-6 h-6" />
                                         </a>
                                         <div className="ml-3">
                                           <div className="font-medium">
-                                            {message.content?.content}
+                                            {message?.content?.content}
                                           </div>
                                           <div className="text-sm text-gray-500">
-                                            {message.content?.size}
+                                            {message?.content?.size}
                                           </div>
                                         </div>
                                       </div>
@@ -2109,27 +2253,31 @@ const Chat2 = () => {
                                 ) : (
                                   <div className="flex gap-1">
                                     <div
-                                      className={`group flex-1 p-2  flex justify-between items-center relative ${message.sender === userId
-                                        ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""
-                                        } `
-                                        : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""
-                                        }`
-                                        }`}
+                                      className={`group flex-1 p-2  flex justify-between items-center relative ${
+                                        message.sender === userId
+                                          ? `bg-[#CCF7FF] rounded-s-lg ${
+                                              showTime ? "rounded-tr-lg" : ""
+                                            } `
+                                          : `bg-[#F1F1F1] rounded-e-lg ${
+                                              showTime ? "rounded-tl-lg" : ""
+                                            }`
+                                      }`}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
                                       }
                                     >
                                       <p className="flex-1">
                                         {highlightText(
-                                          message.content?.content,
+                                          message?.content?.content,
                                           searchInputbox
                                         )}
                                       </p>
 
                                       {/* Add three dots icon */}
                                       <PiDotsThreeVerticalBold
-                                        className={`absolute  ${showTime ? "top-0" : "top-0"
-                                          } -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity`}
+                                        className={`absolute  ${
+                                          showTime ? "top-0" : "top-0"
+                                        } -right-4 cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity`}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleDropdownToggle(message._id);
@@ -2166,18 +2314,18 @@ const Chat2 = () => {
                                       {!message.content?.fileType?.includes(
                                         "audio/"
                                       ) && (
-                                          <button
-                                            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                            onClick={() =>
-                                              handleCopyMessage(
-                                                message.content,
-                                                () => setActiveMessageId(null)
-                                              )
-                                            }
-                                          >
-                                            <VscCopy className="mr-2" /> Copy
-                                          </button>
-                                        )}
+                                        <button
+                                          className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                          onClick={() =>
+                                            handleCopyMessage(
+                                              message.content,
+                                              () => setActiveMessageId(null)
+                                            )
+                                          }
+                                        >
+                                          <VscCopy className="mr-2" /> Copy
+                                        </button>
+                                      )}
                                       <button
                                         className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
                                         onClick={() =>
@@ -2186,6 +2334,30 @@ const Chat2 = () => {
                                       >
                                         <CiSquareRemove className="mr-2" />{" "}
                                         Remove
+                                      </button>
+                                      {/* Add Reply button */}
+                                      <button
+                                        className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        onClick={() => {
+                                          handleReplyMessage(message);
+                                          setContextMenu({
+                                            visible: false,
+                                            x: 0,
+                                            y: 0,
+                                            messageId: null,
+                                          });
+                                        }}
+                                      >
+                                        <BiReply className="mr-2" /> Reply
+                                      </button>
+                                      {/* Add Forward button */}
+                                      <button
+                                        className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        onClick={() =>
+                                          handleForwardMessage(message)
+                                        }
+                                      >
+                                        <BiShare className="mr-2" /> Forward
                                       </button>
                                     </div>
                                   )}
@@ -2218,18 +2390,18 @@ const Chat2 = () => {
                                       {!message.content?.fileType?.includes(
                                         "audio/"
                                       ) && (
-                                          <button
-                                            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                            onClick={() =>
-                                              handleCopyMessage(
-                                                message.content,
-                                                () => setActiveMessageId(null)
-                                              )
-                                            }
-                                          >
-                                            <VscCopy className="mr-2" /> Copy
-                                          </button>
-                                        )}
+                                        <button
+                                          className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                          onClick={() =>
+                                            handleCopyMessage(
+                                              message.content,
+                                              () => setActiveMessageId(null)
+                                            )
+                                          }
+                                        >
+                                          <VscCopy className="mr-2" /> Copy
+                                        </button>
+                                      )}
                                       <button
                                         className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
                                         onClick={() =>
@@ -2246,8 +2418,9 @@ const Chat2 = () => {
 
                               {message.sender === userId && (
                                 <div
-                                  className={`flex items-end mt-1  ${showTime ? "bottom-3" : "-bottom-2"
-                                    }  right-0`}
+                                  className={`flex items-end mt-1  ${
+                                    showTime ? "bottom-3" : "-bottom-2"
+                                  }  right-0`}
                                 >
                                   {message.status === "sent" && (
                                     <IoCheckmarkCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
@@ -2315,7 +2488,7 @@ const Chat2 = () => {
                     } else if (
                       file.type === "application/vnd.ms-excel" ||
                       file.type ===
-                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     ) {
                       fileIcon = (
                         <FaFileExcel className="w-20 h-20 text-gray-500" />
@@ -2323,7 +2496,7 @@ const Chat2 = () => {
                     } else if (
                       file.type === "application/msword" ||
                       file.type ===
-                      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     ) {
                       fileIcon = (
                         <FaFileWord className="w-20 h-20 text-gray-500" />
@@ -2331,7 +2504,7 @@ const Chat2 = () => {
                     } else if (
                       file.type === "application/vnd.ms-powerpoint" ||
                       file.type ===
-                      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
                     ) {
                       fileIcon = (
                         <FaFilePowerpoint className="w-20 h-20 text-gray-500" />
@@ -2374,12 +2547,40 @@ const Chat2 = () => {
                   })}
                 </div>
               )}
+
+              {replyingTo && (
+                <div className="w-full max-w-4xl mx-auto px-4">
+                  <div className="bg-gray-100 p-3 rounded-t-lg flex justify-between items-start border-l-4 border-blue-500">
+                    <div>
+                      <div className="text-sm text-blue-500 font-medium">
+                        Replying to{" "}
+                        {
+                          allUsers.find(
+                            (user) => user._id === replyingTo.sender
+                          )?.userName
+                        }
+                      </div>
+                      <div className="text-gray-600 text-sm line-clamp-2">
+                        {replyingTo.content.content}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setReplyingTo(null)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <RxCross2 size={20} />
+                    </button>
+                  </div>
+                </div>
+              )}
               {/*========== Message Input ==========*/}
               {selectedChat && (
                 <div className="w-full max-w-4xl mx-auto p-4 rounded-lg ">
                   <form
                     onSubmit={handleSubmit}
-                    className="flex items-center gap-2 rounded-full px-4 py-2 shadow w-full max-w-full"
+                    className={`flex items-center gap-2 rounded-${
+                      replyingTo ? "b-" : ""
+                    }xl px-4 py-2 shadow w-full max-w-full`}
                     style={{ backgroundColor: "#e5e7eb" }}
                   >
                     <button
@@ -2398,13 +2599,17 @@ const Chat2 = () => {
                         <EmojiPicker onEmojiClick={onEmojiClick} />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0"> {/* Add container with min-width */}
+                    <div className="flex-1 min-w-0">
+                      {" "}
+                      {/* Add container with min-width */}
                       <input
                         ref={inputRef}
                         type="text"
                         value={messageInput}
                         onChange={handleInputChange}
-                        placeholder={editingMessage ? "Edit message..." : "Type a message"}
+                        placeholder={
+                          editingMessage ? "Edit message..." : "Type a message"
+                        }
                         className="w-full px-2 py-1 outline-none text-black bg-transparent"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
@@ -2429,7 +2634,6 @@ const Chat2 = () => {
                         accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
                         className="hidden"
                         onChange={handleInputChange}
-
                       />
                       <button
                         type="button"
@@ -2452,8 +2656,9 @@ const Chat2 = () => {
                         onClick={handleVoiceMessage}
                       >
                         <FaMicrophone
-                          className={`w-5 h-5 ${isRecording ? "text-red-500" : "text-gray-500"
-                            }`}
+                          className={`w-5 h-5 ${
+                            isRecording ? "text-red-500" : "text-gray-500"
+                          }`}
                         />
                       </button>
                       {(messageInput != "" || selectedFiles.length > 0) && (
@@ -2509,26 +2714,29 @@ const Chat2 = () => {
       {/*========== video call ==========*/}
 
       {/*========== screen share ==========*/}
-
-
       <div
-        className={`flex-grow flex flex-col max-h-[80vh] ${isReceiving || isVideoCalling || isVoiceCalling
-          ? ""
-          : "hidden"
-          }`}
+        className={`flex-grow flex flex-col max-h-screen ${
+          isReceiving || isVideoCalling || isVoiceCalling ? "" : "hidden"
+        }`}
       >
         <div
-          className={`flex-1 relative ${isReceiving
-            ? "flex items-center justify-center"
-            : `grid gap-4 ${getGridColumns(
-              parseInt(remoteStreams.size) + (isVideoCalling ? 1 : 0)
-            )}`
-            }`}
+          className={`flex-1 relative ${
+            isReceiving
+              ? "flex items-center justify-center"
+              : `grid gap-4 ${getGridColumns(
+                  parseInt(remoteStreams.size) + (isVideoCalling ? 1 : 0)
+                )}`
+          }`}
         >
           {/* Local video */}
           <div
-            className={` ${isVideoCalling || isVoiceCalling ? "" : "hidden"
-              } ${isReceiving ? "hidden" : ""} ${remoteStreams.size === 1 ? "max-w-30 absolute top-2 right-2 z-10" : "relative"}`}
+            className={` ${isVideoCalling || isVoiceCalling ? "" : "hidden"} ${
+              isReceiving ? "hidden" : ""
+            } ${
+              remoteStreams.size === 1
+                ? "max-w-30 absolute top-2 right-2 z-10"
+                : "relative"
+            }`}
           >
             <video
               ref={localVideoRef}
@@ -2536,7 +2744,9 @@ const Chat2 = () => {
               playsInline
               muted
               className="w-full h-full object-contain"
-              style={{ maxHeight: `${remoteStreams.size === 1 ? "20vh" : "100%"}` }}
+              style={{
+                maxHeight: `${remoteStreams.size === 1 ? "20vh" : "100%"}`,
+              }}
             />
             <div className="absolute bottom-2 left-2 text-white text-xl bg-blue-500  px-3 py-1 rounded-full text-center">
               You
@@ -2557,7 +2767,7 @@ const Chat2 = () => {
             <>
               {Array.from(remoteStreams).map(([participantId, stream]) => (
                 <div key={participantId} className="relative w-full">
-                  <video
+                  <videox
                     autoPlay
                     playsInline
                     className="w-full h-full object-contain  max-h-[80vh]"
@@ -2568,8 +2778,13 @@ const Chat2 = () => {
                     }}
                   />
                   <div className="absolute bottom-2 left-2 text-white text-xl bg-blue-500  px-3 py-1 rounded-full text-center">
-                    {allUsers.find((user) => user._id === participantId)
-                      ?.userName.charAt(0).toUpperCase() + allUsers.find((user) => user._id === participantId)?.userName.slice(1) || "Participant"}
+                    {allUsers
+                      .find((user) => user._id === participantId)
+                      ?.userName.charAt(0)
+                      .toUpperCase() +
+                      allUsers
+                        .find((user) => user._id === participantId)
+                        ?.userName.slice(1) || "Participant"}
                   </div>
                 </div>
               ))}
@@ -2602,8 +2817,9 @@ const Chat2 = () => {
                 <>
                   <button
                     onClick={toggleCamera}
-                    className={`w-10 grid place-content-center  rounded-full h-10 ${isCameraOn ? "bg-blue-500" : "bg-gray-400"
-                      } text-white ${isVideoCalling ? "" : "hidden"}`}
+                    className={`w-10 grid place-content-center  rounded-full h-10 ${
+                      isCameraOn ? "bg-blue-500" : "bg-gray-400"
+                    } text-white ${isVideoCalling ? "" : "hidden"}`}
                   >
                     {isCameraOn ? (
                       <FiCamera className="text-xl " />
@@ -2613,8 +2829,9 @@ const Chat2 = () => {
                   </button>
                   <button
                     onClick={toggleMicrophone}
-                    className={`w-10 grid place-content-center  rounded-full h-10 ${isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
-                      } text-white`}
+                    className={`w-10 grid place-content-center  rounded-full h-10 ${
+                      isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
+                    } text-white`}
                   >
                     {isMicrophoneOn ? (
                       <BsFillMicFill className="text-xl " />
@@ -2643,8 +2860,8 @@ const Chat2 = () => {
               {/* Profile image or default avatar */}
               {allUsers.find((user) => user._id === incomingCall.fromEmail)
                 ?.photo &&
-                allUsers.find((user) => user._id === incomingCall.fromEmail)
-                  ?.photo !== "null" ? (
+              allUsers.find((user) => user._id === incomingCall.fromEmail)
+                ?.photo !== "null" ? (
                 <img
                   src={`${IMG_URL}${allUsers
                     .find((user) => user._id === incomingCall.fromEmail)
@@ -2830,10 +3047,7 @@ const Chat2 = () => {
       {/* Profile Modal */}
       {isProfileModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div
-            className="bg-white rounded-lg w-96 modal_background"
-
-          >
+          <div className="bg-white rounded-lg w-96 modal_background">
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Profile</h2>
               <button
@@ -2964,8 +3178,9 @@ const Chat2 = () => {
                   />
                 ) : (
                   <span
-                    className={`text-gray-800 cursor-pointer ${!user?.dob ? "text-sm" : ""
-                      } `}
+                    className={`text-gray-800 cursor-pointer ${
+                      !user?.dob ? "text-sm" : ""
+                    } `}
                     onClick={() => setIsEditingDob(true)}
                   >
                     {new Date(user?.dob).toLocaleDateString() || "Add dob"}
@@ -3009,8 +3224,9 @@ const Chat2 = () => {
                   </span>
                 ) : (
                   <span
-                    className={`text-gray-800 cursor-pointer ${!user?.phone ? "text-sm" : ""
-                      } `}
+                    className={`text-gray-800 cursor-pointer ${
+                      !user?.phone ? "text-sm" : ""
+                    } `}
                     onClick={() => setIsEditingPhone(true)}
                   >
                     {user?.phone || "Add phone number"}
@@ -3138,16 +3354,16 @@ const Chat2 = () => {
                                 {message.content.fileType.includes("pdf") ? (
                                   <FaFilePdf className="w-12 h-12 text-red-500" />
                                 ) : message.content.fileType.includes(
-                                  "word"
-                                ) ? (
+                                    "word"
+                                  ) ? (
                                   <FaFileWord className="w-12 h-12 text-blue-500" />
                                 ) : message.content.fileType.includes(
-                                  "excel"
-                                ) ? (
+                                    "excel"
+                                  ) ? (
                                   <FaFileExcel className="w-12 h-12 text-green-500" />
                                 ) : message.content.fileType.includes(
-                                  "audio"
-                                ) ? (
+                                    "audio"
+                                  ) ? (
                                   <FaFileAudio className="w-12 h-12 text-purple-500" />
                                 ) : (
                                   <FaFile className="w-12 h-12 text-gray-500" />
@@ -3219,10 +3435,7 @@ const Chat2 = () => {
       {/* group Profile Modal */}
       {isGroupModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div
-            className="bg-white rounded-lg w-96 modal_background "
-
-          >
+          <div className="bg-white rounded-lg w-96 modal_background ">
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Profile</h2>
               <button
@@ -3366,7 +3579,6 @@ const Chat2 = () => {
                 </span>
               </div>
               <div className="flex flex-col max-h-48 overflow-y-auto modal_scroll">
-
                 <div
                   className="flex items-center p-2 cursor-pointer"
                   onClick={() => {
@@ -3457,10 +3669,7 @@ const Chat2 = () => {
       )}
       {isGroupCreateModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div
-            className="bg-white rounded-lg w-96 modal_background"
-
-          >
+          <div className="bg-white rounded-lg w-96 modal_background">
             <div className="flex justify-between items-center pb-2 p-4">
               <h2 className="text-lg font-bold">Create Group</h2>
               <button
@@ -3525,7 +3734,9 @@ const Chat2 = () => {
                     return (
                       <div
                         key={index}
-                        className={`flex items-center justify-between p-2 mx-1 hover:bg-gray-100 rounded ${isChecked ? "order-first" : ""}`}
+                        className={`flex items-center justify-between p-2 hover:bg-gray-100 rounded ${
+                          isChecked ? "order-first" : ""
+                        }`}
                         onClick={() => {
                           if (!isChecked) {
                             setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
@@ -3663,8 +3874,6 @@ const Chat2 = () => {
         </div>
       )}
 
-
-
       {/* Image Modal */}
       {isImageModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
@@ -3682,6 +3891,16 @@ const Chat2 = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Forward Modal */}
+      {showForwardModal && (
+        <ForwardModal
+          show={showForwardModal}
+          onClose={() => setShowForwardModal(false)}
+          onSubmit={handleForwardSubmit} // Corrected the onSubmit prop
+          users={allUsers}
+        />
       )}
 
       {/* delete message modal */}
