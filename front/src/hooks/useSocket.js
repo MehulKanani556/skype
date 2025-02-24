@@ -31,6 +31,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
   const [hasMicrophone, setHasMicrophone] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicrophoneOn, setIsMicrophoneOn] = useState(false);
+  const [voiceCallData, setVoiceCallData] = useState(null);
   const streamRef = useRef(null);
 
 
@@ -591,6 +592,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     socketRef.current.on("voice-call-request", async (data) => {
       console.log("Incoming voice call from:", data.fromEmail);
       setIncomingCall({ fromEmail: data.fromEmail, signal: data.signal, type: data.type });
+      setVoiceCallData(data);
     });
 
     socketRef.current.on("screen-share-request", async (data) => {
@@ -980,7 +982,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       setError("Please enter peer email first");
       return;
     }
-  
+
     console.log("startVoiceCall", receiverId);
     try {
       let stream = null;
@@ -1122,7 +1124,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
   const endVoiceCall = () => {
     // Calculate final call duration
-    console.log("endVoiceCall", peerEmail,userId);
+    console.log("endVoiceCall", peerEmail, userId);
     const finalDuration = callStartTime
       ? Math.floor((new Date() - callStartTime) / 1000)
       : 0;
@@ -1140,7 +1142,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       });
     }
 
-  
+
     if (callStartTime) {
       socketRef.current.emit("save-call-message", {
         senderId: userId,
@@ -1175,6 +1177,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     setCallDuration(null);
     setCallStartTime(null);
     setPeerEmail(null);
+    setVoiceCallData(null);
   };
   // ==================group message=============================
   // Send group message
@@ -1306,5 +1309,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     acceptVoiceCall,
     endVoiceCall,
     isVoiceCalling,
+    voiceCallData,
+    setVoiceCallData
   };
 };

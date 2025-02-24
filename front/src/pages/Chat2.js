@@ -202,6 +202,7 @@ const Chat2 = () => {
     startVoiceCall,
     acceptVoiceCall,
     endVoiceCall,
+    voiceCallData
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
 
   // console.log(onlineUsers);
@@ -513,8 +514,12 @@ const Chat2 = () => {
   // =========================== video call=============================
 
   // Add call handling functions
+  const [callReceiverId, setCallReceiverId] = useState(null);
+
   const handleMakeCall = async (type) => {
     if (!selectedChat) return;
+
+    setCallReceiverId(selectedChat._id); // Store the initial selected user's ID
 
     if (type == "video") {
       const success = await startVideoCall(selectedChat._id);
@@ -524,7 +529,7 @@ const Chat2 = () => {
       }
     } else if (type == "voice") {
       const success = await startVoiceCall(selectedChat._id);
-      // console.log(success);
+      console.log(success);
       if (!success) {
         console.error("Failed to start voice call");
       }
@@ -1022,7 +1027,7 @@ const Chat2 = () => {
                   size: `${(audioBlob.size / (1024 * 1024)).toFixed(2)} MB`,
                 });
               }
-              
+
             } catch (error) {
               console.error("Error uploading audio message:", error);
             }
@@ -1671,8 +1676,8 @@ const Chat2 = () => {
           {callUsers && callUsers
             .map((item) => ({
               ...item,
-              lastMessageTimestamp: item.messages.length > 0 
-                ? new Date(item.messages[item.messages.length - 1].content.timestamp) 
+              lastMessageTimestamp: item.messages.length > 0
+                ? new Date(item.messages[item.messages.length - 1].content.timestamp)
                 : null
             }))
             .filter(item => item.lastMessageTimestamp) // Filter out users without messages
@@ -1700,7 +1705,7 @@ const Chat2 = () => {
                       <span className="text-gray-900 text-lg font-bold">
                         {item?.userName && item?.userName.includes(" ")
                           ? item?.userName.split(" ")[0][0].toUpperCase() +
-                            item?.userName.split(" ")[1][0].toUpperCase()
+                          item?.userName.split(" ")[1][0].toUpperCase()
                           : item?.userName[0].toUpperCase()}
                       </span>
                     )}
@@ -1717,7 +1722,7 @@ const Chat2 = () => {
                         : item.userName}
                     </span>
                     <span className="text-xs text-gray-500">
-                      {item.messages.length > 0 && 
+                      {item.messages.length > 0 &&
                         new Date(item.messages[item.messages.length - 1].content.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
@@ -2322,23 +2327,6 @@ const Chat2 = () => {
                     No messages yet
                   </div>
                 )}
-                {/* {selectedChat && typingUsers[selectedChat._id] && (
-              <div className="flex items-center space-x-2 text-gray-500 text-sm ml-4 mb-2">
-                <div className="flex space-x-1">
-                  <div
-                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "0ms" }}
-                  ></div>
-                  <div
-                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "150ms" }}
-                  ></div>
-                  <div
-                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                    style={{ animationDelay: "300ms" }}
-                  ></div>
-                </div>
-              )} */}
                 {selectedChat && typingUsers[selectedChat._id] && (
                   <div className="flex items-center space-x-2 text-gray-500 text-sm ml-4 mb-2">
                     <div className="flex space-x-1">
@@ -2435,18 +2423,17 @@ const Chat2 = () => {
                 <div className="w-full max-w-4xl mx-auto p-4 rounded-lg ">
                   <form
                     onSubmit={handleSubmit}
-                    className="flex items-center gap-2 rounded-full px-4 py-2 shadow"
+                    className="flex items-center gap-2 rounded-full px-4 py-2 shadow w-full max-w-full"
                     style={{ backgroundColor: "#e5e7eb" }}
                   >
                     <button
                       type="button"
-                      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                      className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
                       aria-label="Add emoji"
                       onClick={() => setIsEmojiPickerOpen(!isEmojiPickerOpen)}
                     >
                       <FaRegSmile className="w-5 h-5 text-gray-500" />
                     </button>
-
                     {isEmojiPickerOpen && (
                       <div
                         ref={emojiPickerRef}
@@ -2455,30 +2442,30 @@ const Chat2 = () => {
                         <EmojiPicker onEmojiClick={onEmojiClick} />
                       </div>
                     )}
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      value={messageInput}
-                      onChange={handleInputChange}
-                      placeholder={
-                        editingMessage ? "Edit message..." : "Type a message"
-                      }
-                      className="flex-1 px-2 py-1 outline-none text-black"
-                      style={{ backgroundColor: "#e5e7eb" }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleSubmit(e, {
-                            type: "text",
-                            content: messageInput,
-                          });
-                        } else if (e.key === "Escape" && editingMessage) {
-                          setEditingMessage(null);
-                          setMessageInput("");
-                        }
-                      }}
-                    />
-                    <div className="flex items-center gap-1">
+                    <div className="flex-1 min-w-0"> {/* Add container with min-width */}
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={messageInput}
+                        onChange={handleInputChange}
+                        placeholder={editingMessage ? "Edit message..." : "Type a message"}
+                        className="w-full px-2 py-1 outline-none text-black bg-transparent"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleSubmit(e, {
+                              type: "text",
+                              content: messageInput,
+                            });
+                          } else if (e.key === "Escape" && editingMessage) {
+                            setEditingMessage(null);
+                            setMessageInput("");
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <input
                         id="file-upload"
                         type="file"
@@ -2551,7 +2538,7 @@ const Chat2 = () => {
               {showScrollToBottom && (
                 <button
                   type="button"
-                  className="fixed bottom-4 right-4 p-2 bg-blue-500/50 text-white rounded-full shadow-lg"
+                  className="fixed bottom-10 right-4 p-2 bg-blue-500/50 text-white rounded-full shadow-lg"
                   onClick={scrollToBottom}
                   aria-label="Send to Bottom"
                 >
@@ -2571,7 +2558,7 @@ const Chat2 = () => {
 
 
       {/* {console.log(isVideoCalling)} */}
-      <div className={`flex-grow flex flex-col ${(isReceiving || isVideoCalling || incomingCall || isVoiceCalling) ? '' : 'hidden'}`}>
+      <div className={`flex-grow flex flex-col ${(isReceiving || isVideoCalling || incomingCall || isVoiceCalling || voiceCallData) ? '' : 'hidden'}`}>
         {/* <div className="flex-1 grid grid-row-2 gap-4 relative">
           <div className={`space-y-2 max-w-30 absolute top-1 right-0 ${isVideoCalling || isVoiceCalling ? '' : 'hidden'}`}> */}
         <div className="grid grid-row-2 gap-4 relative">
@@ -2592,8 +2579,50 @@ const Chat2 = () => {
               autoPlay
               playsInline
               className="w-full bg-gray-100 rounded"
-              style={{ maxHeight: "90vh", }}
+              style={{ maxHeight: "90vh", backgroundColor: "#a5a5a5" }}
             />
+          </div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            {(isVideoCalling || isVoiceCalling || isReceiving || incomingCall || voiceCallData) ? (
+              console.log(voiceCallData),
+
+              <div className="w-24 h-24 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center border-2 border-white">
+                {voiceCallData ? (
+                  // For incoming calls, show caller's profile
+                  allUsers.find(user => user._id === voiceCallData.fromEmail)?.photo ? (
+                    console.log(user._id),
+                    console.log("imageeeeeeeeeee", allUsers.find(user => user._id === voiceCallData.fromEmail)?.photo),
+
+                    <img
+                      src={`${IMG_URL}${allUsers.find(user => user._id === voiceCallData.fromEmail)?.photo.replace(/\\/g, "/")}`}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-gray-900 text-4xl font-bold">
+                      {allUsers.find(user => user._id === voiceCallData.fromEmail)?.userName[0].toUpperCase()}
+                    </span>
+                  )
+                ) : (
+                  // For outgoqing calls, show receiver's profile
+                  allUsers.find(user => user._id === callReceiverId)?.photo ? (
+                    <img
+                      src={`${IMG_URL}${allUsers.find(user => user._id === callReceiverId)?.photo.replace(/\\/g, "/")}`}
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-gray-900 text-4xl font-bold">
+                      {allUsers.find(user => user._id === callReceiverId)?.userName[0].toUpperCase()}
+                    </span>
+                  )
+                )}
+              </div>
+            ) : (
+              <span className="text-white text-2xl font-semibold bg-black bg-opacity-50 px-4 py-2 rounded-full">
+                Calling...
+              </span>
+            )}
           </div>
           {(isSharing || isReceiving || isVideoCalling || isVoiceCalling) && (
             <div className="h-10 flex gap-3 mb-4 absolute bottom-1 left-1/2">
@@ -2638,7 +2667,9 @@ const Chat2 = () => {
           <div className="bg-black rounded-lg p-6 w-72 text-center">
             <div className="w-20 h-20 mx-auto mb-4 rounded-full overflow-hidden">
               {/* Profile image or default avatar */}
-              {allUsers.find(user => user._id === incomingCall.fromEmail)?.photo && allUsers.find(user => user._id === incomingCall.fromEmail)?.photo !== "null" ? (
+              {allUsers.find(user => user._id === incomingCall.fromEmail)?.photo || allUsers.find(user => user._id === incomingCall.fromEmail)?.photo !== "null" ? (
+                console.log("recieveeeeeeeeeeeeeeee", allUsers.find(user => user._id === incomingCall.fromEmail)),
+
                 <img
                   src={`${IMG_URL}${allUsers.find(user => user._id === incomingCall.fromEmail)?.photo.replace(/\\/g, "/")}`} // Replace with actual user profile image
                   alt="Caller"
