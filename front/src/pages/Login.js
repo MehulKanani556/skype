@@ -3,13 +3,14 @@ import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { GoogleLogin } from '@react-oauth/google';
 import { forgotPassword, googleLogin, login, register, resetPassword, verifyOtp } from '../redux/slice/auth.slice';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import { LuEye, LuEyeClosed } from 'react-icons/lu';
+import { ImCross } from 'react-icons/im';
 // import React, { useState, useEffect } from "react";
 // import { Formik, Form, Field, ErrorMessage } from "formik";
-
+import { BiSolidErrorAlt } from "react-icons/bi";
 const OTPInput = ({ length = 4, onComplete, resendTimer, setResendTimer, handleVerifyOTP, handleBack, email }) => {
   const [otp, setOtp] = useState(new Array(length).fill(''));
   const [error, setError] = useState('');
@@ -149,6 +150,8 @@ const Login = () => {
   const [forgotPasswordStep, setForgotPasswordStep] = useState(0);
   const [resendTimer, setResendTimer] = useState(60);
   const [email, setEmail] = useState('');
+  const { message } = useSelector((state) => state.auth);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -158,6 +161,25 @@ const Login = () => {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (message) {
+      setModalVisible(true)
+    }
+    else {
+      setModalVisible(false)
+    }
+  }, [message])
+
+  // useEffect(() => {
+  //   if (modalVisible) {
+  //     const timer = setTimeout(() => {
+  //       setModalVisible(false);
+  //     }, 2000);
+
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [modalVisible]);
 
   // useEffect(() => {
   //   if (resendTimer > 0) {
@@ -661,6 +683,37 @@ const Login = () => {
             >
               {isRightPanelActive ? "Sign In" : "Sign Up"}
             </button>
+          </div>
+        )}
+        {/* error message  */}
+        {modalVisible && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            onClick={() => setModalVisible(false)}
+          >
+            <div
+              className="bg-white rounded-lg w-96 "
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-end items-center pb-2 p-4">
+
+                <button
+                  onClick={() => setModalVisible(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <ImCross />
+                </button>
+              </div>
+              <div className='text-xl p-5 text-red-500 py-8 pt-6 text-center flex flex-col justify-center items-center'>
+                <p className='text-center text-6xl mb-3'>
+                  <BiSolidErrorAlt  />
+                </p>
+                <p>
+                  {message}
+                </p>
+
+              </div>
+            </div>
           </div>
         )}
       </div>
