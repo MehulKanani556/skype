@@ -171,7 +171,7 @@ const ChatItem = ({ item, currentUser, onlineUsers, setSelectedChat, setShowLeft
                   </span>
                 ) : (
                   <span className=" ml-1 flex gap-1 items-center">
-                  <span style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: '150px' }}>{item?.messages?.[0]?.content.content.replace(/\*\*/g, '')}</span>
+                  <span style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', maxWidth: '150px' }}>{item?.messages?.[0]?.content?.content?.replace(/\*\*/g, '')}</span>
                   </span>
                 )}
               </>
