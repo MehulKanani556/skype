@@ -29,6 +29,7 @@ import {
   MdOutlineModeEdit,
   MdPhoneEnabled,
   MdGroupAdd,
+  MdOutlineModeEditOutline,
 } from "react-icons/md";
 import { CiSquareRemove } from "react-icons/ci";
 import { RiShutDownLine } from "react-icons/ri";
@@ -40,7 +41,7 @@ import {
 import { IoIosArrowDown, IoIosArrowUp, IoMdSearch } from "react-icons/io";
 import { GoDeviceCameraVideo } from "react-icons/go";
 import { ImCross } from "react-icons/im";
-import { FiCamera, FiCameraOff } from "react-icons/fi";
+import { FiCamera, FiCameraOff, FiEdit2 } from "react-icons/fi";
 import { BsFillMicFill, BsFillMicMuteFill } from "react-icons/bs";
 import { RxCross2 } from "react-icons/rx";
 import {
@@ -196,6 +197,7 @@ const Chat2 = () => {
   const [editedPhone, setEditedPhone] = useState(user?.phone || "");
   const [visibleDate, setVisibleDate] = useState(null);
   const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const searchRef = useRef(null); // Define searchRef
 
@@ -237,8 +239,8 @@ const Chat2 = () => {
     callParticipants,
     voiceCallData,
     forwardMessage,
+    addMessageReaction,
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
-
 
   //===========get all users===========
   useEffect(() => {
@@ -468,7 +470,6 @@ const Chat2 = () => {
             Replying to {repliedUser?.userName || "User"}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-300 truncate">
-
             {replyData.content}
           </div>
         </div>
@@ -673,7 +674,13 @@ const Chat2 = () => {
 
     const unsubscribeGroupMessages = subscribeToMessages((message) => {
       if (message.type === "group") {
-        dispatch(getAllMessages({ selectedId: selectedChat._id })); // Refresh messages if needed
+        if (selectedChat) {
+          dispatch(getAllMessages({ selectedId: selectedChat._id })); // Refresh messages if needed
+        }
+      } else if (message.type === "reaction") {
+        if (selectedChat) {
+          dispatch(getAllMessages({ selectedId: selectedChat._id })); // Refresh messages if needed
+        }
       }
     });
 
@@ -1342,8 +1349,8 @@ const Chat2 = () => {
               <div className="flex border-b">
                 <button
                   className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "All"
-                    ? "text-gray-700 border-b-2 border-blue-500"
-                    : "text-gray-500 hover:text-gray-700"
+                      ? "text-gray-700 border-b-2 border-blue-500"
+                      : "text-gray-500 hover:text-gray-700"
                     }`}
                   onClick={() => setActiveSearchTab("All")}
                 >
@@ -1351,8 +1358,8 @@ const Chat2 = () => {
                 </button>
                 <button
                   className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "People"
-                    ? "text-gray-700 border-b-2 border-blue-500"
-                    : "text-gray-500 hover:text-gray-700"
+                      ? "text-gray-700 border-b-2 border-blue-500"
+                      : "text-gray-500 hover:text-gray-700"
                     }`}
                   onClick={() => setActiveSearchTab("People")}
                 >
@@ -1360,8 +1367,8 @@ const Chat2 = () => {
                 </button>
                 <button
                   className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "Groups"
-                    ? "text-gray-700 border-b-2 border-blue-500"
-                    : "text-gray-500 hover:text-gray-700"
+                      ? "text-gray-700 border-b-2 border-blue-500"
+                      : "text-gray-500 hover:text-gray-700"
                     }`}
                   onClick={() => setActiveSearchTab("Groups")}
                 >
@@ -1772,8 +1779,8 @@ const Chat2 = () => {
                     ) : (
                       <div
                         className={`text-sm ${onlineUsers.includes(selectedChat?._id)
-                          ? "text-green-500"
-                          : "text-gray-500"
+                            ? "text-green-500"
+                            : "text-gray-500"
                           }`}
                       >
                         {onlineUsers.includes(selectedChat?._id)
@@ -2090,13 +2097,55 @@ const Chat2 = () => {
                                 ? "justify-end items-end"
                                 : "justify-start items-start"
                                 } ${isConsecutive ? "mb-1" : "mb-4"
-                                } message-content `}
+                                } message-content 
+                                 ${message.reactions && message.reactions.length > 0 ? 'mb-5' : ''}
+                                `}
                             >
                               <div className="flex flex-col relative group bg-[#ccf7ff] " >
                                 <div className="flex flex-col-reverse mt-3 justify-between  " style={{ flexDirection: 'column-reverse', backgroundColor: "#ccf7ff" }}>
                                   {/* ==========reply to message========== */}
                                   {message.replyTo && (
-                                    <div className="reply-preview bg-gray-100 p-3 rounded mb-1 text-sm order-2 mx-2 my-2" style={{}}>
+                                    <div className="reply-preview bg-gray-100 p-3 rounded mb-1 text-sm order-2 mx-2 my-2" onClick={() => {
+                                      const originalMessage = messages.find(
+                                        (msg) =>
+                                          msg.content?.content ===
+                                          message.replyTo.content.content &&
+                                          msg.sender ===
+                                          message.replyTo.sender
+                                      );
+
+                                      if (originalMessage) {
+                                        const messageElement =
+                                          document.getElementById(
+                                            `message-${originalMessage._id}`
+                                          );
+                                        if (messageElement) {
+                                          document
+                                            .querySelectorAll(
+                                              ".highlight-message"
+                                            )
+                                            .forEach((el) => {
+                                              el.classList.remove(
+                                                "highlight-message"
+                                              );
+                                            });
+                                          messageElement.classList.add(
+                                            "highlight-message"
+                                          );
+
+                                          messageElement.scrollIntoView({
+                                            behavior: "smooth",
+                                            block: "center",
+                                          });
+
+                                          setTimeout(() => {
+                                            messageElement.classList.remove(
+                                              "highlight-message"
+                                            );
+                                          }, 2000);
+                                        }
+                                      }
+                                    }} style={{}}>
                                       <div className="flex justify-between items-center mb-2">
                                         <p className="text-gray-600 ">
                                           <SlActionUndo />
@@ -2165,6 +2214,68 @@ const Chat2 = () => {
                                     </div>
                                   )}
                                 </div>
+                                {message.sender !== userId && (
+                                  <>
+                                    <div className="relative">
+                                      <button
+                                        className="hover:scale-125 transition-transform absolute -right-6 -top-3 text-gray-600"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setShowEmojiPicker(message._id);
+                                        }}
+                                      >
+                                        <FaRegSmile />
+                                      </button>
+                                      {showEmojiPicker === message._id && (
+                                        <div
+                                          className="absolute -right-[320px] -top-[0px] z-50"
+                                          onMouseLeave={() => setShowEmojiPicker(null)}
+                                        >
+                                          <div
+                                            className="absolute bottom-0 right-0 z-50"
+                                            onMouseLeave={() =>
+                                              setShowEmojiPicker(null)
+                                            }
+                                          >
+                                            <EmojiPicker
+                                              onEmojiClick={(event, emojiObject) => {
+                                                // console.log("event", event.emoji, emojiObject.emoji);
+                                                // event.stopPropagation();
+                                                addMessageReaction(
+                                                  message._id,
+                                                  event.emoji
+                                                );
+                                                dispatch(getAllMessages({ selectedId: selectedChat._id }));
+                                                setShowEmojiPicker(null);
+                                              }}
+                                              width={300}
+                                              height={400}
+                                              searchDisabled
+                                              skinTonesDisabled
+                                              previewConfig={{
+                                                showPreview: false,
+                                              }}
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
+
+                                {message.reactions && message.reactions.length > 0 && (
+                                  <div className="absolute -bottom-4 left-1 flex space-x-1">
+                                    {message.reactions.map((reaction, index) => (
+                                      <div
+                                        key={index}
+                                        className=" z-40 bg-white rounded-full p-1 w-7 h-7 flex items-center justify-center shadow-md shadow-black`"
+                                        title={allUsers.find(u => u._id === reaction.userId)?.userName}
+                                      >
+                                        {reaction.emoji}
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
                                 {/* {console.log("message", message)} */}
 
                                 {/* ==========message content========== */}
@@ -2173,7 +2284,8 @@ const Chat2 = () => {
                                     "image/"
                                   ) ? (
                                     <div
-                                      className={` max-w-[300px] max-h-[300px]  overflow-hidden`}
+                                      className={` max-w-[300px] max-h-[300px]  overflow-hidden 
+                                        ${message.reactions && message.reactions.length > 0 ? 'pb-4' : ''}`}
                                       style={{ wordWrap: "break-word" }}
                                       onContextMenu={(e) => {
                                         console.log("sdkfsbgdjhf");
@@ -2187,8 +2299,8 @@ const Chat2 = () => {
                                         )}`}
                                         alt={message.content.content}
                                         className={`w-full object-contain ${message.sender === userId
-                                          ? "rounded-s-lg rounded-tr-lg"
-                                          : "rounded-e-lg rounded-tl-lg"
+                                            ? "rounded-s-lg rounded-tr-lg"
+                                            : "rounded-e-lg rounded-tl-lg"
                                           } `}
                                         onClick={() =>
                                           handleImageClick(
@@ -2215,10 +2327,13 @@ const Chat2 = () => {
                                   ) ? (
                                     <div
                                       className={`p-4 max-w-[300px] ${message.sender === userId
-                                        ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
-                                        : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
-                                        }`}
-                                      style={{ wordWrap: "break-word", wordBreak: 'break-all' }}
+                                          ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
+                                          : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
+                                        } `}
+                                      style={{
+                                        wordWrap: "break-word",
+                                        wordBreak: "break-all",
+                                      }}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
                                       }
@@ -2249,10 +2364,13 @@ const Chat2 = () => {
                                   ) : (
                                     <div
                                       className={`p-4 max-w-[300px] ${message.sender === userId
-                                        ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
-                                        : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
+                                          ? "bg-[#CCF7FF] rounded-s-lg rounded-tr-lg"
+                                          : "bg-[#F1F1F1] rounded-e-lg rounded-tl-lg"
                                         }`}
-                                      style={{ wordWrap: "break-word", wordBreak: 'break-all' }}
+                                      style={{
+                                        wordWrap: "break-word",
+                                        wordBreak: "break-all",
+                                      }}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
                                       }
@@ -2282,22 +2400,37 @@ const Chat2 = () => {
                                 ) : (
                                   <div className="flex gap-1">
                                     <div
-                                      className={`group flex-1 p-2  flex justify-between items-center relative ${message.sender === userId
-                                        ? `bg-[#CCF7FF] ${message?.replyTo?.content?.content ? "rounded-b-lg" : "rounded-s-lg"} ${showTime && !message?.replyTo?.content?.content ? "rounded-tr-lg" : ""
-                                        } `
-                                        : `bg-[#F1F1F1] ${message?.replyTo?.content?.content ? "rounded-b-lg" : "rounded-e-lg"} ${showTime && !message?.replyTo?.content?.content ? "rounded-tl-lg" : ""
-                                        }`
-                                        }`}
+                                      className={`group flex-1 p-2 pb  flex justify-between items-center relative ${message.sender === userId
+                                          ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""
+                                          } `
+                                          : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""
+                                          }`
+                                        }  ${message.reactions && message.reactions.length > 0 ? 'pb-4' : ''}`}
                                       onContextMenu={(e) =>
                                         handleContextMenu(e, message)
                                       }
                                     >
-                                      <p className="flex-1">
-                                        {highlightText(
-                                          message?.content?.content,
-                                          searchInputbox
-                                        )}
-                                      </p>
+                                      <div className="flex-1 flex flex-col">
+                                        <p className="flex-1">
+                                          {highlightText(
+                                            message?.content?.content,
+                                            searchInputbox
+                                          )}
+                                        </p>
+
+                                        {/* Add edited indicator */}
+                                      </div>
+
+                                      {message.edited && (
+                                        <div
+                                          className={`absolute bottom-0 ${message.sender === userId
+                                              ? "-left-5"
+                                              : "-right-5"
+                                            } flex items-center text-xs text-gray-500 mt-1`}
+                                        >
+                                          <FiEdit2 className="w-4 h-4" />
+                                        </div>
+                                      )}
 
                                       {/* Add three dots icon */}
                                       <PiDotsThreeVerticalBold
@@ -2585,13 +2718,19 @@ const Chat2 = () => {
                         }
                       </div>
                       <div className="text-gray-600 text-sm line-clamp-2">
-                        {console.log(replyingTo.content.fileType === "image/jpeg")}
+                        {console.log(
+                          replyingTo.content.fileType === "image/jpeg"
+                        )}
                         {replyingTo.content.content}
                         {replyingTo.content.fileType === "image/jpeg" && (
-                          <img src={`${IMG_URL}${replyingTo.content.fileUrl.replace(
-                            /\\/g,
-                            "/"
-                          )}`} alt="" className="h-10" />
+                          <img
+                            src={`${IMG_URL}${replyingTo.content.fileUrl.replace(
+                              /\\/g,
+                              "/"
+                            )}`}
+                            alt=""
+                            className="h-10"
+                          />
                         )}
                       </div>
                     </div>
@@ -2749,10 +2888,10 @@ const Chat2 = () => {
       >
         <div
           className={`flex-1 relative ${isReceiving
-            ? "flex items-center justify-center"
-            : `grid gap-4 ${getGridColumns(
-              parseInt(remoteStreams.size) + (isVideoCalling ? 1 : 0)
-            )}`
+              ? "flex items-center justify-center"
+              : `grid gap-4 ${getGridColumns(
+                parseInt(remoteStreams.size) + (isVideoCalling ? 1 : 0)
+              )}`
             }`}
         >
           {/* Local video */}
@@ -2966,7 +3105,7 @@ const Chat2 = () => {
 
       {/*========== Group Modal ==========*/}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center" >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
           <div className="bg-white rounded-lg w-96 p-4 modal_background">
             <div className="flex justify-between items-center border-b pb-2">
               <h2 className="text-lg font-bold">Add to Group</h2>
@@ -2993,7 +3132,8 @@ const Chat2 = () => {
                     return (
                       <div
                         key={index}
-                        className={`flex items-center justify-between p-2 mx-1 hover:bg-gray-100 rounded ${isChecked ? "order-first" : ""}`}
+                        className={`flex items-center justify-between p-2 mx-1 hover:bg-gray-100 rounded ${isChecked ? "order-first" : ""
+                          }`}
                         onClick={() => {
                           if (!isChecked) {
                             setGroupNewUsers((prev) => [...prev, user._id]);
@@ -3622,10 +3762,7 @@ const Chat2 = () => {
                       <div className="w-8 h-8 rounded-full mr-2 bg-gray-300 overflow-hidden flex items-center justify-center border-[1px] border-gray-400">
                         {user?.photo && user.photo !== "null" ? (
                           <img
-                            src={`${IMG_URL}${user.photo.replace(
-                              /\\/g,
-                              "/"
-                            )}`}
+                            src={`${IMG_URL}${user.photo.replace(/\\/g, "/")}`}
                             alt={`${user.userName}`}
                             className="object-cover h-full w-full"
                           />
@@ -3866,8 +4003,6 @@ const Chat2 = () => {
         style={{ display: "none" }}
         accept="image/*"
         onChange={(e) => {
-
-
           const file = e.target.files[0];
           if (file) {
             // Handle the file upload logic here

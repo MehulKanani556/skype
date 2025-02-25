@@ -296,9 +296,6 @@ function handleParticipantLeft(socket, data) {
   }
 }
 
-
-
-
 function handleVideoCallAccept(socket, data) {
   const targetSocketId = onlineUsers.get(data.fromEmail);
   if (targetSocketId) {
@@ -545,6 +542,52 @@ async function handleGroupMessage(socket, data) {
   }
 }
 
+// ===========================message reaction=============================
+
+async function handleMessageReaction(socket, data) {
+  const { messageId, userId, emoji } = data;
+  
+  try {
+    // Find the message
+    const message = await Message.findById(messageId);
+    if (!message) return;
+
+    // Remove existing reaction from this user if any
+    // message.reactions = message.reactions.filter(
+    //   reaction => reaction.userId.toString() !== userId
+    // );
+
+    // Add new reaction
+    message.reactions.push({
+      userId,
+      emoji,
+      createdAt: new Date()
+    });
+
+    await message.save();
+
+    // Emit to sender and receiver
+    const receiverSocketId = onlineUsers.get(message.receiver.toString());
+    const senderSocketId = onlineUsers.get(message.sender.toString());
+
+    const reactionData = {
+      messageId,
+      userId,
+      emoji
+    };
+
+    if (receiverSocketId) {
+      socket.to(receiverSocketId).emit("message-reaction", reactionData);
+    }
+    if (senderSocketId && senderSocketId !== socket.id) {
+      socket.to(senderSocketId).emit("message-reaction", reactionData);
+    }
+
+  } catch (error) {
+    console.error("Error handling message reaction:", error);
+  }
+}
+
 // ===========================socket connection=============================
 
 function handleDisconnect(socket) {
@@ -701,6 +744,9 @@ function initializeSocket(io) {
     socket.on("get-group-members", (groupId) =>
       handleGetGroupMembers(socket, groupId)
     );
+
+    // ===========================message reaction=============================
+    socket.on("message-reaction", (data) => handleMessageReaction(socket, data));
 
     // Add to socket.on handlers
     socket.on("forward-message", (data) => handleForwardMessage(socket, data));
