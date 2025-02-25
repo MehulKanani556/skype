@@ -2581,55 +2581,57 @@ const Chat2 = () => {
                                   )}
                                 </div>
 
-                                {/* Context Menu (Right Click) */}
                                 {contextMenu.visible &&
                                   contextMenu.messageId === message._id && (
                                     <div className="absolute right-0 top-10 mt-2 bg-white border rounded shadow-lg z-50">
-                                      {/* Only show Edit button if message is not an image or audio */}
+                                      {/* {/ Only show Edit button if message is not an image or audio /} */}
                                       {!message.content?.fileType?.includes(
                                         "image/"
                                       ) &&
                                         !message.content?.fileType?.includes(
                                           "audio/"
-                                        ) && (
-                                          <button
-                                            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                            onClick={() =>
-                                              handleEditMessage(
-                                                contextMenu.message
-                                              )
-                                            }
-                                          >
-                                            <MdOutlineModeEdit className="mr-2" />{" "}
-                                            Edit
-                                          </button>
+                                        ) && message.receiver !== userId && (
+                                          <>
+                                            <button
+                                              className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                              onClick={() =>
+                                                handleEditMessage(
+                                                  contextMenu.message
+                                                )
+                                              }
+                                            >
+                                              <MdOutlineModeEdit className="mr-2" />{" "}
+                                              Edit
+                                            </button>
+                                            <button
+                                              className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                              onClick={() =>
+                                                handleDeleteMessage(message._id)
+                                              }
+                                            >
+                                              <CiSquareRemove className="mr-2" />{" "}
+                                              Remove
+                                            </button>
+                                          </>
                                         )}
-                                      {/* Only show Copy button if message is not an audio file */}
+                                      {/* {/ Only show Copy button if message is not an audio file /} */}
                                       {!message.content?.fileType?.includes(
                                         "audio/"
                                       ) && (
-                                        <button
-                                          className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                          onClick={() =>
-                                            handleCopyMessage(
-                                              message.content,
-                                              () => setActiveMessageId(null)
-                                            )
-                                          }
-                                        >
-                                          <VscCopy className="mr-2" /> Copy
-                                        </button>
-                                      )}
-                                      <button
-                                        className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                        onClick={() =>
-                                          handleDeleteMessage(message._id)
-                                        }
-                                      >
-                                        <CiSquareRemove className="mr-2" />{" "}
-                                        Remove
-                                      </button>
-                                      {/* Add Reply button */}
+                                          <button
+                                            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                            onClick={() =>
+                                              handleCopyMessage(
+                                                message.content,
+                                                () => setActiveMessageId(null)
+                                              )
+                                            }
+                                          >
+                                            <VscCopy className="mr-2" /> Copy
+                                          </button>
+                                        )}
+
+                                      {/* {/ Add Reply button /} */}
                                       <button
                                         className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
                                         onClick={() => {
@@ -2644,7 +2646,7 @@ const Chat2 = () => {
                                       >
                                         <BiReply className="mr-2" /> Reply
                                       </button>
-                                      {/* Add Forward button */}
+                                      {/* {/ Add Forward button /} */}
                                       <button
                                         className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
                                         onClick={() =>
@@ -2656,55 +2658,87 @@ const Chat2 = () => {
                                     </div>
                                   )}
 
-                                {/* Three Dots Dropdown */}
+                                {/* {/ Three Dots Dropdown /} */}
                                 {activeMessageId === message._id && (
                                   <div
                                     className="text-gray-500 mt-1"
                                     ref={dropdownRef}
                                   >
                                     <div className="absolute top-[30px] right-0 mt-2 bg-white border rounded shadow-lg z-50">
-                                      {/* Only show Edit button if message is not an image or audio */}
+                                      {/* {/ Only show Edit button if message is not an image or audio /} */}
                                       {!message.content?.fileType?.includes(
                                         "image/"
                                       ) &&
                                         !message.content?.fileType?.includes(
                                           "audio/"
-                                        ) && (
-                                          <button
-                                            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                            onClick={() =>
-                                              handleEditMessage(message)
-                                            }
-                                          >
-                                            <MdOutlineModeEdit className="mr-2" />{" "}
-                                            Edit
-                                          </button>
+                                        ) && message.receiver !== userId && (
+                                          <>
+                                            <button
+                                              className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                              onClick={() =>
+                                                handleEditMessage(message)
+                                              }
+                                            >
+                                              <MdOutlineModeEdit className="mr-2" />{" "}
+                                              Edit
+                                            </button>
+                                            <button
+                                              className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                              onClick={() =>
+                                                handleDeleteMessage(message._id)
+                                              }
+                                            >
+                                              <CiSquareRemove className="mr-2" />{" "}
+                                              Remove
+                                            </button>
+                                          </>
                                         )}
-                                      {/* Only show Copy button if message is not an audio file */}
-                                      {!message.content?.fileType?.includes(
-                                        "audio/"
-                                      ) && (
-                                        <button
-                                          className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
-                                          onClick={() =>
-                                            handleCopyMessage(
-                                              message.content,
-                                              () => setActiveMessageId(null)
-                                            )
-                                          }
-                                        >
-                                          <VscCopy className="mr-2" /> Copy
-                                        </button>
-                                      )}
+
+                                      <button
+                                        className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                        onClick={() => {
+                                          handleReplyMessage(message);
+                                          setContextMenu({
+                                            visible: false,
+                                            x: 0,
+                                            y: 0,
+                                            messageId: null,
+                                          });
+                                        }}
+                                      >
+                                        <BiReply className="mr-2" /> Reply
+                                      </button>
+
                                       <button
                                         className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
                                         onClick={() =>
-                                          handleDeleteMessage(message._id)
+                                          handleForwardMessage(message)
                                         }
                                       >
-                                        <CiSquareRemove className="mr-2" />{" "}
-                                        Remove
+                                        <BiShare className="mr-2" /> Forward
                                       </button>
+
+
+                                      {/* {/ Only show Copy button if message is not an audio file /} */}
+                                      {!message.content?.fileType?.includes(
+                                        "audio/"
+                                      ) && (
+                                          <>
+                                            <button
+                                              className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+                                              onClick={() =>
+                                                handleCopyMessage(
+                                                  message.content,
+                                                  () => setActiveMessageId(null)
+                                                )
+                                              }
+                                            >
+                                              <VscCopy className="mr-2" /> Copy
+                                            </button>
+
+                                          </>
+                                        )}
+
                                     </div>
                                   </div>
                                 )}
