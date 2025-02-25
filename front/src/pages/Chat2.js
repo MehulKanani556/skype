@@ -76,6 +76,7 @@ import { MdOutlineDeleteSweep } from "react-icons/md";
 import AudioPlayer from "../component/AudioPlayer";
 import ChatItem from "../component/ChatItem"; // Import the new ChatItem component
 import { BiReply, BiShare } from "react-icons/bi";
+import { SlActionUndo } from "react-icons/sl";
 
 // Forward Modal Component
 const ForwardModal = ({ show, onClose, onSubmit, users }) => {
@@ -1922,7 +1923,7 @@ const Chat2 = () => {
               <div
                 className="flex-1 overflow-y-auto p-4 modal_scroll"
                 ref={messagesContainerRef}
-                style={{ height: selectedFiles.length > 0 ? "calc(100vh -  275px)" : replyingTo ? "calc(100vh -  225px)" : "calc(100vh - 180px)" }}
+                style={{ height: selectedFiles.length > 0 ? "calc(100vh -  275px)" : replyingTo ? (replyingTo.content.fileType === "image/jpeg" ? "calc(100vh - 250px)" : "calc(100vh -  225px)") : "calc(100vh - 180px)" }}
               >
                 {visibleDate && <FloatingDateIndicator />}
                 {messages && messages.length > 0 ? (
@@ -2089,25 +2090,59 @@ const Chat2 = () => {
                                 ? "justify-end items-end"
                                 : "justify-start items-start"
                                 } ${isConsecutive ? "mb-1" : "mb-4"
-                                } message-content`}
+                                } message-content `}
                             >
-                              <div className="flex flex-col relative group">
-                                <div className="flex mt-3 justify-between">
+                              <div className="flex flex-col relative group bg-[#ccf7ff] " >
+                                <div className="flex flex-col-reverse mt-3 justify-between  " style={{ flexDirection: 'column-reverse', backgroundColor: "#ccf7ff" }}>
                                   {/* ==========reply to message========== */}
                                   {message.replyTo && (
-                                    <div className="reply-preview bg-gray-100 p-2 rounded mb-1 text-sm">
-                                      <p className="text-gray-600">
-                                        Replying to:
-                                      </p>
+                                    <div className="reply-preview bg-gray-100 p-3 rounded mb-1 text-sm order-2 mx-2 my-2" style={{}}>
+                                      <div className="flex justify-between items-center mb-2">
+                                        <p className="text-gray-600 ">
+                                          <SlActionUndo />
+                                        </p>
+                                        <p className="text-xs">
+                                          {new Date(message?.createdAt) > new Date(new Date().setDate(new Date().getDate() - 1)) ?
+                                            new Date(message?.createdAt).getDate() === new Date().getDate() ?
+                                              `Today at ${new Date(message?.createdAt).toLocaleTimeString([], {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                hour12: true,
+                                              })}` :
+                                              new Date(message?.createdAt).getDate() === new Date().getDate() + 1 ?
+                                                `Tomorrow at ${new Date(message?.createdAt).toLocaleTimeString([], {
+                                                  hour: "2-digit",
+                                                  minute: "2-digit",
+                                                  hour12: true,
+                                                })}` :
+                                                `${new Date(message?.createdAt).toLocaleDateString("en-US", { weekday: 'long' })} at ${new Date(message?.createdAt).toLocaleTimeString([], {
+                                                  hour: "2-digit",
+                                                  minute: "2-digit",
+                                                  hour12: true,
+                                                })}` :
+                                            new Date(message?.createdAt).getDate() === new Date().getDate() - 1 ?
+                                              `Yesterday at ${new Date(message?.createdAt).toLocaleTimeString([], {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                hour12: true,
+                                              })}` :
+                                              `${new Date(message?.createdAt).getDate()}/${new Date(message?.createdAt).getMonth() + 1}/${new Date(message?.createdAt).getFullYear()} at ${new Date(message?.createdAt).toLocaleTimeString([], {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                hour12: true,
+                                              })}`}
+                                        </p>
+                                      </div>
                                       <p>
-                                        {message?.replyTo?.content?.content}
+                                        {/* {message?.replyTo?.content?.content} */}
                                         {message?.replyTo?.content.fileType === "image/jpeg" && (
                                           <img src={`${IMG_URL}${message?.replyTo?.content.fileUrl.replace(
                                             /\\/g,
                                             "/"
-                                          )}`} alt="" className="h-10" />
+                                          )}`} alt="" className="max-w-[300px] max-h-[300px]" />
                                         )}
                                       </p>
+
                                     </div>
                                   )}
 
@@ -2121,7 +2156,7 @@ const Chat2 = () => {
                                     )}
                                   </div>
                                   {showTime && (
-                                    <div className="text-xs text-gray-500 text-right">
+                                    <div className="text-xs text-gray-500 bg-white text-right order-1">
                                       {selectedChat?.members &&
                                         message.sender != userId
                                         ? `${name},`
@@ -2248,9 +2283,9 @@ const Chat2 = () => {
                                   <div className="flex gap-1">
                                     <div
                                       className={`group flex-1 p-2  flex justify-between items-center relative ${message.sender === userId
-                                        ? `bg-[#CCF7FF] rounded-s-lg ${showTime ? "rounded-tr-lg" : ""
+                                        ? `bg-[#CCF7FF] ${message?.replyTo?.content?.content ? "rounded-b-lg" : "rounded-s-lg"} ${showTime && !message?.replyTo?.content?.content ? "rounded-tr-lg" : ""
                                         } `
-                                        : `bg-[#F1F1F1] rounded-e-lg ${showTime ? "rounded-tl-lg" : ""
+                                        : `bg-[#F1F1F1] ${message?.replyTo?.content?.content ? "rounded-b-lg" : "rounded-e-lg"} ${showTime && !message?.replyTo?.content?.content ? "rounded-tl-lg" : ""
                                         }`
                                         }`}
                                       onContextMenu={(e) =>
@@ -2571,7 +2606,7 @@ const Chat2 = () => {
               )}
               {/*========== Message Input ==========*/}
               {selectedChat && (
-                <div className="w-full max-w-4xl mx-auto p-4 rounded-lg ">
+                <div className="w-full max-w-4xl mx-auto px-4 rounded-lg ">
                   <form
                     onSubmit={handleSubmit}
                     className={`flex items-center gap-2 rounded-${replyingTo ? "b-" : ""
@@ -2626,7 +2661,7 @@ const Chat2 = () => {
                         id="file-upload"
                         type="file"
                         multiple
-                        accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
+                        accept="*/*"
                         className="hidden"
                         onChange={handleInputChange}
                       />
