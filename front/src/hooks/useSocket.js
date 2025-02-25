@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import Peer from "simple-peer";
-import { getAllMessageUsers, setOnlineuser } from "../redux/slice/user.slice";
+import { getAllMessages, getAllMessageUsers, setOnlineuser } from "../redux/slice/user.slice";
 import { useDispatch } from "react-redux";
 
 const SOCKET_SERVER_URL = "http://localhost:4000"; // Move to environment variable in production
@@ -242,12 +242,18 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
       callback(message);
     };
 
+    const reactionHandler = (data) => {
+      console.log("Received reaction:", data);
+      callback({ type: "reaction", ...data });
+    };
+
     socketRef.current.on("receive-message", messageHandler);
     socketRef.current.on("message-sent-status", messageStatusHandler);
     socketRef.current.on("message-read", messageReadHandler);
     socketRef.current.on("message-deleted", messageDeletedHandler);
     socketRef.current.on("message-updated", messageUpdatedHandler);
     socketRef.current.on("receive-group", groupMessageHandler);
+    socketRef.current.on("message-reaction", reactionHandler);
 
     return () => {
       if (socketRef.current) {
@@ -257,6 +263,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
         socketRef.current.off("message-deleted", messageDeletedHandler);
         socketRef.current.off("message-updated", messageUpdatedHandler);
         socketRef.current.off("receive-group", groupMessageHandler);
+        socketRef.current.off("message-reaction", reactionHandler);
       }
     };
   };
@@ -1235,6 +1242,19 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     });
   };
 
+  // ===========================message reaction=============================
+  const addMessageReaction = (messageId, emoji) => {
+    if (!socketRef.current?.connected) return;
+
+    socketRef.current.emit("message-reaction", {
+      messageId,
+      userId,
+      emoji
+    });
+  };
+
+  // ===========================cleanup Connection=============================
+
   const cleanupConnection = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach((track) => track.stop());
@@ -1353,5 +1373,6 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
     voiceCallData,
     setVoiceCallData,
     forwardMessage,
+    addMessageReaction
   };
 };

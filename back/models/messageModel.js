@@ -48,6 +48,10 @@ const messageSchema = mongoose.Schema(
       enum: ["sent", "delivered", "read", "deleted"],
       default: "sent",
     },
+    edited: {
+      type: Boolean,
+      default: false,
+    },
     deletedAt: {
       type: Date,
       default: null,
@@ -56,6 +60,23 @@ const messageSchema = mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
+      },
+    ],
+    reactions: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "user",
+          required: true,
+        },
+        emoji: {
+          type: String,
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
   },
