@@ -2064,7 +2064,7 @@ const Chat2 = () => {
                     <input
                       type="text"
                       placeholder="Search..."
-                      className="flex-1 p-2 outline-none"
+                      className="flex-1 p-2 outline-none min-w-[20px]"
                       value={searchInputbox}
                       onChange={(e) => {
                         setSearchInputbox(e.target.value);
