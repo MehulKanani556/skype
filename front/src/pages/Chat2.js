@@ -1318,7 +1318,7 @@ const Chat2 = () => {
                   className="object-fill w-full h-full"
                 />
               ) : (
-                <span className="text-white text-2xl font-bold">
+                <span className="text-white text-2xl font-bold capitalize">
                   {user?.userName && user?.userName.includes(" ")
                     ? user?.userName.split(" ")[0][0] +
                     user?.userName.split(" ")[1][0]
@@ -1922,7 +1922,7 @@ const Chat2 = () => {
                         <div className="py-2 w-48">
 
                           <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center"
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center text-nowrap"
                             onClick={() => {
                               setIsClearChatModalOpen(true);
                               setMobileMenuOpen(false);
@@ -1933,7 +1933,7 @@ const Chat2 = () => {
                           </button>
 
                           <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center"
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center text-nowrap"
                             onClick={() => {
                               handleStartScreenShare();
                               setMobileMenuOpen(false);
@@ -1945,7 +1945,7 @@ const Chat2 = () => {
 
                           {selectedChat?.members && (
                             <button
-                              className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center"
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center text-nowrap"
                               onClick={() => {
                                 if (selectedChat?.members) {
                                   setGroupUsers(selectedChat?.members);
@@ -1962,7 +1962,7 @@ const Chat2 = () => {
                           )}
 
                           <button
-                            className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center"
+                            className="w-full px-4 py-2 text-left hover:bg-gray-100 flex items-center text-nowrap"
                             onClick={() => {
                               handleMakeCall("video");
                               setMobileMenuOpen(false);
@@ -2372,8 +2372,6 @@ const Chat2 = () => {
                                         </p>
                                       </div>
                                       <p>
-                                        {console.log("asas", message.replyTo)}
-                                        {/* {message?.replyTo?.content?.content} */}
                                         {message?.replyTo?.content && message.replyTo.content.fileType?.startsWith("image/") ? (
                                           <img
                                             src={`${IMG_URL}${message?.replyTo?.content.fileUrl.replace(/\\/g, "/")}`}
@@ -2574,7 +2572,7 @@ const Chat2 = () => {
                                       >
                                         <div className="flex items-center flex-col gap-2">
                                           <div
-                                              onClick={() => handleDownload(message?.content?.fileUrl, message?.content?.content)}
+                                            onClick={() => handleDownload(message?.content?.fileUrl, message?.content?.content)}
                                             className="ml-2 text-blue-500 hover:underline cursor-pointer"
                                           >
                                             <FaDownload className="w-6 h-6" />
@@ -4317,15 +4315,23 @@ const Chat2 = () => {
       {/* delete message modal */}
       {isClearChatModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-96">
-            <h3 className="text-xl font-semibold mb-4">Clear Chat</h3>
-            <p className="text-gray-600 mb-6 font-semibold">
+          <div className="bg-white rounded-lg p-6 w-96 modal_background">
+            <h3 className=" mb-4 flex justify-between">
+              <p className="text-lg font-bold">Clear Chat</p>
+              <button
+                onClick={() => setIsClearChatModalOpen(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <ImCross />
+              </button>
+            </h3>
+            <p className="text-gray-600 mb-6 font-semibold text-center">
               Are you sure you want to clear this chat?
             </p>
             <div className="flex justify-center space-x-4">
               <button
                 onClick={() => setIsClearChatModalOpen(false)}
-                className="px-4 py-2 bg-blue-500 text-white hover:text-gray-800 rounded font-semibold"
+                className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded font-semibold"
               >
                 Cancel
               </button>
