@@ -2865,6 +2865,34 @@ const Chat2 = () => {
                   </div>
                 )}
               </div>
+              {/* <div
+                className="flex-1 overflow-y-auto p-4 modal_scroll"
+                ref={messagesContainerRef}
+              >
+                {visibleDate && <FloatingDateIndicator />}
+                <MessageList
+                  messages={messages}
+                  groupMessagesByDate={groupMessagesByDate}
+                  userId={userId}
+                  handleMakeCall={handleMakeCall}
+                  handleContextMenu={handleContextMenu}
+                  handleDropdownToggle={handleDropdownToggle}
+                  handleEditMessage={handleEditMessage}
+                  handleDeleteMessage={handleDeleteMessage}
+                  handleCopyMessage={handleCopyMessage}
+                  handleReplyMessage={handleReplyMessage}
+                  handleForwardMessage={handleForwardMessage}
+                  highlightText={highlightText}
+                  searchInputbox={searchInputbox}
+                  activeMessageId={activeMessageId}
+                  contextMenu={contextMenu}
+                  setContextMenu={setContextMenu}
+                  setActiveMessageId={setActiveMessageId}
+                  allUsers={allUsers}
+                  selectedChat={selectedChat}
+                  IMG_URL={IMG_URL}
+                />
+              </div> */}
               {selectedFiles && selectedFiles.length > 0 && (
                 <div className="flex w-full max-w-4xl mx-auto p-4 rounded-lg bg-[#e5e7eb]">
                   {selectedFiles.map((file, index) => {

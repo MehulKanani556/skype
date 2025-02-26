@@ -86,7 +86,7 @@ const ChatItem = ({ item, currentUser, onlineUsers, setSelectedChat, setShowLeft
                     )}
                   </div>
                 )}
-                {item?.messages?.[0]?.content.fileType === 'image/jpeg' ? (
+                {item?.messages?.[0]?.content.fileType?.startsWith('image/') ? (
                   <>
                     <span className="text-sm ml-1 flex gap-1 items-center"><span><svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#afafaf" gradientcolor1="#afafaf" gradientcolor2="#afafaf"><path d="M3.5 21h17c.275 0 .5-.225.5-.5v-17c0-.275-.225-.5-.5-.5h-17c-.275 0-.5.225-.5.5v17c0 .275.225.5.5.5Z" fill="#fff"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M16 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" stroke="#FF9810" fill="#fff"></path><path fill-rule="evenodd" clip-rule="evenodd" d="m14.116 12.815-1.162 1.702-2.103-2.9a1 1 0 0 0-1.619 0l-3.115 4.296a1 1 0 0 0 .81 1.587h10.146a1 1 0 0 0 .826-1.564l-2.131-3.121a1 1 0 0 0-1.652 0Z" stroke="#A6CCC3" fill="#fff"></path><path opacity="0.64" fill-rule="evenodd" clip-rule="evenodd" d="M3.5 22h17c.827 0 1.5-.673 1.5-1.5v-17c0-.827-.673-1.5-1.5-1.5h-17C2.673 2 2 2.673 2 3.5v17c0 .827.673 1.5 1.5 1.5ZM3 3.5a.5.5 0 0 1 .5-.5h17a.5.5 0 0 1 .5.5v17a.5.5 0 0 1-.5.5h-17a.5.5 0 0 1-.5-.5v-17Z" fill="#605E5C"></path></svg></span> photo</span>
                   </>

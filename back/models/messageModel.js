@@ -13,7 +13,7 @@ const messageSchema = mongoose.Schema(
       required: true,
     },
     replyTo: {
-      messageId: {
+      _id: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "message",
       },
@@ -21,6 +21,13 @@ const messageSchema = mongoose.Schema(
       sender: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
+      },
+      receiver: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user",
+      },
+      createdAt: {
+        type: Date,
       },
     },
     forwardedFrom: {
