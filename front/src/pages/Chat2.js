@@ -75,7 +75,8 @@ import axios from "axios";
 import Front from "../component/Front";
 import { MdOutlineDeleteSweep } from "react-icons/md";
 import AudioPlayer from "../component/AudioPlayer";
-import ChatItem from "../component/ChatItem"; // Import the new ChatItem component
+import ChatItem from "../component/ChatItem";
+import MessageInputForm from '../component/MessageInputForm'
 import { BiReply, BiShare } from "react-icons/bi";
 import { SlActionUndo } from "react-icons/sl";
 
@@ -1267,15 +1268,35 @@ const Chat2 = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (mobileMenuOpen && !event.target.closest('.mobile-menu')) {
-        setMobileMenuOpen(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false); // Close the dropdown if clicked outside
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [mobileMenuOpen]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []); // Add this effect to handle clicks outside
 
+
+  // ======================Download file =====================
+  const handleDownload = (fileUrl, fileName) => {
+    const durl = `${IMG_URL}${fileUrl}`;
+    fetch(durl)
+      .then(response => response.blob())
+      .then(blob => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      })
+      .catch(error => console.error("Download error:", error));
+  };
   return (
     <div className="flex h-screen bg-white">
       {/* Left Sidebar */}
@@ -2021,7 +2042,7 @@ const Chat2 = () => {
                     selectedFiles.length > 0
                       ? "calc(100vh -  275px)"
                       : replyingTo
-                        ? replyingTo.content.fileType === "image/jpeg"
+                        ? replyingTo.content.fileType.startsWith("image/")
                           ? "calc(100vh - 250px)"
                           : "calc(100vh -  225px)"
                         : "calc(100vh - 180px)",
@@ -2351,18 +2372,17 @@ const Chat2 = () => {
                                         </p>
                                       </div>
                                       <p>
+                                        {console.log("asas", message.replyTo)}
                                         {/* {message?.replyTo?.content?.content} */}
-                                        {message?.replyTo?.content.fileType ===
-                                          "image/jpeg" && (
-                                            <img
-                                              src={`${IMG_URL}${message?.replyTo?.content.fileUrl.replace(
-                                                /\\/g,
-                                                "/"
-                                              )}`}
-                                              alt=""
-                                              className="max-w-[300px] max-h-[300px]"
-                                            />
-                                          )}
+                                        {message?.replyTo?.content && message.replyTo.content.fileType?.startsWith("image/") ? (
+                                          <img
+                                            src={`${IMG_URL}${message?.replyTo?.content.fileUrl.replace(/\\/g, "/")}`}
+                                            alt=""
+                                            className="max-w-[300px] max-h-[300px]"
+                                          />
+                                        ) : (
+                                          message?.replyTo?.content?.content
+                                        )}
                                       </p>
                                     </div>
                                   </div>
@@ -2552,17 +2572,13 @@ const Chat2 = () => {
                                           handleContextMenu(e, message)
                                         }
                                       >
-                                        <div className="flex items-center">
-                                          <a
-                                            href={`${IMG_URL}${message?.content?.fileUrl?.replace(
-                                              /\\/g,
-                                              "/"
-                                            )}`}
-                                            download={message?.content?.content}
-                                            className="ml-2 text-blue-500 hover:underline"
+                                        <div className="flex items-center flex-col gap-2">
+                                          <div
+                                              onClick={() => handleDownload(message?.content?.fileUrl, message?.content?.content)}
+                                            className="ml-2 text-blue-500 hover:underline cursor-pointer"
                                           >
                                             <FaDownload className="w-6 h-6" />
-                                          </a>
+                                          </div>
                                           <div className="ml-3">
                                             <div className="font-medium">
                                               {message?.content?.content}
@@ -2948,7 +2964,7 @@ const Chat2 = () => {
                           replyingTo.content.fileType === "image/jpeg"
                         )}
                         {replyingTo.content.content}
-                        {replyingTo.content.fileType === "image/jpeg" && (
+                        {replyingTo.content.fileType.startsWith("image/") && (
                           <img
                             src={`${IMG_URL}${replyingTo.content.fileUrl.replace(
                               /\\/g,
@@ -3790,7 +3806,7 @@ const Chat2 = () => {
       {/* Logout Modal */}
       {isLogoutModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4">
+          <div className="bg-white rounded-lg p-5 modal_background  ">
             <h3 className="text-lg font-semibold mb-4">
               Are you sure you want to logout?
             </h3>

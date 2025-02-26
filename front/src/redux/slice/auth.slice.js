@@ -195,6 +195,7 @@ const authSlice = createSlice({
             })
             .addCase(forgotPassword.fulfilled, (state, action) => {
                 state.loading = false;
+                state.error = null;
                 state.message = action.payload; // Assuming the API returns a success message
                 // enqueueSnackbar(state.message, { variant: 'success' });
             })
@@ -206,6 +207,7 @@ const authSlice = createSlice({
             })
             .addCase(verifyOtp.fulfilled, (state, action) => {
                 state.loading = false;
+                state.error = null;
                 state.message = action.payload.message; // Assuming the API returns a success message
                 // enqueueSnackbar(state.message, { variant: 'success' });
             })
@@ -217,6 +219,7 @@ const authSlice = createSlice({
             })
             .addCase(resetPassword.fulfilled, (state, action) => {
                 state.loading = false;
+                state.error = null;
                 state.message = action.payload; // Assuming the API returns a success message
                 // enqueueSnackbar(state.message, { variant: 'success' });
             })
@@ -231,6 +234,7 @@ const authSlice = createSlice({
                 state.isAuthenticated = true;
                 state.loading = false;
                 state.error = null;
+                
                 state.message = action.payload?.message || "Google Login successful";
                 // if (action.payload?.message) {
                 //     enqueueSnackbar(action.payload?.message, { variant: 'success' });

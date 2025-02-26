@@ -148,7 +148,7 @@ const Login = () => {
   const [forgotPasswordStep, setForgotPasswordStep] = useState(0);
   const [resendTimer, setResendTimer] = useState(60);
   const [email, setEmail] = useState('');
-  const { message } = useSelector((state) => state.auth);
+  const { message, error } = useSelector((state) => state.auth);
   const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
@@ -161,14 +161,14 @@ const Login = () => {
   }, []);
 
   useEffect(() => {
-    if (message) {
+    if (message && error != null) {
       setModalVisible(true)
     }
     else {
       setModalVisible(false)
     }
   }, [message])
-
+console.log("success", error)
   useEffect(() => {
     if (modalVisible) {
       const timer = setTimeout(() => {
@@ -571,13 +571,16 @@ const Login = () => {
               validationSchema={Yup.object({
                 email: Yup.string().email('Invalid email').required('Email is required'),
               })}
-              onSubmit={(values) => {
+              onSubmit={(values, { resetForm }) => {
                 // Logic to handle form submission
                 console.log(values.email);
                 setEmail(values.email);
                 dispatch(forgotPassword(values.email)).then((response) => {
                   console.log(response);
-                  if (response.payload.success) handleSendOTP();
+                  if (response.payload.success) {
+                    handleSendOTP();
+                    resetForm(); // Clear the form on success
+                  }
                 });
               }}
             >
@@ -694,10 +697,10 @@ const Login = () => {
               </div>
               <div className='text-xl p-5 text-red-500 py-8 pt-6 text-center flex flex-col justify-center items-center'>
                 <p className='text-center text-6xl mb-3'>
-                  <BiSolidErrorAlt  />
+                  <BiSolidErrorAlt />
                 </p>
                 <p>
-                  {message}
+                  {typeof message === 'object' ? message.message : message}
                 </p>
 
               </div>
