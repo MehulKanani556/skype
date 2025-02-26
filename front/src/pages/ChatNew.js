@@ -88,11 +88,11 @@ const ForwardModal = ({ show, onClose, onSubmit, users }) => {
     show && (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 w-96 modal_background">
-        <div className="flex justify-between items-center border-b pb-2">
-          <h2 className="text-xl font-semibold mb-4">Forward Message</h2>
-          <button className="text-gray-500 hover:text-gray-700" onClick={onClose}>
-            <ImCross />
-          </button>
+          <div className="flex justify-between items-center border-b pb-2">
+            <h2 className="text-xl font-semibold mb-4">Forward Message</h2>
+            <button className="text-gray-500 hover:text-gray-700" onClick={onClose}>
+              <ImCross />
+            </button>
           </div>
           <div className="max-h-60 overflow-y-auto modal_scroll">
             {users.map((user) => (
@@ -603,7 +603,7 @@ const Chat2 = () => {
       message: message,
     });
   };
-  
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (contextMenu.visible) {
@@ -614,8 +614,8 @@ const Chat2 = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [contextMenu.visible,setContextMenu]);
-  
+  }, [contextMenu.visible, setContextMenu]);
+
   // ===========================delete message=============================
   const handleDeleteMessage = async (messageId) => {
     try {
@@ -1250,12 +1250,12 @@ const Chat2 = () => {
 
   const handleReplyMessage = (message) => {
     setReplyingTo(message);
-  
+
     if (inputRef.current) {
       inputRef.current.focus();
     }
   };
-  
+
   const handleCancelReply = () => {
     setReplyingTo(null);
   };
@@ -1282,9 +1282,8 @@ const Chat2 = () => {
     <div className="flex h-screen bg-white">
       {/* Left Sidebar */}
       <div
-        className={`${
-          showLeftSidebar ? "block" : "hidden"
-        } w-full md:w-80 border-r flex flex-col`}
+        className={`${showLeftSidebar ? "block" : "hidden"
+          } w-full md:w-80 border-r flex flex-col`}
       >
         <div className="relative profile-dropdown">
           <div
@@ -1303,7 +1302,7 @@ const Chat2 = () => {
                 <span className="text-white text-2xl font-bold">
                   {user?.userName && user?.userName.includes(" ")
                     ? user?.userName.split(" ")[0][0] +
-                      user?.userName.split(" ")[1][0]
+                    user?.userName.split(" ")[1][0]
                     : user?.userName[0]}
                 </span>
               )}
@@ -1364,31 +1363,28 @@ const Chat2 = () => {
               {/* Tabs */}
               <div className="flex border-b">
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${
-                    activeSearchTab === "All"
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "All"
                       ? "text-gray-700 border-b-2 border-blue-500"
                       : "text-gray-500 hover:text-gray-700"
-                  }`}
+                    }`}
                   onClick={() => setActiveSearchTab("All")}
                 >
                   All
                 </button>
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${
-                    activeSearchTab === "People"
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "People"
                       ? "text-gray-700 border-b-2 border-blue-500"
                       : "text-gray-500 hover:text-gray-700"
-                  }`}
+                    }`}
                   onClick={() => setActiveSearchTab("People")}
                 >
                   People
                 </button>
                 <button
-                  className={`flex-1 py-2 px-4 text-sm font-medium ${
-                    activeSearchTab === "Groups"
+                  className={`flex-1 py-2 px-4 text-sm font-medium ${activeSearchTab === "Groups"
                       ? "text-gray-700 border-b-2 border-blue-500"
                       : "text-gray-500 hover:text-gray-700"
-                  }`}
+                    }`}
                   onClick={() => setActiveSearchTab("Groups")}
                 >
                   Groups
@@ -1448,7 +1444,7 @@ const Chat2 = () => {
                       {/* Show View All button only in All tab and if there are more than 4 users */}
                       {activeSearchTab === "All" &&
                         filteredUsers.filter((user) => !user.members).length >
-                          4 && (
+                        4 && (
                           <div
                             className="p-2 text-center text-blue-500 hover:text-blue-600 cursor-pointer font-medium"
                             onClick={() => {
@@ -1582,18 +1578,16 @@ const Chat2 = () => {
 
         <div className="flex justify-around p-4 border-b">
           <div
-            className={`${
-              filteredUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
-            } flex flex-col items-center cursor-pointer`}
+            className={`${filteredUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
+              } flex flex-col items-center cursor-pointer`}
             onClick={() => handleFilter("chat")}
           >
             <FaCommentDots className="w-6 h-6" />
             <span className="text-xs mt-1">Chat</span>
           </div>
           <div
-            className={`${
-              callUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
-            } flex flex-col items-center  cursor-pointer`}
+            className={`${callUsers.length > 0 ? "text-blue-500  " : "text-gray-500 "
+              } flex flex-col items-center  cursor-pointer`}
             onClick={() => handleFilter("call")}
           >
             <FaPhone className="w-6 h-6" />
@@ -1615,25 +1609,22 @@ const Chat2 = () => {
         {callUsers.length == 0 && (
           <div className="flex px-10 space-x-4 border-b justify-between">
             <button
-              className={`py-2 ${
-                selectedTab === "All" ? "border-b-2 border-blue-500" : ""
-              }`}
+              className={`py-2 ${selectedTab === "All" ? "border-b-2 border-blue-500" : ""
+                }`}
               onClick={() => setSelectedTab("All")}
             >
               All
             </button>
             <button
-              className={`py-2 ${
-                selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
-              }`}
+              className={`py-2 ${selectedTab === "Chats" ? "border-b-2 border-blue-500" : ""
+                }`}
               onClick={() => setSelectedTab("Chats")}
             >
               Chats
             </button>
             <button
-              className={`py-2 ${
-                selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
-              }`}
+              className={`py-2 ${selectedTab === "Unread" ? "border-b-2 border-blue-500" : ""
+                }`}
               onClick={() => setSelectedTab("Unread")}
             >
               Unread
@@ -1651,13 +1642,13 @@ const Chat2 = () => {
 
               const lastMessageA = Array.isArray(a.messages)
                 ? [...a.messages].sort(
-                    (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
-                  )[0]
+                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                )[0]
                 : null;
               const lastMessageB = Array.isArray(b.messages)
                 ? [...b.messages].sort(
-                    (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
-                  )[0]
+                  (x, y) => new Date(y.createdAt) - new Date(x.createdAt)
+                )[0]
                 : null;
 
               // New sorting logic for no messages
@@ -1692,10 +1683,10 @@ const Chat2 = () => {
                 lastMessageTimestamp:
                   item.messages.length > 0
                     ? new Date(
-                        item.messages[
-                          item.messages.length - 1
-                        ].content.timestamp
-                      )
+                      item.messages[
+                        item.messages.length - 1
+                      ].content.timestamp
+                    )
                     : null,
               }))
               .filter((item) => item.lastMessageTimestamp) // Filter out users without messages
@@ -1718,9 +1709,8 @@ const Chat2 = () => {
       {/* Right Sidebar */}
       {!(isReceiving || isVideoCalling || isVoiceCalling) && (
         <div
-          className={`${
-            showLeftSidebar ? "hidden md:block" : "block"
-          } flex-1 flex flex-col`}
+          className={`${showLeftSidebar ? "hidden md:block" : "block"
+            } flex-1 flex flex-col`}
         >
           {selectedChat ? (
             <>
@@ -1747,7 +1737,7 @@ const Chat2 = () => {
                 </button>
               )}
 
-              <div className="flex items-center justify-between p-4 border-b">
+              <div className="flex items-center justify-between p-4 relative border-b">
                 <div className="flex items-center">
                   <div
                     className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center cursor-pointer"
@@ -1774,9 +1764,9 @@ const Chat2 = () => {
                     ) : (
                       <span className="text-white text-xl font-bold">
                         {selectedChat?.userName &&
-                        selectedChat?.userName.includes(" ")
+                          selectedChat?.userName.includes(" ")
                           ? selectedChat?.userName.split(" ")[0][0] +
-                            selectedChat?.userName.split(" ")[1][0]
+                          selectedChat?.userName.split(" ")[1][0]
                           : selectedChat?.userName[0]}
                       </span>
                     )}
@@ -1803,11 +1793,10 @@ const Chat2 = () => {
                       </div>
                     ) : (
                       <div
-                        className={`text-sm ${
-                          onlineUsers.includes(selectedChat?._id)
+                        className={`text-sm ${onlineUsers.includes(selectedChat?._id)
                             ? "text-green-500"
                             : "text-gray-500"
-                        }`}
+                          }`}
                       >
                         {onlineUsers.includes(selectedChat?._id)
                           ? "Active now"
@@ -1825,50 +1814,7 @@ const Chat2 = () => {
                     data-tooltip-delay="0"
                     data-tooltip-duration="0"
                   />
-                  {isSearchBoxOpen && (
-                    <div
-                      className="absolute top-12 right-[31%] bg-white shadow-lg p-4 z-10 flex items-center border-rounded"
-                      style={{ padding: "5px 25px", borderRadius: "30px" }}
-                    >
-                      <FaSearch className="text-gray-500 mr-2" />
-                      <input
-                        type="text"
-                        placeholder="Search..."
-                        className="flex-1 p-2 outline-none"
-                        value={searchInputbox}
-                        onChange={(e) => {
-                          setSearchInputbox(e.target.value);
-                          setCurrentSearchIndex(0); // Reset current search index
-                        }}
-                      />
-                      <span className="mx-2 text-gray-500">
-                        {totalMatches > 0
-                          ? `${currentSearchIndex + 1} / ${totalMatches}`
-                          : "0 / 0"}
-                      </span>
-                      <button
-                        className="text-black hover:text-gray-700 ms-5"
-                        onClick={() => handleSearchNavigation("up")}
-                      >
-                        <IoIosArrowUp />
-                      </button>
-                      <button
-                        className="text-black hover:text-gray-700"
-                        onClick={() => handleSearchNavigation("down")}
-                      >
-                        <IoIosArrowDown />
-                      </button>
-                      <button
-                        className="text-black hover:text-gray-700 ms-5"
-                        onClick={() => {
-                          setIsSearchBoxOpen(false);
-                          setSearchInputbox(""); // Clear the input box
-                        }}
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
+
                   {/* <MdOutlineDeleteSweep
                     className="w-6 h-6 cursor-pointer text-red-500 hover:text-red-600 text-4xl"
                     onClick={() => {
@@ -1950,10 +1896,54 @@ const Chat2 = () => {
                   />
                   {/* <FaEllipsisH className="" /> */}
                 </div>
+                {isSearchBoxOpen && (
+                  <div
+                    className="absolute top-24 right-0 left-[50%] max-w-[500px] w-full bg-white shadow-lg p-4 z-50 flex items-center border-rounded"
+                    style={{ padding: "5px 25px", borderRadius: "30px", transform: "translate(-50%, -50%)" }}
+                  >
+                    <FaSearch className="text-gray-500 mr-2" />
+                    <input
+                      type="text"
+                      placeholder="Search..."
+                      className="flex-1 p-2 outline-none min-w-[20px]"
+                      value={searchInputbox}
+                      onChange={(e) => {
+                        setSearchInputbox(e.target.value);
+                        setCurrentSearchIndex(0); // Reset current search index
+                      }}
+                    />
+                    <span className="mx-2 text-gray-500">
+                      {totalMatches > 0
+                        ? `${currentSearchIndex + 1} / ${totalMatches}`
+                        : "0 / 0"}
+                    </span>
+                    <button
+                      className="text-black hover:text-gray-700 ms-5"
+                      onClick={() => handleSearchNavigation("up")}
+                    >
+                      <IoIosArrowUp />
+                    </button>
+                    <button
+                      className="text-black hover:text-gray-700"
+                      onClick={() => handleSearchNavigation("down")}
+                    >
+                      <IoIosArrowDown />
+                    </button>
+                    <button
+                      className="text-black hover:text-gray-700 ms-5"
+                      onClick={() => {
+                        setIsSearchBoxOpen(false);
+                        setSearchInputbox(""); // Clear the input box
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
               {/*========== Messages ==========*/}
 
-             
+
               <div
                 className="flex-1 overflow-y-auto p-4 modal_scroll h-[calc(100vh-10rem)] px-14"
                 ref={messagesContainerRef}
@@ -2005,7 +1995,7 @@ const Chat2 = () => {
                     } else if (
                       file.type === "application/vnd.ms-excel" ||
                       file.type ===
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                     ) {
                       fileIcon = (
                         <FaFileExcel className="w-20 h-20 text-gray-500" />
@@ -2013,7 +2003,7 @@ const Chat2 = () => {
                     } else if (
                       file.type === "application/msword" ||
                       file.type ===
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                     ) {
                       fileIcon = (
                         <FaFileWord className="w-20 h-20 text-gray-500" />
@@ -2021,7 +2011,7 @@ const Chat2 = () => {
                     } else if (
                       file.type === "application/vnd.ms-powerpoint" ||
                       file.type ===
-                        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                      "application/vnd.openxmlformats-officedocument.presentationml.presentation"
                     ) {
                       fileIcon = (
                         <FaFilePowerpoint className="w-20 h-20 text-gray-500" />
@@ -2108,9 +2098,8 @@ const Chat2 = () => {
                 <div className="w-full max-w-4xl mx-auto px-4 rounded-lg ">
                   <form
                     onSubmit={handleSubmit}
-                    className={`flex items-center gap-2 rounded-${
-                      replyingTo ? "b-" : ""
-                    }xl px-4 py-2 shadow w-full max-w-full`}
+                    className={`flex items-center gap-2 rounded-${replyingTo ? "b-" : ""
+                      }xl px-4 py-2 shadow w-full max-w-full`}
                     style={{ backgroundColor: "#e5e7eb" }}
                   >
                     <button
@@ -2186,9 +2175,8 @@ const Chat2 = () => {
                         onClick={handleVoiceMessage}
                       >
                         <FaMicrophone
-                          className={`w-5 h-5 ${
-                            isRecording ? "text-red-500" : "text-gray-500"
-                          }`}
+                          className={`w-5 h-5 ${isRecording ? "text-red-500" : "text-gray-500"
+                            }`}
                         />
                       </button>
                       {(messageInput != "" || selectedFiles.length > 0) && (
@@ -2243,28 +2231,24 @@ const Chat2 = () => {
 
       {/*========== screen share ==========*/}
       <div
-        className={`flex-grow flex flex-col max-h-screen ${
-          isReceiving || isVideoCalling || isVoiceCalling ? "" : "hidden"
-        }`}
+        className={`flex-grow flex flex-col max-h-screen ${isReceiving || isVideoCalling || isVoiceCalling ? "" : "hidden"
+          }`}
       >
         <div
-          className={`flex-1 relative ${
-            isReceiving
+          className={`flex-1 relative ${isReceiving
               ? "flex items-center justify-center"
               : `grid gap-4 ${getGridColumns(
-                  parseInt(remoteStreams.size) + (isVideoCalling ? 1 : 0)
-                )}`
-          }`}
+                parseInt(remoteStreams.size) + (isVideoCalling ? 1 : 0)
+              )}`
+            }`}
         >
           {/* Local video */}
           <div
-            className={` ${isVideoCalling || isVoiceCalling ? "" : "hidden"} ${
-              isReceiving ? "hidden" : ""
-            } ${
-              remoteStreams.size === 1
+            className={` ${isVideoCalling || isVoiceCalling ? "" : "hidden"} ${isReceiving ? "hidden" : ""
+              } ${remoteStreams.size === 1
                 ? "max-w-30 absolute top-2 right-2 z-10"
                 : "relative"
-            }`}
+              }`}
           >
             <video
               ref={localVideoRef}
@@ -2345,9 +2329,8 @@ const Chat2 = () => {
                 <>
                   <button
                     onClick={toggleCamera}
-                    className={`w-10 grid place-content-center  rounded-full h-10 ${
-                      isCameraOn ? "bg-blue-500" : "bg-gray-400"
-                    } text-white ${isVideoCalling ? "" : "hidden"}`}
+                    className={`w-10 grid place-content-center  rounded-full h-10 ${isCameraOn ? "bg-blue-500" : "bg-gray-400"
+                      } text-white ${isVideoCalling ? "" : "hidden"}`}
                   >
                     {isCameraOn ? (
                       <FiCamera className="text-xl " />
@@ -2357,9 +2340,8 @@ const Chat2 = () => {
                   </button>
                   <button
                     onClick={toggleMicrophone}
-                    className={`w-10 grid place-content-center  rounded-full h-10 ${
-                      isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
-                    } text-white`}
+                    className={`w-10 grid place-content-center  rounded-full h-10 ${isMicrophoneOn ? "bg-blue-500" : "bg-gray-400"
+                      } text-white`}
                   >
                     {isMicrophoneOn ? (
                       <BsFillMicFill className="text-xl " />
@@ -2388,8 +2370,8 @@ const Chat2 = () => {
               {/* Profile image or default avatar */}
               {allUsers.find((user) => user._id === incomingCall.fromEmail)
                 ?.photo &&
-              allUsers.find((user) => user._id === incomingCall.fromEmail)
-                ?.photo !== "null" ? (
+                allUsers.find((user) => user._id === incomingCall.fromEmail)
+                  ?.photo !== "null" ? (
                 <img
                   src={`${IMG_URL}${allUsers
                     .find((user) => user._id === incomingCall.fromEmail)
@@ -2498,9 +2480,8 @@ const Chat2 = () => {
                     return (
                       <div
                         key={index}
-                        className={`flex items-center justify-between p-2 mx-1 hover:bg-gray-100 rounded ${
-                          isChecked ? "order-first" : ""
-                        }`}
+                        className={`flex items-center justify-between p-2 mx-1 hover:bg-gray-100 rounded ${isChecked ? "order-first" : ""
+                          }`}
                         onClick={() => {
                           if (!isChecked) {
                             setGroupNewUsers((prev) => [...prev, user._id]);
@@ -2708,9 +2689,8 @@ const Chat2 = () => {
                   />
                 ) : (
                   <span
-                    className={`text-gray-800 cursor-pointer ${
-                      !user?.dob ? "text-sm" : ""
-                    } `}
+                    className={`text-gray-800 cursor-pointer ${!user?.dob ? "text-sm" : ""
+                      } `}
                     onClick={() => setIsEditingDob(true)}
                   >
                     {new Date(user?.dob).toLocaleDateString() || "Add dob"}
@@ -2754,9 +2734,8 @@ const Chat2 = () => {
                   </span>
                 ) : (
                   <span
-                    className={`text-gray-800 cursor-pointer ${
-                      !user?.phone ? "text-sm" : ""
-                    } `}
+                    className={`text-gray-800 cursor-pointer ${!user?.phone ? "text-sm" : ""
+                      } `}
                     onClick={() => setIsEditingPhone(true)}
                   >
                     {user?.phone || "Add phone number"}
@@ -2884,16 +2863,16 @@ const Chat2 = () => {
                                 {message.content.fileType.includes("pdf") ? (
                                   <FaFilePdf className="w-12 h-12 text-red-500" />
                                 ) : message.content.fileType.includes(
-                                    "word"
-                                  ) ? (
+                                  "word"
+                                ) ? (
                                   <FaFileWord className="w-12 h-12 text-blue-500" />
                                 ) : message.content.fileType.includes(
-                                    "excel"
-                                  ) ? (
+                                  "excel"
+                                ) ? (
                                   <FaFileExcel className="w-12 h-12 text-green-500" />
                                 ) : message.content.fileType.includes(
-                                    "audio"
-                                  ) ? (
+                                  "audio"
+                                ) ? (
                                   <FaFileAudio className="w-12 h-12 text-purple-500" />
                                 ) : (
                                   <FaFile className="w-12 h-12 text-gray-500" />
@@ -3261,9 +3240,8 @@ const Chat2 = () => {
                     return (
                       <div
                         key={index}
-                        className={`flex items-center justify-between p-2 hover:bg-gray-100 rounded ${
-                          isChecked ? "order-first" : ""
-                        }`}
+                        className={`flex items-center justify-between p-2 hover:bg-gray-100 rounded ${isChecked ? "order-first" : ""
+                          }`}
                         onClick={() => {
                           if (!isChecked) {
                             setGroupUsers((prev) => [...prev, user._id]); // Add user ID to groupUsers state
@@ -3354,25 +3332,25 @@ const Chat2 = () => {
                     }}
                   >
                     <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full mr-2 bg-gray-300 overflow-hidden flex items-center justify-center ">
-                            {user?.photo && user.photo !== "null" ? (
-                              <img
-                                src={`${IMG_URL}${user.photo.replace(
-                                  /\\/g,
-                                  "/"
-                                )}`}
-                                alt={`${user.userName}`}
-                                className="object-cover h-full w-full"
-                              />
-                            ) : (
-                              <span className="text-gray-900 text-lg font-bold">
-                                {user.userName
-                                  .split(" ")
-                                  .map((n) => n[0].toUpperCase())
-                                  .join("")}
-                              </span>
-                            )}
-                          </div>
+                      <div className="w-8 h-8 rounded-full mr-2 bg-gray-300 overflow-hidden flex items-center justify-center ">
+                        {user?.photo && user.photo !== "null" ? (
+                          <img
+                            src={`${IMG_URL}${user.photo.replace(
+                              /\\/g,
+                              "/"
+                            )}`}
+                            alt={`${user.userName}`}
+                            className="object-cover h-full w-full"
+                          />
+                        ) : (
+                          <span className="text-gray-900 text-lg font-bold">
+                            {user.userName
+                              .split(" ")
+                              .map((n) => n[0].toUpperCase())
+                              .join("")}
+                          </span>
+                        )}
+                      </div>
                       <span className="ml-2">{user.userName}</span>
                     </div>
                   </div>
