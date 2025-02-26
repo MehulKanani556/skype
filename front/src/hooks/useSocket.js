@@ -1245,13 +1245,16 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
   // ===========================message reaction=============================
   const addMessageReaction = (message, emoji) => {
     if (!socketRef.current?.connected) return;
-
     socketRef.current.emit("message-reaction", {
       messageId:message._id,
       userId,
       emoji
     });
-    // dispatch(getAllMessages({selectedId:message.receiver}));
+    if(message.receiver === userId){
+      dispatch(getAllMessages({selectedId:message.sender}));
+    }else{
+      dispatch(getAllMessages({selectedId:message.receiver}));
+    }
   };
 
   // ===========================cleanup Connection=============================
