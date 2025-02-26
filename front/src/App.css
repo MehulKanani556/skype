@@ -157,12 +157,12 @@
 
 
 .reply-preview {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid rgb(156, 156, 156);
   margin-bottom: -1px;
 }
 
 .message .reply-content {
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid rgb(156, 156, 156);
   opacity: 0.8;
 }
 
@@ -173,7 +173,7 @@
 
 .reply-indicator {
   font-size: 0.8rem;
-  color: #3b82f6;
+  color: rgb(156, 156, 156);
   margin-bottom: 2px;
 }
 

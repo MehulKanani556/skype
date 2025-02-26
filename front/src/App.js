@@ -6,6 +6,7 @@ import { Route, Routes } from 'react-router-dom';
 import { configureStore } from './redux/Store';
 import Chat2 from './pages/Chat2';
 import Front from './component/Front';
+import ChatNew from './pages/ChatNew';
 
 function App() {
   const { store, persistor } = configureStore();
@@ -17,6 +18,7 @@ function App() {
         <Route path="/chat" element={<Chat2 />}></Route>
         <Route path="/chat2" element={<Chat11 />}></Route>
         <Route path="/front" element={<Front />}></Route>
+        <Route path="/chatNew" element={<ChatNew/>}></Route>
       </Routes>
     </Provider>
   );
