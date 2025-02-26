@@ -83,59 +83,127 @@ import { SlActionUndo } from "react-icons/sl";
 // Forward Modal Component
 const ForwardModal = ({ show, onClose, onSubmit, users }) => {
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  return (
-    show && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-96 modal_background">
-          <div className="flex justify-between items-center border-b pb-2">
-            <h2 className="text-xl font-semibold mb-4">Forward Message</h2>
-            <button className="text-gray-500 hover:text-gray-700" onClick={onClose}>
-              <ImCross />
+  const filteredUsers = users.filter(user =>
+    user.userName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+
+  return show && (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-md transform transition-all modal_background">
+        {/* Header */}
+        <div className="p-6 border-b">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-800">Forward Message</h2>
+            <button
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              onClick={onClose}
+            >
+              <ImCross className="w-4 h-4 text-gray-500" />
             </button>
           </div>
-          <div className="max-h-60 overflow-y-auto modal_scroll">
-            {users.map((user) => (
-              <div key={user._id} className="flex items-center mb-1 p-2 ">
+
+          {/* Search Box */}
+          <div className="mt-4 relative">
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg 
+                         focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <FaSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+
+        {/* User List */}
+        <div className="max-h-[300px] overflow-y-auto p-4 space-y-2 modal_scroll flex flex-col">
+          {filteredUsers.map((user) => (
+            <div
+              key={user._id}
+              className={`flex items-center p-3 hover:bg-gray-50 rounded-lg transition-colors cursor-pointer ${selectedUsers.includes(user._id) ? 'order-first' : ''}`}
+              onClick={() => {
+                if (selectedUsers.includes(user._id)) {
+                  setSelectedUsers(selectedUsers.filter(id => id !== user._id));
+                } else {
+                  setSelectedUsers([...selectedUsers, user._id]);
+                }
+              }}
+            >
+              {/* User Avatar */}
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                {user.photo ? (
+                  <img
+                    src={`${IMG_URL}${user.photo.replace(/\\/g, "/")}`}
+                    alt={user.userName}
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <span className="text-blue-500 font-medium">
+                    {user.userName && user.userName.includes(" ")
+                      ? user.userName.split(" ")[0][0] + user.userName.split(" ")[1][0]
+                      : user.userName[0]}
+                  </span>
+                )}
+              </div>
+
+              {/* User Details */}
+              <div className="flex-1">
+                <h3 className="font-medium text-gray-800">{user.userName}</h3>
+                {user.status && (
+                  <p className="text-sm text-gray-500">{user.status}</p>
+                )}
+              </div>
+
+              {/* Checkbox */}
+              <div className="flex items-center justify-center w-6 h-6">
                 <input
                   type="checkbox"
-                  id={user._id}
                   checked={selectedUsers.includes(user._id)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedUsers([...selectedUsers, user._id]);
-                    } else {
-                      setSelectedUsers(
-                        selectedUsers.filter((id) => id !== user._id)
-                      );
-                    }
-                  }}
-                  className="mr-2 w-4 h-4"
+                  onChange={() => { }} // Handled by parent div click
+                  className="w-4 h-4 rounded border-gray-300 text-blue-500 
+                           focus:ring-blue-500 focus:ring-offset-0"
                 />
-                <label htmlFor={user._id} className="text-gray-700 cursor-pointer">{user.userName}</label>
               </div>
-            ))}
-          </div>
-          <div className="flex justify-end mt-4 gap-2">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => onSubmit(selectedUsers)}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-              disabled={selectedUsers.length === 0}
-            >
-              Forward
-            </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t bg-gray-50 rounded-b-xl modal_background">
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-gray-500">
+              {selectedUsers.length} user{selectedUsers.length !== 1 ? 's' : ''} selected
+            </span>
+            <div className="space-x-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onSubmit(selectedUsers)}
+                disabled={selectedUsers.length === 0}
+                className={`px-4 py-2 rounded-lg transition-colors
+                  ${selectedUsers.length === 0
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+              >
+                Forward
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    )
+    </div>
   );
 };
+
 
 const Chat2 = () => {
   const { allUsers, messages, allMessageUsers, groups, user, allCallUsers } =
@@ -2372,7 +2440,6 @@ const Chat2 = () => {
                                         </p>
                                       </div>
                                       <p>
-                                        {console.log("asas", message.replyTo)}
                                         {/* {message?.replyTo?.content?.content} */}
                                         {message?.replyTo?.content && message.replyTo.content.fileType?.startsWith("image/") ? (
                                           <img
@@ -2574,7 +2641,7 @@ const Chat2 = () => {
                                       >
                                         <div className="flex items-center flex-col gap-2">
                                           <div
-                                              onClick={() => handleDownload(message?.content?.fileUrl, message?.content?.content)}
+                                            onClick={() => handleDownload(message?.content?.fileUrl, message?.content?.content)}
                                             className="ml-2 text-blue-500 hover:underline cursor-pointer"
                                           >
                                             <FaDownload className="w-6 h-6" />
@@ -3123,7 +3190,7 @@ const Chat2 = () => {
 
       {/*========== screen share ==========*/}
       <div
-        className={`flex-grow flex flex-col max-h-screen ${isReceiving || isVideoCalling || isVoiceCalling ? "" : "hidden"
+        className={`flex-grow flex flex-col max-h-screen ${isReceiving || isVideoCalling || isVoiceCalling || voiceCallData ? "" : "hidden"
           }`}
       >
         <div
@@ -3136,7 +3203,7 @@ const Chat2 = () => {
         >
           {/* Local video */}
           <div
-            className={` ${isVideoCalling || isVoiceCalling ? "" : "hidden"} ${isReceiving ? "hidden" : ""
+            className={` ${isVideoCalling || isVoiceCalling || voiceCallData ? "" : "hidden"} ${isReceiving ? "hidden" : ""
               } ${remoteStreams.size === 1
                 ? "max-w-30 absolute top-2 right-2 z-10"
                 : "relative"
@@ -3174,14 +3241,14 @@ const Chat2 = () => {
                   <video
                     autoPlay
                     playsInline
-                    className="w-full h-full object-contain  max-h-[80vh]"
+                    className="w-full h-full object-contain max-h-[80vh]"
                     ref={(el) => {
                       if (el) {
                         el.srcObject = stream;
                       }
                     }}
                   />
-                  <div className="absolute bottom-2 left-2 text-white text-xl bg-blue-500  px-3 py-1 rounded-full text-center">
+                  <div className="absolute bottom-2 left-2 text-white text-xl bg-blue-500 px-3 py-1 rounded-full text-center">
                     {allUsers
                       .find((user) => user._id === participantId)
                       ?.userName.charAt(0)
@@ -3194,6 +3261,86 @@ const Chat2 = () => {
               ))}
             </>
           )}
+
+          {/* 
+          {isReceiving ? (
+            <div className="w-full h-full">
+              {!isCameraOn ? (
+                <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                  <div className="w-32 h-32 rounded-full overflow-hidden">
+                    {user?.photo && user.photo !== "null" ? (
+                      <img
+                        src={`${IMG_URL}${user.photo.replace(/\\/g, "/")}`}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-500 flex items-center justify-center">
+                        <span className="text-white text-4xl">
+                          {user?.userName?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <video
+                  ref={remoteVideoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full max-h-[80vh] object-contain"
+                />
+              )}
+            </div>
+          ) : (
+            <>
+              {Array.from(remoteStreams).map(([participantId, stream]) => {
+                const participant = allUsers.find((user) => user._id === participantId);
+                const videoTrack = stream.getVideoTracks()[0];
+                const isVideoEnabled = videoTrack && videoTrack.enabled;
+
+                return (
+                  <div key={participantId} className="relative w-full">
+                    {isVideoEnabled ? (
+                      <video
+                        autoPlay
+                        playsInline
+                        className="w-full h-full object-contain max-h-[80vh]"
+                        ref={(el) => {
+                          if (el) {
+                            el.srcObject = stream;
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gray-800" style={{ maxHeight: "80vh" }}>
+                        <div className="w-32 h-32 rounded-full overflow-hidden">
+                          {participant?.photo && participant.photo !== "null" ? (
+                            <img
+                              src={`${IMG_URL}${participant.photo.replace(/\\/g, "/")}`}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-500 flex items-center justify-center">
+                              <span className="text-white text-4xl">
+                                {participant?.userName?.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <div className="absolute bottom-2 left-2 text-white text-xl bg-blue-500 px-3 py-1 rounded-full text-center">
+                      {participant?.userName?.charAt(0).toUpperCase() +
+                        participant?.userName?.slice(1) || "Participant"}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )} */}
+
 
           {/* Controls */}
           {(isSharing || isReceiving || isVideoCalling || isVoiceCalling) && (
