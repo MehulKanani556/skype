@@ -272,10 +272,15 @@ const Chat2 = () => {
   const [editedPhone, setEditedPhone] = useState(user?.phone || "");
   const [visibleDate, setVisibleDate] = useState(null);
   const [isUserProfileModalOpen, setIsUserProfileModalOpen] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState({
+    messageId: null,
+    position: null
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const searchRef = useRef(null); // Define searchRef
+  const mobileMenuRef = useRef(null);
+  const searchBoxRef = useRef(null);
 
   //===========Use the custom socket hook===========
   const {
@@ -584,6 +589,12 @@ const Chat2 = () => {
         !emojiPickerRef.current.contains(event.target)
       ) {
         setIsEmojiPickerOpen(false);
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target)) {
+        setMobileMenuOpen(false);
+      }
+      if (searchBoxRef.current && !searchBoxRef.current.contains(event.target)) {
+        setIsSearchBoxOpen(false);
       }
     };
 
@@ -1254,7 +1265,7 @@ const Chat2 = () => {
   // Add useEffect to handle initial sidebar state based on screen width and selected chat
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth <= 425) {
+      if (window.innerWidth <=767) {
         setShowLeftSidebar(!selectedChat);
       } else {
         setShowLeftSidebar(true);
@@ -1802,10 +1813,14 @@ const Chat2 = () => {
         >
           {selectedChat ? (
             <>
-              {/* Add back button for mobile */}
-              {window.innerWidth <= 425 && (
+             
+
+              <div className="flex items-center justify-between p-4 border-b relative">
+                <div className="flex items-center">
+                   {/* Add back button for mobile */}
+              {window.innerWidth <= 767 && (
                 <button
-                  className="p-2 text-gray-600 hover:text-gray-800 absolute top-[17px] left-[-11px]"
+                  className=" text-gray-600 hover:text-gray-800 mr-2"
                   onClick={() => setShowLeftSidebar(true)}
                 >
                   <svg
@@ -1824,9 +1839,6 @@ const Chat2 = () => {
                   </svg>
                 </button>
               )}
-
-              <div className="flex items-center justify-between p-4 border-b relative">
-                <div className="flex items-center">
                   <div
                     className="w-10 h-10 rounded-full bg-gray-300 overflow-hidden flex items-center justify-center cursor-pointer"
                     onClick={() => {
@@ -1987,7 +1999,7 @@ const Chat2 = () => {
 
 
                     {mobileMenuOpen && (
-                      <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg z-50">
+                      <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg z-50" ref={mobileMenuRef}>
                         <div className="py-2 w-48">
 
                           <button
@@ -2060,6 +2072,7 @@ const Chat2 = () => {
                   <div
                     className="absolute top-24 right-0 left-[50%] max-w-[500px] w-full bg-white shadow-lg p-4 z-50 flex items-center border-rounded"
                     style={{ padding: "5px 25px", borderRadius: "30px", transform: "translate(-50%, -50%)" }}
+                    ref={searchBoxRef}
                   >
                     <FaSearch className="text-gray-500 mr-2" />
                     <input
@@ -2102,6 +2115,7 @@ const Chat2 = () => {
                 )}
               </div>
               {/*========== Messages ==========*/}
+              {console.log("replyingTo",replyingTo)}
 
               <div
                className="flex-1 overflow-y-auto p-4 modal_scroll"
@@ -2110,7 +2124,7 @@ const Chat2 = () => {
                     selectedFiles.length > 0
                       ? "calc(100vh -  275px)"
                       : replyingTo
-                        ? replyingTo.content.fileType.startsWith("image/")
+                        ? replyingTo?.content?.fileType && replyingTo?.content?.fileType?.startsWith("image/")
                           ? "calc(100vh - 250px)"
                           : "calc(100vh -  225px)"
                         : "calc(100vh - 180px)",
@@ -2142,10 +2156,17 @@ const Chat2 = () => {
                   showEmojiPicker={showEmojiPicker}
                   setShowEmojiPicker={setShowEmojiPicker}
                   addMessageReaction={addMessageReaction}
+                  setSelectedFiles={setSelectedFiles}
+                  selectedFiles={selectedFiles}
+                  setReplyingTo={setReplyingTo}
+                  replyingTo={replyingTo}
+                  setMessageInput={setMessageInput}
+                  messageInput={messageInput}
+                  handleImageClick={handleImageClick}
                 />
               </div>
               {selectedFiles && selectedFiles.length > 0 && (
-                <div className="flex w-full max-w-4xl mx-auto p-4 rounded-lg bg-[#e5e7eb]">
+                <div className="flex w-full max-w-4xl mx-auto px-4 ">
                   {selectedFiles.map((file, index) => {
                     const fileUrl = URL.createObjectURL(file); // Create a URL for the file
                     let fileIcon;
@@ -2195,9 +2216,10 @@ const Chat2 = () => {
                       ); // Generic file icon
                     }
                     return (
+                      <div className=" rounded-t-lg bg-[#e5e7eb] w-full p-2">
                       <div
                         key={index}
-                        className="relative mx-1 flex flex-col items-center w-20 h-20 p-1 overflow-hidden bg-[#b7babe]"
+                        className="relative mx-1 flex flex-col items-center w-20 h-20 p-1 overflow-hidden bg-[#b7babe] rounded-lg"
                       >
                         {fileIcon}
                         <div className="w-20 text-sm text-ellipsis  text-nowrap ">
@@ -2219,9 +2241,14 @@ const Chat2 = () => {
                           <RxCross2 />
                         </button>
                       </div>
+                      </div>
                     );
                   })}
                 </div>
+
+
+
+
               )}
 
               {replyingTo && (
@@ -2241,7 +2268,7 @@ const Chat2 = () => {
                           replyingTo.content.fileType === "image/jpeg"
                         )}
                         {replyingTo.content.content}
-                        {replyingTo.content.fileType.startsWith("image/") && (
+                        {replyingTo?.content?.fileType && replyingTo?.content?.fileType?.startsWith("image/") && (
                           <img
                             src={`${IMG_URL}${replyingTo.content.fileUrl.replace(
                               /\\/g,
@@ -2264,11 +2291,11 @@ const Chat2 = () => {
               )}
               {/*========== Message Input ==========*/}
               {selectedChat && (
-                <div className="w-full max-w-4xl mx-auto px-4 rounded-lg ">
+                <div className="w-full max-w-4xl mx-auto px-4 mb-5 md:mb-0">
                   <form
                     onSubmit={handleSubmit}
-                    className={`flex items-center gap-2 rounded-${replyingTo ? "b-" : ""
-                      }xl px-4 py-2 shadow w-full max-w-full`}
+                    className={`flex items-center gap-2 ${replyingTo || selectedFiles.length > 0 ? "rounded-b-lg" : "rounded-lg"
+                      } px-4 py-2 shadow w-full max-w-full`}
                     style={{ backgroundColor: "#e5e7eb" }}
                   >
                     <button
@@ -2284,7 +2311,18 @@ const Chat2 = () => {
                         ref={emojiPickerRef}
                         className="absolute bg-white border rounded shadow-lg p-2 bottom-[70px]"
                       >
-                        <EmojiPicker onEmojiClick={onEmojiClick} />
+                        <EmojiPicker 
+                        onEmojiClick={onEmojiClick} 
+                        previewConfig={{
+                          showPreview: false,
+                        }}
+                        width={`${window.innerWidth < 768 ? "250px" : "300px"}`}
+                        height={`${window.innerWidth < 768 ? "300px" : "400px"}`}
+                        emojiSize={20}
+                        emojiStyle="facebook"
+                        lazyLoadEmojis={true}
+                        searchDisabled={window.innerWidth < 768}
+                        />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
@@ -2386,7 +2424,7 @@ const Chat2 = () => {
               {showScrollToBottom && (
                 <button
                   type="button"
-                  className="fixed bottom-10 right-4 p-2 bg-blue-500/50 text-white rounded-full shadow-lg"
+                  className="fixed bottom-20 right-4 p-2 bg-blue-500/50 text-white rounded-full shadow-lg"
                   onClick={scrollToBottom}
                   aria-label="Send to Bottom"
                 >
