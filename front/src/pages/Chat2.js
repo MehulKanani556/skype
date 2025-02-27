@@ -2245,10 +2245,6 @@ const Chat2 = () => {
                     );
                   })}
                 </div>
-
-
-
-
               )}
 
               {replyingTo && (
