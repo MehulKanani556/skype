@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   FaPhone,
   FaRegSmile,
@@ -26,7 +26,7 @@ import {
 } from "react-icons/pi";
 import { FiEdit2 } from "react-icons/fi";
 import { SlActionUndo } from "react-icons/sl";
-import EmojiPicker,{ EmojiStyle } from "emoji-picker-react";
+import EmojiPicker, { EmojiStyle } from "emoji-picker-react";
 import AudioPlayer from "./AudioPlayer";
 
 const MessageList = ({
@@ -252,6 +252,8 @@ const MessageContent = ({
         IMG_URL={IMG_URL}
         messages={messages}
         userId={userId}
+        highlightText={highlightText}
+        searchInputbox={searchInputbox}
       />
     );
   } else {
@@ -272,7 +274,8 @@ const MessageContent = ({
         );
       }
       return (
-        <FileMessage message={message} userId={userId} IMG_URL={IMG_URL} />
+        <FileMessage message={message} userId={userId} IMG_URL={IMG_URL} highlightText={highlightText}
+        searchInputbox={searchInputbox} />
       );
     }
 
@@ -314,7 +317,7 @@ const AudioMessage = ({ message, userId, IMG_URL }) => (
   </div>
 );
 
-const FileMessage = ({ message, userId, IMG_URL }) => (
+const FileMessage = ({ message, userId, IMG_URL, highlightText, searchInputbox }) => (
   <div className={`max-w-[300px]`}>
     <div className="flex items-center">
       <a
@@ -325,24 +328,49 @@ const FileMessage = ({ message, userId, IMG_URL }) => (
         <FaDownload className="w-6 h-6" />
       </a>
       <div className="ml-3">
-        <div className="font-medium">{message?.content?.content}</div>
+        <div className="font-medium">{highlightText(message?.content?.content, searchInputbox)}</div>
         <div className="text-sm text-gray-500">{message?.content?.size}</div>
       </div>
     </div>
   </div>
 );
 
-const TextMessage = ({ message, userId, highlightText, searchInputbox }) => (
-  <div
-    className={`group flex-1 flex justify-between items-center relative rounded-lg`}
-  >
-    <div className="flex-1 flex flex-col">
-      <p className="flex-1">
-        {highlightText(message?.content?.content, searchInputbox)}
-      </p>
+const TextMessage = ({ message, userId, highlightText, searchInputbox }) => {
+  const messageContent = message?.content?.content;
+  // Check if message contains only a single emoji
+  const isSingleEmoji = messageContent?.match(/^\p{Emoji}$/gu);
+
+  return (
+    <div
+      className={`group flex-1 flex justify-between items-center relative rounded-lg`}
+    >
+      <div className="flex-1 flex flex-col">
+        <p className="flex-1">
+          {messageContent.split(/(\p{Emoji})/gu).map((part, index) => {
+            // Check if the part is an emoji
+            if (part.match(/\p{Emoji}/gu)) {
+              return (
+                <span key={index} className="inline-block align-middle">
+                  <img
+                    src={`https://cdn.jsdelivr.net/npm/emoji-datasource-facebook/img/facebook/64/${part.codePointAt(0).toString(16)}.png`}
+                    alt={part}
+                    className={`inline ${isSingleEmoji ? 'h-14 w-14' : 'h-5 w-5'}`}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.replaceWith(document.createTextNode(part));
+                    }}
+                  />
+                </span>
+              );
+            }
+            // If not an emoji, apply the highlight text function
+            return <span key={index}>{highlightText(part, searchInputbox)}</span>;
+          })}
+        </p>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const MessageStatus = ({ message, userId }) => (
   <div
@@ -362,7 +390,7 @@ const MessageStatus = ({ message, userId }) => (
   </div>
 );
 
-const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId }) => {
+const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId, highlightText, searchInputbox }) => {
   const getReplyContent = () => {
     return (
       <p>
@@ -442,7 +470,7 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId }) => {
                   fill="#605E5C"
                 ></path>
               </svg>
-              <span>{message?.replyTo?.content?.content}</span>
+              <span>{highlightText(message?.replyTo?.content?.content, searchInputbox)}</span>
             </span>
           </>
         ) : message?.replyTo?.content?.fileType == "application/zip" ? (
@@ -506,7 +534,7 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId }) => {
                   fill="#BF5712"
                 ></path>
               </svg>
-              <span>{message?.replyTo?.content?.content}</span>
+              <span>{highlightText(message?.replyTo?.content?.content, searchInputbox)}</span>
             </span>
           </>
         ) : message?.replyTo?.content?.fileType ==
@@ -589,7 +617,7 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId }) => {
                 ></path>
               </svg>
 
-              <span>{message?.replyTo?.content?.content}</span>
+              <span>{highlightText(message?.replyTo?.content?.content, searchInputbox)}</span>
             </span>
           </>
         ) : message?.replyTo?.content?.fileType ==
@@ -673,24 +701,86 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId }) => {
                 ></path>
               </svg>
 
-              <span>{message?.replyTo?.content?.content}</span>
+              <span>{highlightText(message?.replyTo?.content?.content, searchInputbox)}</span>
             </span>
           </>
-           ) : message?.replyTo?.content?.fileType == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-            message?.replyTo?.content?.fileType == "application/msword" ? (
-            <>
-              <span className="text-center grid place-content-center">
-              <svg width="50" height="50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#afafaf" gradientcolor1="#afafaf" gradientcolor2="#afafaf"><path d="M21.167 3H7.82a.82.82 0 0 0-.82.82v3.17l7.5 2.194L22 6.99V3.833A.836.836 0 0 0 21.167 3" fill="#41A5EE"></path><path d="M22 7H7v5l7.5 2.016L22 12V7Z" fill="#2B7CD3"></path><path d="M22 12H7v5l8 2 7-2v-5Z" fill="#185ABD"></path><path d="M22 17H7v3.177c0 .455.368.823.823.823h13.354a.822.822 0 0 0 .823-.823V17Z" fill="#103F91"></path><path opacity="0.5" d="M13.963 7H7v12h6.759c.63 0 1.241-.611 1.241-1.161V8c0-.55-.467-1-1.037-1"></path><path d="M13 18H3c-.55 0-1-.45-1-1V7c0-.55.45-1 1-1h10c.55 0 1 .45 1 1v10c0 .55-.45 1-1 1" fill="#185ABD"></path><path d="M6.009 13.86c.021.173.034.323.04.45h.024a8.54 8.54 0 0 1 .133-.875l1.104-5.06h1.427l1.142 4.986c.057.246.105.559.143.94h.019c.016-.263.055-.566.119-.91l.913-5.016h1.299l-1.598 7.25H9.256l-1.09-4.803a13.053 13.053 0 0 1-.107-.541 6.634 6.634 0 0 1-.073-.485h-.019a16.446 16.446 0 0 1-.162 1.042l-1.023 4.787H5.241l-1.613-7.25h1.323l.994 5.07c.022.106.043.244.064.416" fill="#fff"></path></svg>
+        ) : message?.replyTo?.content?.fileType ==
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+          message?.replyTo?.content?.fileType == "application/msword" ? (
+          <>
+            <span className="text-center grid place-content-center">
+              <svg
+                width="50"
+                height="50"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="#afafaf"
+                gradientcolor1="#afafaf"
+                gradientcolor2="#afafaf"
+              >
+                <path
+                  d="M21.167 3H7.82a.82.82 0 0 0-.82.82v3.17l7.5 2.194L22 6.99V3.833A.836.836 0 0 0 21.167 3"
+                  fill="#41A5EE"
+                ></path>
+                <path d="M22 7H7v5l7.5 2.016L22 12V7Z" fill="#2B7CD3"></path>
+                <path d="M22 12H7v5l8 2 7-2v-5Z" fill="#185ABD"></path>
+                <path
+                  d="M22 17H7v3.177c0 .455.368.823.823.823h13.354a.822.822 0 0 0 .823-.823V17Z"
+                  fill="#103F91"
+                ></path>
+                <path
+                  opacity="0.5"
+                  d="M13.963 7H7v12h6.759c.63 0 1.241-.611 1.241-1.161V8c0-.55-.467-1-1.037-1"
+                ></path>
+                <path
+                  d="M13 18H3c-.55 0-1-.45-1-1V7c0-.55.45-1 1-1h10c.55 0 1 .45 1 1v10c0 .55-.45 1-1 1"
+                  fill="#185ABD"
+                ></path>
+                <path
+                  d="M6.009 13.86c.021.173.034.323.04.45h.024a8.54 8.54 0 0 1 .133-.875l1.104-5.06h1.427l1.142 4.986c.057.246.105.559.143.94h.019c.016-.263.055-.566.119-.91l.913-5.016h1.299l-1.598 7.25H9.256l-1.09-4.803a13.053 13.053 0 0 1-.107-.541 6.634 6.634 0 0 1-.073-.485h-.019a16.446 16.446 0 0 1-.162 1.042l-1.023 4.787H5.241l-1.613-7.25h1.323l.994 5.07c.022.106.043.244.064.416"
+                  fill="#fff"
+                ></path>
+              </svg>
+            </span>
+            <span className="flex gap-2">
+              <svg
+                width="16"
+                height="16"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="#afafaf"
+                gradientcolor1="#afafaf"
+                gradientcolor2="#afafaf"
+              >
+                <path
+                  d="M21.167 3H7.82a.82.82 0 0 0-.82.82v3.17l7.5 2.194L22 6.99V3.833A.836.836 0 0 0 21.167 3"
+                  fill="#41A5EE"
+                ></path>
+                <path d="M22 7H7v5l7.5 2.016L22 12V7Z" fill="#2B7CD3"></path>
+                <path d="M22 12H7v5l8 2 7-2v-5Z" fill="#185ABD"></path>
+                <path
+                  d="M22 17H7v3.177c0 .455.368.823.823.823h13.354a.822.822 0 0 0 .823-.823V17Z"
+                  fill="#103F91"
+                ></path>
+                <path
+                  opacity="0.5"
+                  d="M13.963 7H7v12h6.759c.63 0 1.241-.611 1.241-1.161V8c0-.55-.467-1-1.037-1"
+                ></path>
+                <path
+                  d="M13 18H3c-.55 0-1-.45-1-1V7c0-.55.45-1 1-1h10c.55 0 1 .45 1 1v10c0 .55-.45 1-1 1"
+                  fill="#185ABD"
+                ></path>
+                <path
+                  d="M6.009 13.86c.021.173.034.323.04.45h.024a8.54 8.54 0 0 1 .133-.875l1.104-5.06h1.427l1.142 4.986c.057.246.105.559.143.94h.019c.016-.263.055-.566.119-.91l.913-5.016h1.299l-1.598 7.25H9.256l-1.09-4.803a13.053 13.053 0 0 1-.107-.541 6.634 6.634 0 0 1-.073-.485h-.019a16.446 16.446 0 0 1-.162 1.042l-1.023 4.787H5.241l-1.613-7.25h1.323l.994 5.07c.022.106.043.244.064.416"
+                  fill="#fff"
+                ></path>
+              </svg>
 
-              </span>
-              <span className="flex gap-2">
-                <svg width="16" height="16" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#afafaf" gradientcolor1="#afafaf" gradientcolor2="#afafaf"><path d="M21.167 3H7.82a.82.82 0 0 0-.82.82v3.17l7.5 2.194L22 6.99V3.833A.836.836 0 0 0 21.167 3" fill="#41A5EE"></path><path d="M22 7H7v5l7.5 2.016L22 12V7Z" fill="#2B7CD3"></path><path d="M22 12H7v5l8 2 7-2v-5Z" fill="#185ABD"></path><path d="M22 17H7v3.177c0 .455.368.823.823.823h13.354a.822.822 0 0 0 .823-.823V17Z" fill="#103F91"></path><path opacity="0.5" d="M13.963 7H7v12h6.759c.63 0 1.241-.611 1.241-1.161V8c0-.55-.467-1-1.037-1"></path><path d="M13 18H3c-.55 0-1-.45-1-1V7c0-.55.45-1 1-1h10c.55 0 1 .45 1 1v10c0 .55-.45 1-1 1" fill="#185ABD"></path><path d="M6.009 13.86c.021.173.034.323.04.45h.024a8.54 8.54 0 0 1 .133-.875l1.104-5.06h1.427l1.142 4.986c.057.246.105.559.143.94h.019c.016-.263.055-.566.119-.91l.913-5.016h1.299l-1.598 7.25H9.256l-1.09-4.803a13.053 13.053 0 0 1-.107-.541 6.634 6.634 0 0 1-.073-.485h-.019a16.446 16.446 0 0 1-.162 1.042l-1.023 4.787H5.241l-1.613-7.25h1.323l.994 5.07c.022.106.043.244.064.416" fill="#fff"></path></svg>
-
-                <span>{message?.replyTo?.content?.content}</span>
-              </span>
-            </>
+              <span>{highlightText(message?.replyTo?.content?.content, searchInputbox)}</span>
+            </span>
+          </>
         ) : (
-          message?.replyTo?.content?.content
+          <span>{highlightText(message?.replyTo?.content?.content, searchInputbox)}</span>
         )}
       </p>
     );
@@ -760,7 +850,7 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId }) => {
         </div>
         {getReplyContent()}
       </div>
-      <p className="p-2">{message.content.content}</p>
+      <p className="p-2">{highlightText(message.content.content, searchInputbox)}</p>
       {/* </div> */}
     </div>
   );
@@ -774,6 +864,22 @@ const MessageReactions = ({
   addMessageReaction,
   allUsers,
 }) => {
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showEmojiPicker?.messageId &&
+        !event.target.closest(".emoji-picker-container") &&
+        !event.target.closest(".emoji-trigger-button")
+      ) {
+        setShowEmojiPicker(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmojiPicker]);
   return (
     <>
       {message.sender !== userId && (
@@ -783,38 +889,52 @@ const MessageReactions = ({
               className="hover:scale-125 transition-transform absolute -right-6 -top-0 text-gray-400"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowEmojiPicker(message._id);
+
+                const messageElement = document.getElementById(
+                  `message-${message._id}`
+                );
+                const messageRect = messageElement.getBoundingClientRect();
+                const windowHeight = window.innerHeight;
+
+                const isInBottomHalf = messageRect.top > windowHeight / 2;
+
+                setShowEmojiPicker({
+                  messageId: message._id,
+                  position: isInBottomHalf ? "top" : "bottom",
+                });
               }}
             >
               <FaRegSmile />
             </button>
-            {showEmojiPicker === message._id && (
+            {showEmojiPicker?.messageId === message._id && (
               <div
-                className="absolute -right-[320px] -top-[0px] z-50"
+                className="absolute z-50"
+                style={{
+                  right: "calc(-290px + 24px)",
+                  ...(showEmojiPicker.position === "top"
+                    ? { bottom: "24px" }
+                    : { top: "24px" }),
+                }}
                 onMouseLeave={() => setShowEmojiPicker(null)}
               >
-                <div
-                  className="absolute bottom-0 right-0 z-50"
-                  onMouseLeave={() => setShowEmojiPicker(null)}
-                >
-                  <EmojiPicker
-                    onEmojiClick={(event) => {
-                      addMessageReaction(message, event.emoji);
-                      setShowEmojiPicker(null);
-                    }}
-                    width={300}
-                    height={200}
-                    searchDisabled
-                    skinTonesDisabled
-                    previewConfig={{
-                      showPreview: false,
-                    }}
-                    theme="light"
-                    emojiSize={20}
-                    emojiStyle="facebook"
-                    emojiSet="facebook" // This line ensures only frequently used emojis are shown
-                  />
-                </div>
+                <EmojiPicker
+                  onEmojiClick={(event) => {
+                    addMessageReaction(message, event.emoji);
+                    setShowEmojiPicker(null);
+                  }}
+                  width={250}
+                  height={300}
+                  searchDisabled
+                  skinTonesDisabled
+                  previewConfig={{
+                    showPreview: false,
+                  }}
+                  theme="light"
+                  emojiSize={20}
+                  emojiStyle="facebook"
+                  emojiSet="facebook"
+                  lazyLoadEmojis={true}
+                />
               </div>
             )}
           </div>
@@ -829,7 +949,9 @@ const MessageReactions = ({
               title={allUsers.find((u) => u._id === reaction.userId)?.userName}
             >
               <img
-                src={`https://cdn.jsdelivr.net/npm/emoji-datasource-facebook/img/facebook/64/${reaction.emoji.codePointAt(0).toString(16)}.png`}
+                src={`https://cdn.jsdelivr.net/npm/emoji-datasource-facebook/img/facebook/64/${reaction.emoji
+                  .codePointAt(0)
+                  .toString(16)}.png`}
                 alt={reaction.emoji}
                 className="w-4 h-4"
                 onError={(e) => {
@@ -858,20 +980,45 @@ const MessageContextMenu = ({
   dropdownRef,
   userId,
 }) => {
+  const getMenuPosition = () => {
+    if (!contextMenu.visible) return {};
+
+    const menuWidth = 112; // w-28 = 7rem = 112px
+    const menuHeight = 200; // Approximate max height of menu
+    const screenPadding = 10; // Minimum padding from screen edges
+
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    let x = contextMenu.x;
+    let y = contextMenu.y;
+
+    // Check horizontal overflow
+    if (x + menuWidth > viewportWidth - screenPadding) {
+      x = viewportWidth - menuWidth - screenPadding;
+    } else if (x < screenPadding) {
+      x = screenPadding;
+    }
+
+    // Check vertical overflow
+    if (y + menuHeight > viewportHeight - screenPadding) {
+      y = y - menuHeight; // Show menu above the click position
+    }
+
+    return {
+      top: `${y}px`,
+      left: `${x}px`,
+      transform: "translate(-50%, 0)",
+    };
+  };
+
   return (
     <>
       {contextMenu.visible && contextMenu.messageId === message._id && (
         <div
           className="fixed bg-white border rounded shadow-lg z-[1000]"
-          style={{
-            top: `${contextMenu.y}px`,
-            left: `${contextMenu.x}px`,
-            transform: "translate(-50%, 0)",
-          }}
-          // onClick={(e) => {
-          //   e.stopPropagation();
-          //   e.preventDefault();
-          // }}
+          style={getMenuPosition()}
+          onClick={(e) => e.stopPropagation()}
         >
           {!message.content?.fileType?.includes("image/") &&
             !message.content?.fileType?.includes("audio/") &&
@@ -964,131 +1111,136 @@ const RegularMessage = ({
       key={message._id}
       id={`message-${message._id}`}
       className={`flex relative ${
-      message.sender === userId
-        ? "justify-end items-end"
-        : "justify-start items-start"
-    }  message-content 
+        message.sender === userId
+          ? "justify-end items-end"
+          : "justify-start items-start"
+      }  message-content 
     ${
       message.reactions && message.reactions.length > 0
         ? "mb-8"
         : `${isConsecutive ? "mb-1" : "mb-4"}`
     }
     ${showTime ? "mt-3" : ""}`}
-  >
-    <div
-      className="flex flex-col relative group"
-      onContextMenu={(e) => handleContextMenu(e, message)}
     >
-      <div className="flex justify-between items-center pr-7">
-        <div>
-          {message?.forwardedFrom && (
-            <div className="forwarded-label text-gray-500 text-sm mb-1">
-              <BiShare className="inline mr-1" />
+      <div
+        className="flex flex-col relative group"
+        onContextMenu={(e) => handleContextMenu(e, message)}
+      >
+        <div className="flex justify-between items-center pr-7">
+          <div>
+            {message?.forwardedFrom && (
+              <div className="forwarded-label text-gray-500 text-sm mb-1">
+                <BiShare className="inline mr-1" />
+              </div>
+            )}
+          </div>
+
+          {showTime && (
+            <div
+              className={`text-xs text-gray-500 bg-white text-right order-1 ${
+                message.sender === userId ? "text-right" : "text-start"
+              }`}
+            >
+              {selectedChat?.members && message.sender !== userId
+                ? `${name},`
+                : ""}{" "}
+              {currentTime}
             </div>
           )}
         </div>
 
-        {showTime && (
+        <div className="flex">
           <div
-            className={`text-xs text-gray-500 bg-white text-right order-1 ${
-              message.sender === userId ? "text-right" : "text-start"
-            }`}
-          >
-            {selectedChat?.members && message.sender !== userId
-              ? `${name},`
-              : ""}{" "}
-            {currentTime}
-          </div>
-        )}
-      </div>
-
-      <div className="flex">
-        <div
-          className={`p-2 relative ${
-            message.sender === userId
-              ? "bg-[#CCF7FF] rounded-s-lg"
-              : "bg-[#F1F1F1] rounded-e-lg "
-          }
+            className={`p-2 relative ${
+              message.sender === userId
+                ? "bg-[#CCF7FF] rounded-s-lg"
+                : "bg-[#F1F1F1] rounded-e-lg "
+            }
     ${showTime ? " rounded-tr-lg rounded-tl-lg" : ""}
     ${message.reactions && message.reactions.length > 0 ? "pb-4" : ""}
     `}
-        >
-          <MessageContent
-            message={message}
-            userId={userId}
-            handleImageClick={handleImageClick}
-            highlightText={highlightText}
-            searchInputbox={searchInputbox}
-            IMG_URL={IMG_URL}
-            messages={messages}
-            allUsers={allUsers}
-          />
+          >
+            <MessageContent
+              message={message}
+              userId={userId}
+              handleImageClick={handleImageClick}
+              highlightText={highlightText}
+              searchInputbox={searchInputbox}
+              IMG_URL={IMG_URL}
+              messages={messages}
+              allUsers={allUsers}
+            />
 
-          {message.edited && (
+            {message.edited && (
+              <div
+                className={`absolute bottom-0 ${
+                  message.sender === userId ? "-left-5" : "-right-5"
+                } flex items-center text-xs text-gray-500 mt-1`}
+              >
+                <FiEdit2 className="w-4 h-4" />
+              </div>
+            )}
+
+            {/* Add three dots icon */}
             <div
-              className={`absolute bottom-0 ${
-                message.sender === userId ? "-left-5" : "-right-5"
-              } flex items-center text-xs text-gray-500 mt-1`}
+              className={`absolute ${
+                message.sender === userId ? "-right-4" : "-left-4"
+              } top-0 opacity-0 group-hover:opacity-100 cursor-pointer`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+
+                const x =
+                  message.sender === userId
+                    ? rect.x  + 200 // For right-aligned messages
+                    : rect.x + 70; // For left-aligned messages
+
+                setContextMenu({
+                  visible: true,
+                  x: x,
+                  y: rect.y + rect.height,
+                  messageId: message._id,
+                  message: message,
+                });
+              }}
             >
-              <FiEdit2 className="w-4 h-4" />
+              <PiDotsThreeVerticalBold className="text-gray-700 hover:text-gray-900" />
             </div>
+          </div>
+          {message.sender === userId && (
+            <MessageStatus message={message} userId={userId} />
           )}
 
-          {/* Add three dots icon */}
-          <div
-            className={`absolute ${
-              message.sender === userId ? "-right-4" : "-left-4"
-            } top-0 opacity-0 group-hover:opacity-100 cursor-pointer`}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              const rect = e.currentTarget.getBoundingClientRect();
-              // console.log("rect", rect.x);
-              setContextMenu({
-                visible: true,
-                x: rect.x + (message.sender === userId ? -50 : 50),
-                y: rect.y + rect.height + 5,
-                messageId: message._id,
-                message: message,
-              });
-            }}
-          >
-            <PiDotsThreeVerticalBold className="text-gray-700 hover:text-gray-900" />
-          </div>
+          <MessageReactions
+            message={message}
+            userId={userId}
+            showEmojiPicker={showEmojiPicker}
+            setShowEmojiPicker={setShowEmojiPicker}
+            addMessageReaction={addMessageReaction}
+            allUsers={allUsers}
+          />
         </div>
-        {message.sender === userId && (
-          <MessageStatus message={message} userId={userId} />
-        )}
 
-        <MessageReactions
+        {/* {console.log("contextMenu", contextMenu)} */}
+
+        <MessageContextMenu
           message={message}
+          contextMenu={contextMenu}
+          handleEditMessage={handleEditMessage}
+          handleDeleteMessage={handleDeleteMessage}
+          handleCopyMessage={handleCopyMessage}
+          handleReplyMessage={handleReplyMessage}
+          handleForwardMessage={handleForwardMessage}
+          setContextMenu={setContextMenu}
+          setActiveMessageId={setActiveMessageId}
+          dropdownRef={dropdownRef}
           userId={userId}
-          showEmojiPicker={showEmojiPicker}
-          setShowEmojiPicker={setShowEmojiPicker}
-          addMessageReaction={addMessageReaction}
-          allUsers={allUsers}
         />
       </div>
-
-      {/* {console.log("contextMenu", contextMenu)} */}
-
-      <MessageContextMenu
-        message={message}
-        contextMenu={contextMenu}
-        handleEditMessage={handleEditMessage}
-        handleDeleteMessage={handleDeleteMessage}
-        handleCopyMessage={handleCopyMessage}
-        handleReplyMessage={handleReplyMessage}
-        handleForwardMessage={handleForwardMessage}
-        setContextMenu={setContextMenu}
-        setActiveMessageId={setActiveMessageId}
-        dropdownRef={dropdownRef}
-        userId={userId}
-      />
     </div>
-  </div>
-);
-}
+  );
+};
 
 const EmptyMessages = () => (
   <div className="h-full flex items-center justify-center text-gray-500">
