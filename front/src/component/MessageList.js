@@ -1106,6 +1106,10 @@ const RegularMessage = ({
   selectedChat,
   messages,
 }) => {
+
+  const messageContent = message?.content?.content; 
+  const isSingleEmoji = messageContent?.match(/^\p{Emoji}$/gu);
+
   return (
     <div
       key={message._id}
@@ -1151,7 +1155,7 @@ const RegularMessage = ({
 
         <div className="flex">
           <div
-            className={`p-2 relative ${
+            className={`p-2 relative ${ isSingleEmoji ? 'bg-transparent' :
               message.sender === userId
                 ? "bg-[#CCF7FF] rounded-s-lg"
                 : "bg-[#F1F1F1] rounded-e-lg "
@@ -1212,14 +1216,16 @@ const RegularMessage = ({
             <MessageStatus message={message} userId={userId} />
           )}
 
-          <MessageReactions
-            message={message}
-            userId={userId}
-            showEmojiPicker={showEmojiPicker}
-            setShowEmojiPicker={setShowEmojiPicker}
-            addMessageReaction={addMessageReaction}
+          {!isSingleEmoji && (
+            <MessageReactions
+              message={message}
+              userId={userId}
+              showEmojiPicker={showEmojiPicker}
+              setShowEmojiPicker={setShowEmojiPicker}
+              addMessageReaction={addMessageReaction}
             allUsers={allUsers}
           />
+          )}
         </div>
 
         {/* {console.log("contextMenu", contextMenu)} */}
