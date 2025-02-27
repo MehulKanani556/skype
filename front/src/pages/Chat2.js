@@ -2299,14 +2299,15 @@ const Chat2 = () => {
                           editingMessage ? "Edit message..." : "Type a message"
                         }
                         className="w-full px-2 py-1 outline-none text-black bg-transparent"
-                        onKeyDown={(e) => {
+                        onKeyDown={async (e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
-                            handleSubmit(e);
+                           
                             if (selectedFiles.length > 0) {
-                              handleMultipleFileUpload(selectedFiles); // Upload selected files
+                             await handleMultipleFileUpload(selectedFiles); // Upload selected files
                               setSelectedFiles([]); // Clear selected files after sending
                             }
+                            await handleSubmit(e);
                           } else if (e.key === "Escape" && editingMessage) {
                             setEditingMessage(null);
                             setMessageInput("");

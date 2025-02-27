@@ -26,7 +26,7 @@ import {
 } from "react-icons/pi";
 import { FiEdit2 } from "react-icons/fi";
 import { SlActionUndo } from "react-icons/sl";
-import EmojiPicker from "emoji-picker-react";
+import EmojiPicker,{ EmojiStyle } from "emoji-picker-react";
 import AudioPlayer from "./AudioPlayer";
 
 const MessageList = ({
@@ -801,15 +801,18 @@ const MessageReactions = ({
                     onEmojiClick={(event) => {
                       addMessageReaction(message, event.emoji);
                       setShowEmojiPicker(null);
-                      // dispatch(getAllMessages({selectedId:selectedChat._id}));
                     }}
                     width={300}
-                    height={400}
+                    height={200}
                     searchDisabled
                     skinTonesDisabled
                     previewConfig={{
                       showPreview: false,
                     }}
+                    theme="light"
+                    emojiSize={20}
+                    emojiStyle="facebook"
+                    emojiSet="facebook" // This line ensures only frequently used emojis are shown
                   />
                 </div>
               </div>
@@ -822,10 +825,18 @@ const MessageReactions = ({
           {message.reactions.map((reaction, index) => (
             <div
               key={index}
-              className="z-40 bg-white rounded-full p-1 w-7 h-7 flex items-center justify-center shadow-md shadow-black"
+              className="z-40 bg-white rounded-full p-1 w-6 h-6 flex items-center justify-center shadow-md shadow-gray-400"
               title={allUsers.find((u) => u._id === reaction.userId)?.userName}
             >
-              {reaction.emoji}
+              <img
+                src={`https://cdn.jsdelivr.net/npm/emoji-datasource-facebook/img/facebook/64/${reaction.emoji.codePointAt(0).toString(16)}.png`}
+                alt={reaction.emoji}
+                className="w-4 h-4"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.innerHTML = reaction.emoji;
+                }}
+              />
             </div>
           ))}
         </div>
