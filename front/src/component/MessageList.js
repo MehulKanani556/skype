@@ -74,14 +74,14 @@ const MessageList = ({
                 const isSameMinute =
                   prevMessage &&
                   new Date(message?.createdAt).getMinutes() ===
-                  new Date(prevMessage?.createdAt).getMinutes();
+                    new Date(prevMessage?.createdAt).getMinutes();
                 const issameUser = message.sender === prevMessage?.sender;
 
                 const showTime =
                   !prevMessage ||
                   new Date(message?.createdAt).getMinutes() -
-                  new Date(prevMessage?.createdAt).getMinutes() >
-                  0 ||
+                    new Date(prevMessage?.createdAt).getMinutes() >
+                    0 ||
                   !issameUser;
 
                 const name = allUsers.find(
@@ -189,8 +189,9 @@ const CallMessage = ({ message, userId, handleMakeCall }) => {
   return (
     <div className="flex justify-center my-2">
       <div
-        className={`flex items-center ${isCompleted ? "text-gray-600" : "text-red-500"
-          } text-sm px-3 py-2 rounded-md bg-gray-100`}
+        className={`flex items-center ${
+          isCompleted ? "text-gray-600" : "text-red-500"
+        } text-sm px-3 py-2 rounded-md bg-gray-100`}
       >
         <FaPhone
           className={message.sender === userId ? "rotate-90" : "-rotate-90"}
@@ -202,8 +203,8 @@ const CallMessage = ({ message, userId, handleMakeCall }) => {
                 ? "Outgoing call"
                 : "Call not answered"
               : isCompleted
-                ? "Incoming call"
-                : "Missed call"}
+              ? "Incoming call"
+              : "Missed call"}
             {isCompleted && ` • ${message.content.duration}`}
           </span>
           <span className="text-gray-500 text-xs">
@@ -216,7 +217,7 @@ const CallMessage = ({ message, userId, handleMakeCall }) => {
         </div>
         <span className="cursor-pointer ml-12 bg-gray-300 p-2 rounded-full">
           {message.content.callType === "voice" ||
-            message.content.callType === "audio" ? (
+          message.content.callType === "audio" ? (
             <MdPhoneEnabled
               className="w-5 h-5 cursor-pointer text-black"
               onClick={() => handleMakeCall("audio")}
@@ -242,7 +243,6 @@ const MessageContent = ({
   searchInputbox,
   allUsers,
   messages,
-  handleDownload
 }) => {
   if (message.replyTo) {
     return (
@@ -274,8 +274,8 @@ const MessageContent = ({
         );
       }
       return (
-        <FileMessage message={message} handleDownload={handleDownload} userId={userId} IMG_URL={IMG_URL} highlightText={highlightText}
-          searchInputbox={searchInputbox} />
+        <FileMessage message={message} userId={userId} IMG_URL={IMG_URL} highlightText={highlightText}
+        searchInputbox={searchInputbox} />
       );
     }
 
@@ -317,15 +317,16 @@ const AudioMessage = ({ message, userId, IMG_URL }) => (
   </div>
 );
 
-const FileMessage = ({ message, userId, IMG_URL, highlightText, handleDownload, searchInputbox }) => (
+const FileMessage = ({ message, userId, IMG_URL, highlightText, searchInputbox }) => (
   <div className={`max-w-[300px]`}>
-    <div className="flex items-center flex-col gap-3">
-      <div
-        onClick={() => handleDownload(message?.content?.fileUrl, message?.content?.content)}
-        className="ml-2 mt-2 text-blue-500 hover:underline cursor-pointer"
+    <div className="flex items-center">
+      <a
+        href={`${IMG_URL}${message?.content?.fileUrl?.replace(/\\/g, "/")}`}
+        download={message?.content?.content}
+        className="ml-2 text-blue-500 hover:underline"
       >
         <FaDownload className="w-6 h-6" />
-      </div>
+      </a>
       <div className="ml-3">
         <div className="font-medium">{highlightText(message?.content?.content, searchInputbox)}</div>
         <div className="text-sm text-gray-500">{message?.content?.size}</div>
@@ -373,8 +374,9 @@ const TextMessage = ({ message, userId, highlightText, searchInputbox }) => {
 
 const MessageStatus = ({ message, userId }) => (
   <div
-    className={`flex items-end mt-1 ${message.showTime ? "bottom-3" : "-bottom-2"
-      } right-0`}
+    className={`flex items-end mt-1 ${
+      message.showTime ? "bottom-3" : "-bottom-2"
+    } right-0`}
   >
     {message.status === "sent" && (
       <IoCheckmarkCircleOutline className="text-xl mr-1 text-gray-600 font-bold" />
@@ -393,7 +395,7 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId, highlightT
     return (
       <p>
         {message?.replyTo?.content &&
-          message.replyTo.content.fileType?.startsWith("image/") ? (
+        message.replyTo.content.fileType?.startsWith("image/") ? (
           <img
             src={`${IMG_URL}${message?.replyTo?.content.fileUrl.replace(
               /\\/g,
@@ -536,7 +538,7 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId, highlightT
             </span>
           </>
         ) : message?.replyTo?.content?.fileType ==
-          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
           message?.replyTo?.content?.fileType == "application/vnd.ms-excel" ? (
           <>
             <span className="text-center grid place-content-center">
@@ -619,9 +621,9 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId, highlightT
             </span>
           </>
         ) : message?.replyTo?.content?.fileType ==
-          "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
           message?.replyTo?.content?.fileType ==
-          "application/vnd.ms-powerpoint" ? (
+            "application/vnd.ms-powerpoint" ? (
           <>
             <span className="text-center grid place-content-center">
               <svg
@@ -703,7 +705,7 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId, highlightT
             </span>
           </>
         ) : message?.replyTo?.content?.fileType ==
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
           message?.replyTo?.content?.fileType == "application/msword" ? (
           <>
             <span className="text-center grid place-content-center">
@@ -787,9 +789,9 @@ const ReplyPreview = ({ message, allUsers, IMG_URL, messages, userId, highlightT
   return (
     <div
       className="flex justify-between rounded-lg flex-col-reverse relative"
-    // style={{
-    //   backgroundColor: `${message.sender === userId ? "#ccf7ff" : "#f1f1f1"}`,
-    // }}
+      // style={{
+      //   backgroundColor: `${message.sender === userId ? "#ccf7ff" : "#f1f1f1"}`,
+      // }}
     >
       {/* <div className="flex flex-col-reverse"> */}
       <div
@@ -866,7 +868,7 @@ const MessageReactions = ({
     const handleClickOutside = (event) => {
       if (
         showEmojiPicker?.messageId &&
-        !event.target.closest(".emoji-picker-container") &&
+        !event.target.closest(".EmojiPickerReact") && 
         !event.target.closest(".emoji-trigger-button")
       ) {
         setShowEmojiPicker(null);
@@ -1020,7 +1022,7 @@ const MessageContextMenu = ({
         >
           {!message.content?.fileType?.includes("image/") &&
             !message.content?.fileType?.includes("audio/") &&
-            message.sender === userId && (
+            message.receiver !== userId && (
               <>
                 <button
                   className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
@@ -1038,6 +1040,7 @@ const MessageContextMenu = ({
                 >
                   <CiSquareRemove className="mr-2" /> Remove
                 </button>
+                
               </>
             )}
           {!message.content?.fileType?.includes("audio/") && (
@@ -1068,6 +1071,15 @@ const MessageContextMenu = ({
           >
             <BiShare className="mr-2" /> Forward
           </button>
+
+          {message.content?.fileType?.includes("audio/") && (
+            <button
+            className="w-28 px-4 py-2 text-left text-black flex items-center hover:bg-gray-100"
+            onClick={() => handleDeleteMessage(message._id)}
+          >
+            <CiSquareRemove className="mr-2" /> Remove
+          </button>
+          )}
         </div>
       )}
     </>
@@ -1105,36 +1117,23 @@ const RegularMessage = ({
   messages,
 }) => {
 
-  const messageContent = message?.content?.content;
+  const messageContent = message?.content?.content; 
   const isSingleEmoji = messageContent?.match(/^\p{Emoji}$/gu);
-  const handleDownload = (fileUrl, fileName) => {
-    const durl = `${IMG_URL}${fileUrl}`;
-    fetch(durl)
-      .then(response => response.blob())
-      .then(blob => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      })
-      .catch(error => console.error("Download error:", error));
-  };
+
   return (
     <div
       key={message._id}
       id={`message-${message._id}`}
-      className={`flex relative ${message.sender === userId
-        ? "justify-end items-end"
-        : "justify-start items-start"
-        }  message-content 
-    ${message.reactions && message.reactions.length > 0
-          ? "mb-8"
-          : `${isConsecutive ? "mb-1" : "mb-4"}`
-        }
+      className={`flex relative ${
+        message.sender === userId
+          ? "justify-end items-end"
+          : "justify-start items-start"
+      }  message-content 
+    ${
+      message.reactions && message.reactions.length > 0
+        ? "mb-8"
+        : `${isConsecutive ? "mb-1" : "mb-4"}`
+    }
     ${showTime ? "mt-3" : ""}`}
     >
       <div
@@ -1152,8 +1151,9 @@ const RegularMessage = ({
 
           {showTime && (
             <div
-              className={`text-xs text-gray-500 bg-white text-right order-1 ${message.sender === userId ? "text-right" : "text-start"
-                }`}
+              className={`text-xs text-gray-500 bg-white text-right order-1 ${
+                message.sender === userId ? "text-right" : "text-start"
+              }`}
             >
               {selectedChat?.members && message.sender !== userId
                 ? `${name},`
@@ -1165,11 +1165,11 @@ const RegularMessage = ({
 
         <div className="flex">
           <div
-            className={`p-2 relative ${isSingleEmoji ? 'bg-transparent' :
+            className={`p-2 relative ${ isSingleEmoji ? 'bg-transparent' :
               message.sender === userId
                 ? "bg-[#CCF7FF] rounded-s-lg"
                 : "bg-[#F1F1F1] rounded-e-lg "
-              }
+            }
     ${showTime ? " rounded-tr-lg rounded-tl-lg" : ""}
     ${message.reactions && message.reactions.length > 0 ? "pb-4" : ""}
     `}
@@ -1178,7 +1178,6 @@ const RegularMessage = ({
               message={message}
               userId={userId}
               handleImageClick={handleImageClick}
-              handleDownload={handleDownload}
               highlightText={highlightText}
               searchInputbox={searchInputbox}
               IMG_URL={IMG_URL}
@@ -1188,8 +1187,9 @@ const RegularMessage = ({
 
             {message.edited && (
               <div
-                className={`absolute bottom-0 ${message.sender === userId ? "-left-5" : "-right-5"
-                  } flex items-center text-xs text-gray-500 mt-1`}
+                className={`absolute bottom-0 ${
+                  message.sender === userId ? "-left-5" : "-right-5"
+                } flex items-center text-xs text-gray-500 mt-1`}
               >
                 <FiEdit2 className="w-4 h-4" />
               </div>
@@ -1197,8 +1197,9 @@ const RegularMessage = ({
 
             {/* Add three dots icon */}
             <div
-              className={`absolute ${message.sender === userId ? "-right-4" : "-left-4"
-                } top-0 opacity-0 group-hover:opacity-100 cursor-pointer`}
+              className={`absolute ${
+                message.sender === userId ? "-right-4" : "-left-4"
+              } top-0 opacity-0 group-hover:opacity-100 cursor-pointer`}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1206,7 +1207,7 @@ const RegularMessage = ({
 
                 const x =
                   message.sender === userId
-                    ? rect.x + 200 // For right-aligned messages
+                    ? rect.x  + 200 // For right-aligned messages
                     : rect.x + 70; // For left-aligned messages
 
                 setContextMenu({
@@ -1232,8 +1233,8 @@ const RegularMessage = ({
               showEmojiPicker={showEmojiPicker}
               setShowEmojiPicker={setShowEmojiPicker}
               addMessageReaction={addMessageReaction}
-              allUsers={allUsers}
-            />
+            allUsers={allUsers}
+          />
           )}
         </div>
 

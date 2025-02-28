@@ -431,13 +431,16 @@ const Chat2 = () => {
 
     const unsubscribeMessages = subscribeToMessages((message) => {
       if (message.type === "delete") {
-        dispatch(getAllMessages({ selectedId: selectedChat._id }));
+        if (selectedChat) {
+          dispatch(getAllMessages({ selectedId: selectedChat._id }));
+        }
       } else {
         if (selectedChat) {
           dispatch(getAllMessages({ selectedId: selectedChat._id }));
         }
-        dispatch(getAllMessageUsers());
       }
+      dispatch(getAllMessageUsers());
+      dispatch(getAllCallUsers());
     });
     return () => {
       unsubscribeMessages?.();
@@ -576,6 +579,7 @@ const Chat2 = () => {
 
   //===========emoji picker===========
   const onEmojiClick = (event, emojiObject) => {
+    // console.log("event", event, emojiObject);
     setMessageInput((prevMessage) => prevMessage + event.emoji);
   };
 
@@ -686,9 +690,9 @@ const Chat2 = () => {
 
   const handleDeleteMessage = async (messageId) => {
     try {
-      await dispatch(deleteMessage(messageId));
       // Emit socket event for real-time deletion
-      socket.emit("delete-message", messageId);
+      await socket.emit("delete-message", messageId);
+      await dispatch(deleteMessage(messageId));
       if (selectedChat) {
         dispatch(getAllMessages({ selectedId: selectedChat._id }));
       }
@@ -765,6 +769,8 @@ const Chat2 = () => {
           dispatch(getAllMessages({ selectedId: selectedChat._id })); // Refresh messages if needed
         }
       }
+      dispatch(getAllMessageUsers());
+      dispatch(getAllCallUsers());
     });
 
     return () => {
@@ -2113,7 +2119,7 @@ const Chat2 = () => {
                 )}
               </div>
               {/*========== Messages ==========*/}
-              {console.log("replyingTo",replyingTo)}
+              {/* {console.log("replyingTo",replyingTo)} */}
 
               <div
                className="flex-1 overflow-y-auto p-4 modal_scroll"

@@ -1244,6 +1244,7 @@ export const useSocket = (userId, localVideoRef, remoteVideoRef, allUsers) => {
 
   // ===========================message reaction=============================
   const addMessageReaction = (message, emoji) => {
+    console.log("addMessageReaction", message, emoji);
     if (!socketRef.current?.connected) return;
     socketRef.current.emit("message-reaction", {
       messageId:message._id,
