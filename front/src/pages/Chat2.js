@@ -22,16 +22,12 @@ import {
   FaFile,
   FaFileAudio,
 } from "react-icons/fa";
-import { PiDotsThreeVerticalBold, PiDotsThreeBold } from "react-icons/pi";
-import { VscCallIncoming, VscCallOutgoing, VscCopy } from "react-icons/vsc";
+import { PiDotsThreeBold } from "react-icons/pi";
 import {
   MdCallEnd,
   MdOutlineModeEdit,
-  MdPhoneEnabled,
   MdGroupAdd,
-  MdOutlineModeEditOutline,
 } from "react-icons/md";
-import { CiSquareRemove } from "react-icons/ci";
 import { RiShutDownLine } from "react-icons/ri";
 import {
   LuScreenShare,
@@ -47,9 +43,6 @@ import { RxCross2 } from "react-icons/rx";
 import {
   IoCallOutline,
   IoCameraOutline,
-  IoCheckmarkCircleOutline,
-  IoCheckmarkDoneCircle,
-  IoCheckmarkDoneCircleOutline,
   IoPersonCircleOutline,
 } from "react-icons/io5";
 import { useSocket } from "../hooks/useSocket";
@@ -74,11 +67,7 @@ import { BASE_URL, IMG_URL } from "../utils/baseUrl";
 import axios from "axios";
 import Front from "../component/Front";
 import { MdOutlineDeleteSweep } from "react-icons/md";
-import AudioPlayer from "../component/AudioPlayer";
 import ChatItem from "../component/ChatItem";
-import MessageInputForm from '../component/MessageInputForm'
-import { BiReply, BiShare } from "react-icons/bi";
-import { SlActionUndo } from "react-icons/sl";
 import MessageList from "../component/MessageList";
 
 // Forward Modal Component
@@ -322,6 +311,15 @@ const Chat2 = () => {
     forwardMessage,
     addMessageReaction,
   } = useSocket(currentUser, localVideoRef, remoteVideoRef, allUsers);
+
+
+  // ====================auth=======================
+  
+  useEffect(()=>{
+    if(!currentUser){
+      navigate("/");
+    }
+  },[])
 
   //===========get all users===========
   useEffect(() => {
